@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-<<<<<<< HEAD
+
   // =========================
   // BRAND GRADIENTS
   // =========================
@@ -46,6 +46,6 @@ class AppColors {
   static const Color textSecondary = Color(0xFF595959);
 
   static const Color background = Color(0xFFFFFFFF);
-=======
->>>>>>> 3fb84c9407145f53192b21ceeee81835c22f8896
+
+
 }
