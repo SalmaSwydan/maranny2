@@ -1,0 +1,82 @@
+import '../utils/marketplace_product.dart';
+
+/// Persists marketplace products so they survive navigation (e.g. Home → back to Marketplace).
+class SharedMarketplaceManager {
+  SharedMarketplaceManager._();
+
+  static bool _seeded = false;
+  static final List<MarketplaceProduct> _products = [];
+
+  static void _seedIfNeeded() {
+    if (_seeded) return;
+    _seeded = true;
+    _products.addAll([
+      const MarketplaceProduct(
+        id: '1',
+        title: 'Professional Football',
+        category: 'Equipment',
+        condition: 'New',
+        price: 35,
+        imageAsset: 'assets/images/football.jpg',
+        sellerName: 'Sports Store',
+        sellerRating: 4.9,
+        reviewers: 80,
+        location: 'Cairo, Egypt',
+        whatsapp: '+20 100 123 4567',
+        description:
+            'Professional grade football perfect for training and matches. Made with high-quality synthetic leather, excellent grip and durability.',
+      ),
+      const MarketplaceProduct(
+        id: '2',
+        title: 'Basketball Shoes',
+        category: 'Clothing',
+        condition: 'New',
+        price: 120,
+        imageAsset: 'assets/images/shoes.jpg',
+        sellerName: 'Sports Store',
+        sellerRating: 4.9,
+        reviewers: 80,
+        location: 'Cairo, Egypt',
+        whatsapp: '+20 100 123 4567',
+        description: 'High-performance shoes designed for comfort and stability.',
+      ),
+      const MarketplaceProduct(
+        id: '3',
+        title: 'Yoga Mat',
+        category: 'Accessories',
+        condition: 'New',
+        price: 25,
+        imageAsset: 'assets/images/yoga.jpg',
+        sellerName: 'Wellness Store',
+        sellerRating: 4.5,
+        reviewers: 80,
+        location: 'Cairo, Egypt',
+        whatsapp: '+20 100 123 4567',
+        description: 'Non-slip yoga mat perfect for home workouts.',
+      ),
+      const MarketplaceProduct(
+        id: '4',
+        title: 'Swimming Goggles',
+        category: 'Accessories',
+        condition: 'Used',
+        price: 12,
+        imageAsset: 'assets/images/goggles.jpg',
+        sellerName: 'Sports Store',
+        sellerRating: 4.9,
+        reviewers: 80,
+        location: 'Cairo, Egypt',
+        whatsapp: '+20 100 123 4567',
+        description: 'Used goggles in good condition.',
+      ),
+    ]);
+  }
+
+  static List<MarketplaceProduct> getProducts() {
+    _seedIfNeeded();
+    return List<MarketplaceProduct>.from(_products);
+  }
+
+  static void addProduct(MarketplaceProduct product) {
+    _products.insert(0, product);
+  }
+}

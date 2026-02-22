@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'features/home/presentation/screens/guest_homescreen.dart';
+import 'features/home/presentation/screens/coach_homescreen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,7 +12,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: GuestHomeScreen(
+      home: CoachHomeScreen(
         onAuthRequired: () {
           debugPrint('Auth required');
         },
