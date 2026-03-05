@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'features/home/presentation/screens/guest_homescreen.dart';
+// import 'features/home/presentation/screens/guest_homescreen.dart';
+import 'features/become_coach/presentation/screens/coach_info_screen.dart';
+// import 'features/become_coach/presentation/screens/coach_specialties_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,11 +14,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: GuestHomeScreen(
-        onAuthRequired: () {
-          debugPrint('Auth required');
-        },
-      ),
+      home: const CoachInfoScreen(), // Starting from CoachInfoScreen
+      // home: GuestHomeScreen(
+      //   onAuthRequired: () {
+      //     debugPrint('Auth required');
+      //   },
+      // ),
     );
   }
 }
