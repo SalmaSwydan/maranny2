@@ -47,5 +47,7 @@ class AppColors {
 
   static const Color background = Color(0xFFFFFFFF);
 
+  /// success / new tag
+  static const Color confirmed = Color(0xFF4CAF50);
 
 }

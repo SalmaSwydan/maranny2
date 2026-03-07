@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/get_started_section.dart';
-import '../widgets/home_header.dart';
+import '../widgets/guest_home_header.dart';
 import '../widgets/create_account_card.dart';
 import '../widgets/why_maranny_section.dart';
 import '../widgets/featured_coaches_section.dart';
