@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:maranny_two/features/auth/presentation/screens/login_screen.dart';
+import 'package:maranny_two/features/auth/presentation/screens/register_screen.dart';
+import 'package:maranny_two/features/auth/presentation/screens/welcome_screen.dart';
 
-class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({Key? key}) : super(key: key);
+class WelcomeScreen2 extends StatefulWidget {
+  const WelcomeScreen2({Key? key}) : super(key: key);
 
   @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
+  State<WelcomeScreen2> createState() => _WelcomeScreenState2();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState2 extends State<WelcomeScreen2> {
   String? selectedRole;
 
   @override
@@ -71,7 +72,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               const Spacer(flex: 2),
 
               const Text(
-                'How would you like to use MARANNY?',
+                'Find your perfect coach',
                 style: TextStyle(
                   color: Color.fromARGB(255, 255, 255, 255),
                   fontSize: 14,
@@ -93,7 +94,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Trainee button
+                    // login button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -101,24 +102,23 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  LoginScreen(userType: 'trainee'),
+                              builder: (Context) => WelcomeScreen(),
                             ),
                           );
                           setState(() {
-                            selectedRole = 'trainee'; // اختيار Trainee
+                            selectedRole = 'login';
                           });
                         },
 
                         style: ElevatedButton.styleFrom(
-                          foregroundColor: selectedRole == 'trainee'
+                          foregroundColor: selectedRole == 'login'
                               ? Colors.white
                               : const Color(0xFF303F9F),
-                          backgroundColor: selectedRole == 'trainee'
+                          backgroundColor: selectedRole == 'login'
                               ? const Color(0xFF303F9F)
                               : Colors.white,
                           side: BorderSide(
-                            color: selectedRole == 'trainee'
+                            color: selectedRole == 'login'
                                 ? Colors.white
                                 : const Color(0xFF303F9F),
                             width: 1.5,
@@ -131,18 +131,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         child: Column(
                           children: const [
                             Text(
-                              'I am a Trainee',
+                              'LOGIN',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              '(Find a Coach)',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w300,
                               ),
                             ),
                           ],
@@ -151,8 +143,21 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ),
 
                     const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text(
+                          'Don\'t have your account yet?',
+                          style: TextStyle(
+                            color: Color(0xFF666666),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
 
-                    // Coach button
+                    // reg button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -160,24 +165,23 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (conttext) =>
-                                  LoginScreen(userType: 'coach'),
+                              builder: (context) => RegisterScreen(),
                             ),
                           );
                           setState(() {
-                            selectedRole = 'coach'; // اختيار Trainee
+                            selectedRole = 'register'; // اختيار Trainee
                           });
                         },
 
                         style: ElevatedButton.styleFrom(
-                          foregroundColor: selectedRole == 'coach'
+                          foregroundColor: selectedRole == 'register'
                               ? Colors.white
                               : const Color(0xFF303F9F),
-                          backgroundColor: selectedRole == 'coach'
+                          backgroundColor: selectedRole == 'register'
                               ? const Color(0xFF303F9F)
                               : Colors.white,
                           side: BorderSide(
-                            color: selectedRole == 'coach'
+                            color: selectedRole == 'register'
                                 ? Colors.white
                                 : const Color(0xFF303F9F),
                             width: 1.5,
@@ -190,18 +194,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         child: Column(
                           children: const [
                             Text(
-                              'I am a Coach',
+                              'REGISTER',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              '(Manage Sessions)',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w300,
                               ),
                             ),
                           ],
