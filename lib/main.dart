@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'layout/main_layout.dart';
+import 'features/become_coach/presentation/screens/coach_info_screen.dart';
 
 void main() {
   runApp(const MyApp());
