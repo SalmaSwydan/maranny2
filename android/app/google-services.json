@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "10032459896",
+    "project_id": "maranny-5168b",
+    "storage_bucket": "maranny-5168b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:10032459896:android:e1551ba41f1eee145fbd8d",
+        "android_client_info": {
+          "package_name": "com.example.maranny_two"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADrFSQ1SmGzWfs0K_uvQZoMHx86SBiMLw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
