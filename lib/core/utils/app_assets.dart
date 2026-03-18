@@ -33,8 +33,14 @@ class AppAssets {
   static const String profileIconSelected =
       'assets/icons/profile_icon_selected.svg';
 
-  static const String marketplaceIconSelected =
+  static const String marketplaceIcon =
       'assets/icons/marketplace_icon_selected.svg';
+
+  static const String icon_1_coach = 'assets/icons/icon_1_coach_profile.svg';
+  static const String icon_2_coach = 'assets/icons/icon_2_coach_profile.png';
+  static const String icon_3_coach = 'assets/icons/icon_3_coach_profile.png';
+
+
 
   // ================= Other Icons =================
   static const String locationIcon =
@@ -48,4 +54,6 @@ class AppAssets {
 
   static const String rightArrowIcon =
       'assets/icons/right_icon.svg';
+
+
 }

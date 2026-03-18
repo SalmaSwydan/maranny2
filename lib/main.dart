@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'features/home/presentation/screens/guest_homescreen.dart';
+import 'layout/main_layout.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,13 +10,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: GuestHomeScreen(
-        onAuthRequired: () {
-          debugPrint('Auth required');
-        },
-      ),
+      home: MainLayout(),
     );
   }
 }
