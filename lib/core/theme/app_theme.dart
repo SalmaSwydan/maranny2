@@ -6,34 +6,20 @@ class AppTheme {
 
   static ThemeData lightTheme = ThemeData(
     useMaterial3: false,
-    brightness: Brightness.light,
-
     scaffoldBackgroundColor: AppColors.background,
 
-    // =========================
-    // APP BAR
-    // =========================
     appBarTheme: const AppBarTheme(
-      elevation: 0,
-      centerTitle: true,
       backgroundColor: Colors.transparent,
+      elevation: 0,
       foregroundColor: Colors.white,
+      centerTitle: true,
     ),
 
-    // =========================
-    // TEXT THEME (RESPONSIVE)
-    // =========================
     textTheme: const TextTheme(
-      headlineLarge: TextStyle(
-        fontFamily: 'Poppins',
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        color: AppColors.textPrimary,
-      ),
       headlineMedium: TextStyle(
         fontFamily: 'Poppins',
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
       ),
       titleMedium: TextStyle(
         fontFamily: 'Inter',
@@ -43,59 +29,14 @@ class AppTheme {
       bodyMedium: TextStyle(
         fontFamily: 'Inter',
         fontSize: 14,
-        fontWeight: FontWeight.normal,
-      ),
-      bodySmall: TextStyle(
-        fontFamily: 'Inter',
-        fontSize: 12,
-        color: AppColors.textSecondary,
       ),
     ),
 
-    // =========================
-    // BUTTONS
-    // =========================
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        textStyle: const TextStyle(
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    ),
-
-    // =========================
-    // CARDS
-    // =========================
     cardTheme: CardThemeData(
+      color: Colors.white,
       elevation: 6,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(13),
-      ),
-      color: Colors.white,
-    ),
-
-    // =========================
-    // INPUT FIELDS
-    // =========================
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.borderGray),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.borderGray),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.primaryBlue),
       ),
     ),
   );

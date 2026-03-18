@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../utils/marketplace_product.dart';
 
 class ListItemScreen extends StatefulWidget {

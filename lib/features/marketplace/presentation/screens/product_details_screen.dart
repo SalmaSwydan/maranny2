@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../utils/marketplace_product.dart';
 
 class ProductDetailsScreen extends StatelessWidget {

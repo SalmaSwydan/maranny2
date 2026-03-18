@@ -1,5 +1,6 @@
 import '../utils/marketplace_product.dart';
 
+/// Persists marketplace products so they survive navigation (e.g. Home → back to Marketplace).
 class SharedMarketplaceManager {
   SharedMarketplaceManager._();
 
@@ -16,7 +17,7 @@ class SharedMarketplaceManager {
         category: 'Equipment',
         condition: 'New',
         price: 35,
-        imageAsset: 'assets/images/professional_football.png',
+        imageAsset: 'assets/images/football.jpg',
         sellerName: 'Sports Store',
         sellerRating: 4.9,
         reviewers: 80,
@@ -31,7 +32,7 @@ class SharedMarketplaceManager {
         category: 'Clothing',
         condition: 'New',
         price: 120,
-        imageAsset: 'assets/images/basketball_shoes.png',
+        imageAsset: 'assets/images/shoes.jpg',
         sellerName: 'Sports Store',
         sellerRating: 4.9,
         reviewers: 80,
@@ -45,7 +46,7 @@ class SharedMarketplaceManager {
         category: 'Accessories',
         condition: 'New',
         price: 25,
-        imageAsset: 'assets/images/yoga_matt.png',
+        imageAsset: 'assets/images/yoga.jpg',
         sellerName: 'Wellness Store',
         sellerRating: 4.5,
         reviewers: 80,
@@ -59,7 +60,8 @@ class SharedMarketplaceManager {
         category: 'Accessories',
         condition: 'Used',
         price: 12,
-        imageAsset: 'assets/images/swimming_goggles.png',        sellerName: 'Sports Store',
+        imageAsset: 'assets/images/goggles.jpg',
+        sellerName: 'Sports Store',
         sellerRating: 4.9,
         reviewers: 80,
         location: 'Cairo, Egypt',

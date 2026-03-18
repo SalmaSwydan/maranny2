@@ -68,55 +68,34 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
               hint: "Football, Swimming",
             ),
 
-            const SizedBox(height: 20),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EditProfileScreen(),
                     ),
-                  ),
+                  );
 
-                  onPressed: () async {
-
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditProfileScreen(
-                          name: name,
-                          email: email,
-                          city: city,
-                          phone: phone,
-                          bio: bio,
-                        ),
-                      ),
-                    );
-
-                    if (result != null) {
-                      setState(() {
-                        name = result['name'];
-                        email = result['email'];
-                        city = result['city'];
-                        phone = result['phone'];
-                        bio = result['bio'];
-                      });
-                    }
-                  },
-
-                  child: const Text(
-                    "Edit Profile",
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  if (result == true) {
+                    setState(() {});
+                  }
+                },
+                child: const Text(
+                  "Edit Profile",
+                  style: TextStyle(fontSize: 16),
                 ),
               ),
             ),
-
             const SizedBox(height: 40),
           ],
         ),

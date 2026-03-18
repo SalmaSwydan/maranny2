@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-
   // =========================
   // BRAND GRADIENTS
   // =========================
@@ -47,7 +46,15 @@ class AppColors {
 
   static const Color background = Color(0xFFFFFFFF);
 
-  /// success / new tag
   static const Color confirmed = Color(0xFF4CAF50);
+  static const Color confirmedLight = Color(0xFFCFF7D3); // Light green background
+
+  static const Color pending = Color(0xFFFFC107); // Yellow/Amber for pending
+  static const Color pendingLight = Color(0xFFFFF1B8); // Light yellow background
+
+  static const Color declineGray = Color(0xFFDBDDE4); // Gray for decline button
+
+  static const Color busy = Color(0xFFFF5252); // Red for busy status
+  static const Color busyLight = Color(0xFFFFE0E0); // Light red background for busy
 
 }
