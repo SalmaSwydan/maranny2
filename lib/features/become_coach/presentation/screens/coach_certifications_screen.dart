@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../layout/coach_layout.dart';
 
 // Custom painter for dashed border
 class DashedBorderPainter extends CustomPainter {
@@ -64,7 +65,7 @@ class UploadIconPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final centerX = size.width / 2;
-    
+
     // Create gradient for the icon
     final gradient = LinearGradient(
       begin: Alignment.topCenter,
@@ -74,67 +75,67 @@ class UploadIconPainter extends CustomPainter {
         const Color(0xFF1B2B83), // darker blue - bottom
       ],
     );
-    
+
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     final gradientPaint = Paint()
       ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.fill;
-    
+
     // Draw the base/tray shape (horizontal line with vertical lines extending UP - inverted)
     final baseY = size.height * 0.72;
     final baseWidth = size.width * 0.65;
     final baseHeight = size.height * 0.18;
-    
+
     // Horizontal bottom line of the base (thicker) - this is the bottom of the inverted tray
     final basePaint = Paint()
       ..shader = gradient.createShader(rect)
       ..strokeWidth = 7
       ..strokeCap = StrokeCap.round;
-    
+
     canvas.drawLine(
       Offset(centerX - baseWidth / 2, baseY),
       Offset(centerX + baseWidth / 2, baseY),
       basePaint,
     );
-    
+
     // Left vertical line extending UP (inverted)
     canvas.drawLine(
       Offset(centerX - baseWidth / 2, baseY),
       Offset(centerX - baseWidth / 2, baseY - baseHeight),
       basePaint,
     );
-    
+
     // Right vertical line extending UP (inverted)
     canvas.drawLine(
       Offset(centerX + baseWidth / 2, baseY),
       Offset(centerX + baseWidth / 2, baseY - baseHeight),
       basePaint,
     );
-    
+
     // Draw upward arrow (thinner shaft, proper arrowhead) - keep as is
     final arrowTopY = size.height * 0.12;
     final arrowBottomY = baseY - baseHeight - 3; // Arrow starts above the inverted tray
     final arrowWidth = size.width * 0.28;
-    
+
     // Arrow shaft (vertical line - thinner)
     final arrowShaftPaint = Paint()
       ..shader = gradient.createShader(rect)
       ..strokeWidth = 5.5
       ..strokeCap = StrokeCap.round;
-    
+
     canvas.drawLine(
       Offset(centerX, arrowBottomY),
       Offset(centerX, arrowTopY + arrowWidth * 0.35),
       arrowShaftPaint,
     );
-    
+
     // Arrow head (triangle pointing up - thinner)
     final arrowPath = Path()
       ..moveTo(centerX, arrowTopY) // Top point
       ..lineTo(centerX - arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35) // Bottom left
       ..lineTo(centerX + arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35) // Bottom right
       ..close();
-    
+
     canvas.drawPath(arrowPath, gradientPaint);
   }
 
@@ -160,7 +161,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
         content: Text('File picker will be implemented with file_picker package'),
       ),
     );
-    
+
     // Example: You would use file_picker like this:
     // final result = await FilePicker.platform.pickFiles(
     //   type: FileType.custom,
@@ -174,10 +175,15 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
   }
 
   void _handleContinue() {
-    // TODO: Navigate to next screen or complete registration
+    // TODO: Upload files to backend if any selected
     debugPrint('Selected Files: ${_selectedFiles.length}');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registration completed!')),
+
+    // ✅ FIXED: Navigate to Coach Home Screen
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => CoachMainLayout(),
+      ),
+          (route) => false, // Remove all previous routes
     );
   }
 
@@ -212,7 +218,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    
+
                     // Subtitle
                     Text(
                       'Upload certificates to boost your credibility.',
@@ -351,7 +357,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                       painter: UploadIconPainter(),
                     ),
                     const SizedBox(height: 40),
-                    
+
                     // Upload Text
                     const Text(
                       'Upload certifications',
@@ -363,7 +369,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // File Type Info
                     Text(
                       'PDF Files up to 10MB',
@@ -374,7 +380,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                       ),
                     ),
                     const SizedBox(height: 50),
-                    
+
                     // Choose File Button
                     _buildChooseFileButton(),
                   ],
@@ -525,4 +531,3 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
     );
   }
 }
-

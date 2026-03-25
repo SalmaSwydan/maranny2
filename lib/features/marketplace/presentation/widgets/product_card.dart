@@ -34,7 +34,7 @@ class ProductCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 2),
               child: Text(
                 product.title,
                 maxLines: 1,
@@ -105,11 +105,11 @@ class ProductCard extends StatelessWidget {
                 ),
               ),
             ),
-            const Spacer(),
+            const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
               child: SizedBox(
-                height: 36,
+                height: 32,
                 child: ElevatedButton.icon(
                   onPressed: onTap,
                   style: ElevatedButton.styleFrom(

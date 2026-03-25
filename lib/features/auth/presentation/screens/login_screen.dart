@@ -3,6 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:maranny_two/features/auth/presentation/screens/forget_password_screen.dart';
 
+import '../../../../layout/coach_layout.dart';
+import '../../../../layout/main_layout.dart';
+import '../../../home/presentation/screens/client_homescreen.dart';
+import '../../../home/presentation/screens/coach_homescreen.dart';
+
 class LoginScreen extends StatefulWidget {
   final String userType;
   const LoginScreen({required this.userType, Key? key}) : super(key: key);
@@ -328,21 +333,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ).show();
                                     }
                                   }
-                                  /*if (widget.userType == 'coach') {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => (),
-                                  ),
-                                );
+                                  if (widget.userType == 'coach') {
+                                    // After coach login success
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const CoachMainLayout(initialIndex: 0),
+                                      ),
+                                    );
                               } else if(widget.userType == 'trainee') {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => HomeTraineeScreen(),
-                                  ),
-                                );
-                              }*/
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => const MainLayout(),
+                                      ),
+                                    );
+                              }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF303F9F),

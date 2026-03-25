@@ -9,12 +9,6 @@ import '../widgets/product_card.dart';
 import 'product_details_screen.dart';
 import 'list_item_screen.dart';
 
-import '../../../home/presentation/widgets/bottom_navigation.dart';
-import '../../../home/presentation/screens/coach_homescreen.dart';
-import '../../../bookings/presentation/screens/upcoming_pending.dart';
-import '../../../messages/presentation/screens/messages_clients.dart';
-import '../../../profile/presentation/screens/coach_profile_screen.dart';
-
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
 
@@ -57,35 +51,6 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
     }).toList();
   }
 
-  void _navigateFromBottomNav(int index) {
-    if (index == 2) return; // Marketplace
-
-    Widget page;
-    switch (index) {
-      case 0:
-      // If CoachHomeScreen requires onAuthRequired and null doesn't compile,
-      // we will adjust CoachHomeScreen signature safely.
-        page = CoachHomeScreen(onAuthRequired: () {});
-        break;
-      case 1:
-        page = const UpcomingScreen();
-        break;
-      case 3:
-        page = const MessagesClientsScreen();
-        break;
-      case 4:
-        page = const CoachProfileScreen();
-        break;
-      default:
-        return;
-    }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => page),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,10 +66,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         backgroundColor: AppColors.primaryBlue,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      bottomNavigationBar: CoachBottomNav(
-        initialIndex: 2,
-        onItemSelected: _navigateFromBottomNav,
-      ),
+      // ✅ NO bottomNavigationBar here - parent handles it!
       body: SafeArea(
         child: Column(
           children: [
@@ -141,7 +103,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 0.70,
+                  childAspectRatio: 0.58,
                 ),
                 itemBuilder: (context, i) {
                   final product = _filtered[i];

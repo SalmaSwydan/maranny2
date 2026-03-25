@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:maranny_two/features/auth/presentation/screens/register_screen.dart';
-import 'package:maranny_two/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:maranny_two/features/auth/presentation/screens/login_screen.dart';
+import '../../../become_coach/presentation/screens/coach_info_screen.dart';
+import '../../../home/presentation/screens/guest_homescreen.dart';
 
 class WelcomeScreen2 extends StatefulWidget {
-  const WelcomeScreen2({Key? key}) : super(key: key);
+  final String userType;
+
+  const WelcomeScreen2({Key? key, required this.userType}) : super(key: key);
 
   @override
   State<WelcomeScreen2> createState() => _WelcomeScreenState2();
@@ -99,17 +103,17 @@ class _WelcomeScreenState2 extends State<WelcomeScreen2> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (Context) => WelcomeScreen(),
-                            ),
-                          );
                           setState(() {
                             selectedRole = 'login';
                           });
+                          // Use the userType for login
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LoginScreen(userType: widget.userType),
+                            ),
+                          );
                         },
-
                         style: ElevatedButton.styleFrom(
                           foregroundColor: selectedRole == 'login'
                               ? Colors.white
@@ -157,22 +161,33 @@ class _WelcomeScreenState2 extends State<WelcomeScreen2> {
                     ),
                     const SizedBox(height: 12),
 
-                    // reg button
+                    // register button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RegisterScreen(),
-                            ),
-                          );
                           setState(() {
-                            selectedRole = 'register'; // اختيار Trainee
+                            selectedRole = 'register';
                           });
+                          // ✅ FIXED: Check userType and navigate accordingly
+                          if (widget.userType == 'coach') {
+                            // Navigate to Become a Coach screens
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CoachInfoScreen(),
+                              ),
+                            );
+                          } else {
+                            // Navigate to regular RegisterScreen for trainee
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RegisterScreen(),
+                              ),
+                            );
+                          }
                         },
-
                         style: ElevatedButton.styleFrom(
                           foregroundColor: selectedRole == 'register'
                               ? Colors.white
@@ -210,10 +225,21 @@ class _WelcomeScreenState2 extends State<WelcomeScreen2> {
                     // Continue as guest
                     TextButton(
                       onPressed: () {
-                        /*Navigator.pushReplacement(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (_) => HomeGuestScreen()),
-                        );*/
+                          MaterialPageRoute(
+                            builder: (_) => GuestHomeScreen(
+                              onAuthRequired: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => LoginScreen(userType: 'trainee'),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
                       },
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,

@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../home/presentation/widgets/bottom_navigation.dart';
 import '../widgets/message_item.dart';
 import 'chat_screen.dart';
-import '../../../bookings/presentation/screens/upcoming_pending.dart';
-import '../../../profile/presentation/screens/coach_profile_screen.dart';
-import '../../../home/presentation/screens/coach_homescreen.dart';
-import '../../../marketplace/presentation/screens/marketplace_screen.dart';
 
 class MessagesClientsScreen extends StatelessWidget {
   const MessagesClientsScreen({super.key});
@@ -141,37 +136,7 @@ class MessagesClientsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      bottomNavigationBar: CoachBottomNav(
-        initialIndex: 3,
-        onItemSelected: (index) {
-          if (index == 0) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => CoachHomeScreen(onAuthRequired: () {}),
-              ),
-              (route) => false,
-            );
-          } else if (index == 1) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const UpcomingScreen(),
-              ),
-            );
-          } else if (index == 2) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const MarketplaceScreen(),
-              ),
-            );
-          } else if (index == 4) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const CoachProfileScreen(),
-              ),
-            );
-          }
-        },
-      ),
+      // ✅ NO bottomNavigationBar - handled by CoachMainLayout
       body: Column(
         children: [
           // Header with gradient
@@ -243,4 +208,3 @@ class MessagesClientsScreen extends StatelessWidget {
     );
   }
 }
-

@@ -76,8 +76,8 @@ class _CoachBottomNavState extends State<CoachBottomNav> {
             label: 'Bookings',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.store_outlined),
-            activeIcon: Icon(Icons.store),
+            icon: Icon(Icons.storefront_outlined),    // ✅ CHANGED
+            activeIcon: Icon(Icons.storefront),       // ✅ CHANGED
             label: 'Marketplace',
           ),
           BottomNavigationBarItem(

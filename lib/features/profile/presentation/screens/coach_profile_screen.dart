@@ -3,11 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/widgets/review_card.dart';
-import '../../../home/presentation/widgets/bottom_navigation.dart';
-import '../../../home/presentation/screens/coach_homescreen.dart';
-import '../../../bookings/presentation/screens/upcoming_pending.dart';
-import '../../../messages/presentation/screens/messages_clients.dart';
-import '../../../marketplace/presentation/screens/marketplace_screen.dart';
 import '../utils/coach_profile_manager.dart';
 import 'edit_profile_screen.dart';
 
@@ -25,37 +20,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      bottomNavigationBar: CoachBottomNav(
-        initialIndex: 4,
-        onItemSelected: (index) {
-          if (index == 0) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => CoachHomeScreen(onAuthRequired: () {}),
-              ),
-              (route) => false,
-            );
-          } else if (index == 1) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const UpcomingScreen(),
-              ),
-            );
-          } else if (index == 2) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const MarketplaceScreen(),
-              ),
-            );
-          } else if (index == 3) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const MessagesClientsScreen(),
-              ),
-            );
-          }
-        },
-      ),
+      // ✅ NO bottomNavigationBar - handled by CoachMainLayout
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,8 +202,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                     _isBioExpanded
                         ? CoachProfileManager.bio
                         : (CoachProfileManager.bio.length > 150
-                            ? '${CoachProfileManager.bio.substring(0, 150)}...'
-                            : CoachProfileManager.bio),
+                        ? '${CoachProfileManager.bio.substring(0, 150)}...'
+                        : CoachProfileManager.bio),
                     style: const TextStyle(
                       fontSize: 14,
                       fontFamily: 'Inter',
@@ -654,4 +619,3 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     );
   }
 }
-

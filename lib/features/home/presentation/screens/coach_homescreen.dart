@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../widgets/SectionTitle.dart';
 import '../widgets/SessionCard.dart';
-import '../widgets/bottom_navigation.dart';
 import '../widgets/header.dart';
 import '../widgets/pending_request_card.dart';
 import '../widgets/review_card.dart';
-import '../../../bookings/presentation/screens/upcoming_pending.dart';
-import '../../../messages/presentation/screens/messages_clients.dart';
 import '../../../bookings/presentation/utils/shared_bookings_manager.dart';
 import '../../../bookings/presentation/utils/shared_pending_requests_manager.dart';
-import '../../../profile/presentation/screens/coach_profile_screen.dart';
-import '../../../marketplace/presentation/screens/marketplace_screen.dart';
 
 class CoachHomeScreen extends StatefulWidget {
-  const CoachHomeScreen({super.key, required Null Function() onAuthRequired});
+  final VoidCallback onAuthRequired;
+
+  const CoachHomeScreen({
+    super.key,
+    required this.onAuthRequired,
+  });
 
   @override
   State<CoachHomeScreen> createState() => _CoachHomeScreenState();
@@ -29,7 +29,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     super.initState();
     _refreshPendingRequests();
   }
-  
+
   void _refreshPendingRequests() {
     // Always show the first 2 pending requests from shared manager
     setState(() {
@@ -47,7 +47,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     }
     return 'TBD';
   }
-  
+
   String _addHourToTime(String timeStr) {
     // Simple helper to add 1 hour to time string
     // Format: "3:00 PM" -> "4:00 PM"
@@ -81,7 +81,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   void _handleAcceptRequest(int index) {
     final request = _pendingRequests[index];
     final status = request['status'] as String?;
-    
+
     if (status == "You're busy") {
       // Show conflict message
       showDialog(
@@ -103,11 +103,11 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       );
       return;
     }
-    
+
     // Parse date string to extract date and time
     final dateStr = request['date'] as String;
     final timeStr = _extractTimeFromDate(dateStr);
-    
+
     // Extract date part (before " at ")
     String parsedDate;
     if (dateStr.contains(' at ')) {
@@ -116,7 +116,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     } else {
       parsedDate = dateStr;
     }
-    
+
     // Create booking object and add to shared manager
     final endTime = _addHourToTime(timeStr);
     final newBooking = {
@@ -128,19 +128,19 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       'price': '\$ 25/hr',
       'status': 'Confirmed',
     };
-    
+
     // Add to shared bookings manager
     SharedBookingsManager.addAcceptedBooking(newBooking);
-    
+
     // Remove from shared manager
     SharedPendingRequestsManager.removePendingRequest(
       request['name'] as String,
       request['date'] as String,
     );
-    
+
     // Refresh the list to show next pending requests
     _refreshPendingRequests();
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${request['name']} booking accepted successfully. Check the Upcoming tab in Bookings.'),
@@ -151,7 +151,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
   void _handleDeclineRequest(int index) {
     final request = _pendingRequests[index];
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -174,10 +174,10 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                   requestToRemove['name'] as String,
                   requestToRemove['date'] as String,
                 );
-                
+
                 // Refresh the list to show next pending requests
                 _refreshPendingRequests();
-                
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Booking request declined'),
@@ -197,36 +197,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      bottomNavigationBar: CoachBottomNav(
-        initialIndex: 0,
-        onItemSelected: (index) {
-          if (index == 1) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const UpcomingScreen(),
-              ),
-            );
-          } else if (index == 2) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const MarketplaceScreen(),
-              ),
-            );
-          } else if (index == 3) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const MessagesClientsScreen(),
-              ),
-            );
-          } else if (index == 4) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const CoachProfileScreen(),
-              ),
-            );
-          }
-        },
-      ),
+      // ✅ NO bottomNavigationBar - handled by CoachMainLayout
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -262,7 +233,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
               // Pending Requests Section
               const SectionTitle(title: "Pending Requests"),
               if (_pendingRequests.isEmpty)
-                // Empty state when no pending requests
+              // Empty state when no pending requests
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   padding: const EdgeInsets.all(32),

@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../home/presentation/widgets/bottom_navigation.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/booking_card.dart';
 import '../../../home/presentation/widgets/pending_request_card.dart';
-import '../../../messages/presentation/screens/messages_clients.dart';
-import '../../../profile/presentation/screens/coach_profile_screen.dart';
-import '../../../marketplace/presentation/screens/marketplace_screen.dart';
-import '../../../home/presentation/screens/coach_homescreen.dart';
 import '../utils/shared_bookings_manager.dart';
 import '../utils/shared_pending_requests_manager.dart';
 
 class UpcomingScreen extends StatefulWidget {
   final int initialTabIndex;
-  
+
   const UpcomingScreen({super.key, this.initialTabIndex = 0});
 
   @override
@@ -64,7 +59,7 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
   void _handleAcceptRequest(int index) {
     final request = _pendingRequestBookings[index];
     final status = request['status'] as String?;
-    
+
     if (status == "You're busy") {
       // Show conflict message
       showDialog(
@@ -86,12 +81,12 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
       );
       return;
     }
-    
+
     // Parse date string to extract date and time
     // Format: "Dec 18 at 3:00 PM" -> convert to booking format
     final dateStr = request['date'] as String;
     final timeStr = _extractTimeFromDate(dateStr);
-    
+
     // Extract date part (before " at ")
     String parsedDate;
     if (dateStr.contains(' at ')) {
@@ -100,7 +95,7 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
     } else {
       parsedDate = dateStr;
     }
-    
+
     // Add to confirmed bookings (local and persistent so it survives navigation)
     setState(() {
       final endTime = _addHourToTime(timeStr);
@@ -124,7 +119,7 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
         requestToRemove['date'] as String,
       );
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${request['name']} booking accepted successfully'),
@@ -132,7 +127,7 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
       ),
     );
   }
-  
+
   String _extractTimeFromDate(String dateStr) {
     // Extract time from "Dec 18 at 3:00 PM" format
     if (dateStr.contains(' at ')) {
@@ -143,7 +138,7 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
     }
     return 'TBD';
   }
-  
+
   String _addHourToTime(String timeStr) {
     // Simple helper to add 1 hour to time string
     // Format: "3:00 PM" -> "4:00 PM"
@@ -176,7 +171,7 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
 
   void _handleDeclineRequest(int index) {
     final request = _pendingRequestBookings[index];
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -261,37 +256,7 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      bottomNavigationBar: CoachBottomNav(
-        initialIndex: 1,
-        onItemSelected: (index) {
-          if (index == 0) {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (context) => CoachHomeScreen(onAuthRequired: () {}),
-              ),
-              (route) => false,
-            );
-          } else if (index == 2) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const MarketplaceScreen(),
-              ),
-            );
-          } else if (index == 3) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const MessagesClientsScreen(),
-              ),
-            );
-          } else if (index == 4) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const CoachProfileScreen(),
-              ),
-            );
-          }
-        },
-      ),
+      // ✅ NO bottomNavigationBar - handled by CoachMainLayout
       body: Column(
         children: [
           // Header with gradient

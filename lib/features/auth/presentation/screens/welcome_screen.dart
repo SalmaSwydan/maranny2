@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:maranny_two/features/auth/presentation/screens/login_screen.dart';
+import 'package:maranny_two/features/auth/presentation/screens/welcome_screen2.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({Key? key}) : super(key: key);
@@ -98,18 +98,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
+                          setState(() {
+                            selectedRole = 'trainee';
+                          });
+                          // ✅ PASS 'trainee' role to WelcomeScreen2
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  LoginScreen(userType: 'trainee'),
+                              builder: (context) => WelcomeScreen2(userType: 'trainee'),
                             ),
                           );
-                          setState(() {
-                            selectedRole = 'trainee'; // اختيار Trainee
-                          });
                         },
-
                         style: ElevatedButton.styleFrom(
                           foregroundColor: selectedRole == 'trainee'
                               ? Colors.white
@@ -157,18 +156,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
+                          setState(() {
+                            selectedRole = 'coach';
+                          });
+                          // ✅ PASS 'coach' role to WelcomeScreen2
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (conttext) =>
-                                  LoginScreen(userType: 'coach'),
+                              builder: (context) => WelcomeScreen2(userType: 'coach'),
                             ),
                           );
-                          setState(() {
-                            selectedRole = 'coach'; // اختيار Trainee
-                          });
                         },
-
                         style: ElevatedButton.styleFrom(
                           foregroundColor: selectedRole == 'coach'
                               ? Colors.white
@@ -214,10 +212,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     // Continue as guest
                     TextButton(
                       onPressed: () {
-                        /*Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => HomeGuestScreen()),
-                        );*/
+                        // Navigate to guest home
                       },
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:maranny_two/features/auth/presentation/screens/welcome_screen2.dart';
+import 'package:maranny_two/features/auth/presentation/screens/welcome_screen.dart';
 
 class Firstscreen extends StatelessWidget {
   const Firstscreen({super.key});
@@ -129,7 +129,7 @@ class Firstscreen extends StatelessWidget {
                   SizedBox(width: 5),
                   ...List.generate(
                     3,
-                    (index) => Container(
+                        (index) => Container(
                       width: 8,
                       height: 8,
                       margin: EdgeInsets.symmetric(horizontal: 3),
@@ -159,7 +159,7 @@ class Firstscreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => WelcomeScreen2(),
+                                builder: (context) => WelcomeScreen(),
                               ),
                             );
                           },
@@ -182,33 +182,6 @@ class Firstscreen extends StatelessWidget {
                       ),
                       SizedBox(height: 20),
 
-                      // Sign In Text
-                      /*Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Already have an account? ',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 14,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              // Navigate to sign in
-                            },
-                            child: Text(
-                              'Sign in',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),*/
                       SizedBox(height: 30),
                     ],
                   ),
