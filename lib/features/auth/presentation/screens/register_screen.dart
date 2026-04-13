@@ -1,7 +1,7 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:maranny_two/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:maranny_two/layout/main_layout.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -43,7 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 minHeight:
-                    MediaQuery.of(context).size.height -
+                MediaQuery.of(context).size.height -
                     MediaQuery.of(context).padding.top -
                     MediaQuery.of(context).padding.bottom,
               ),
@@ -54,7 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       const SizedBox(height: 40),
 
-                      // Logo and meditation icon
+                      // Logo
                       Container(
                         width: 160,
                         height: 160,
@@ -72,7 +72,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       const SizedBox(height: 20),
 
-                      // App name
                       const Text(
                         'MARANNY',
                         style: TextStyle(
@@ -85,7 +84,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       const SizedBox(height: 6),
 
-                      // Join Us text
                       const Text(
                         'Join Us!',
                         style: TextStyle(
@@ -152,6 +150,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             // Email Address field
                             TextField(
                               controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
                               decoration: InputDecoration(
                                 hintText: 'Email Address',
                                 hintStyle: TextStyle(
@@ -267,7 +266,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   onPressed: () {
                                     setState(() {
                                       _obscureConfirmPassword =
-                                          !_obscureConfirmPassword;
+                                      !_obscureConfirmPassword;
                                     });
                                   },
                                 ),
@@ -348,52 +347,67 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               child: ElevatedButton(
                                 onPressed: _agreeToTerms
                                     ? () async {
-                                        try {
-                                          final credential = await FirebaseAuth
-                                              .instance
-                                              .createUserWithEmailAndPassword(
-                                                email: _emailController.text,
-                                                password:
-                                                    _passwordController.text,
-                                              );
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  WelcomeScreen(),
-                                            ),
-                                          );
-                                        } on FirebaseAuthException catch (e) {
-                                          if (e.code == 'weak-password') {
-                                            print(
-                                              'The password provided is too weak.',
-                                            );
-                                            AwesomeDialog(
-                                              context: context,
-                                              dialogType: DialogType.error,
-                                              animType: AnimType.rightSlide,
-                                              title: 'Error',
-                                              desc:
-                                                  'The password provided is too weak.',
-                                            ).show();
-                                          } else if (e.code ==
-                                              'email-already-in-use') {
-                                            print(
-                                              'The account already exists for that email.',
-                                            );
-                                            AwesomeDialog(
-                                              context: context,
-                                              dialogType: DialogType.error,
-                                              animType: AnimType.rightSlide,
-                                              title: 'Error',
-                                              desc:
-                                                  'The account already exists for that email.',
-                                            ).show();
-                                          }
-                                        } catch (e) {
-                                          print(e);
-                                        }
-                                      }
+                                  // Validate fields
+                                  if (_nameController.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please enter your full name'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  if (_passwordController.text !=
+                                      _confirmPasswordController.text) {
+                                    AwesomeDialog(
+                                      context: context,
+                                      dialogType: DialogType.error,
+                                      animType: AnimType.rightSlide,
+                                      title: 'Error',
+                                      desc: 'Passwords do not match.',
+                                    ).show();
+                                    return;
+                                  }
+                                  try {
+                                    await FirebaseAuth.instance
+                                        .createUserWithEmailAndPassword(
+                                      email: _emailController.text.trim(),
+                                      password: _passwordController.text,
+                                    );
+                                    // ✅ FIX: navigate to MainLayout and clear the stack
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                        const MainLayout(),
+                                      ),
+                                          (route) => false,
+                                    );
+                                  } on FirebaseAuthException catch (e) {
+                                    if (e.code == 'weak-password') {
+                                      AwesomeDialog(
+                                        context: context,
+                                        dialogType: DialogType.error,
+                                        animType: AnimType.rightSlide,
+                                        title: 'Error',
+                                        desc:
+                                        'The password provided is too weak.',
+                                      ).show();
+                                    } else if (e.code ==
+                                        'email-already-in-use') {
+                                      AwesomeDialog(
+                                        context: context,
+                                        dialogType: DialogType.error,
+                                        animType: AnimType.rightSlide,
+                                        title: 'Error',
+                                        desc:
+                                        'The account already exists for that email.',
+                                      ).show();
+                                    }
+                                  } catch (e) {
+                                    print(e);
+                                  }
+                                }
                                     : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF303F9F),
@@ -431,38 +445,4 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-}
-
-// Custom painter for curved lines around the meditation icon
-class CurvedLinesPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2.5;
-
-    // Draw curved arc lines
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -2.8,
-      1.2,
-      false,
-      paint,
-    );
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      0.3,
-      1.2,
-      false,
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:maranny_two/features/home/presentation/widgets/search_bar.dart';
-import 'package:maranny_two/features/home/presentation/widgets/client_sports_categories.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'sports_categories.dart';
+import 'search_bar.dart';
+import 'client_sports_categories.dart';
+import '../../../notifications/presentation/screens/client_notifications_screen.dart';
+import '../screens/client_search_screen.dart';
 
 class HomeHeaderTwo extends StatelessWidget {
-  const HomeHeaderTwo({super.key});
+  final VoidCallback? onMenuTap;
+  const HomeHeaderTwo({super.key, this.onMenuTap});
 
   @override
   Widget build(BuildContext context) {
@@ -20,12 +22,20 @@ class HomeHeaderTwo extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          _WelcomeRow(),
-          SizedBox(height: 20),
-          HomeSearchBar(),
-          SizedBox(height: 18),
-          SportsCategoriesTwo(),
+        children: [
+          _WelcomeRow(onMenuTap: onMenuTap),
+          const SizedBox(height: 20),
+          // ✅ Wrap existing HomeSearchBar with GestureDetector → opens SearchScreen
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ClientSearchScreen()),
+            ),
+            child: const AbsorbPointer(
+              child: HomeSearchBar(),
+            ),
+          ),
+          const SizedBox(height: 18),
+          const SportsCategoriesTwo(),
         ],
       ),
     );
@@ -33,21 +43,29 @@ class HomeHeaderTwo extends StatelessWidget {
 }
 
 class _WelcomeRow extends StatelessWidget {
-  const _WelcomeRow();
+  final VoidCallback? onMenuTap;
+  const _WelcomeRow({this.onMenuTap});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const CircleAvatar(
-          radius: 22,
-          backgroundColor: Colors.white24,
-          child: Text('A', style: TextStyle(color: Colors.white)),
+        GestureDetector(
+          onTap: onMenuTap,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.menu, color: Colors.white, size: 22),
+          ),
         ),
         const SizedBox(width: 12),
-        Column(
+        const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'welcome back, Ahmed!',
               style: TextStyle(
@@ -63,7 +81,30 @@ class _WelcomeRow extends StatelessWidget {
           ],
         ),
         const Spacer(),
-        const Icon(Icons.notifications_none, color: Colors.white),
+        // ✅ Notification bell → opens ClientNotificationsScreen
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (_) => const ClientNotificationsScreen()),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.notifications_none,
+                  color: Colors.white, size: 26),
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                      color: Colors.red, shape: BoxShape.circle),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

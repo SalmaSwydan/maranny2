@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:maranny_two/features/auth/presentation/screens/welcome_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({Key? key}) : super(key: key);
@@ -9,15 +8,10 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  bool _obscurePassword = true;
-  final _nameController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _emailController = TextEditingController();
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _passwordController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -37,7 +31,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 minHeight:
-                    MediaQuery.of(context).size.height -
+                MediaQuery.of(context).size.height -
                     MediaQuery.of(context).padding.top -
                     MediaQuery.of(context).padding.bottom,
               ),
@@ -48,7 +42,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     children: [
                       const SizedBox(height: 30),
 
-                      // Logo and meditation icon
+                      // Back button
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+
+                      // Logo
                       Container(
                         width: 160,
                         height: 160,
@@ -66,7 +72,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                       const SizedBox(height: 20),
 
-                      // App name
                       const Text(
                         'MARANNY',
                         style: TextStyle(
@@ -79,9 +84,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                       const SizedBox(height: 20),
 
-                      // Forgot your Password text
                       const Text(
-                        'Forget your Password?',
+                        'Forgot your Password?',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -89,9 +93,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                       ),
 
+                      const SizedBox(height: 10),
+
+                      const Text(
+                        "Enter your email and we'll send you a reset link.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+
                       const SizedBox(height: 30),
 
-                      // Reset password form card
+                      // Form card
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -101,131 +116,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Full Name field
-                            const Text(
-                              'Full Name',
-                              style: TextStyle(
-                                color: Color(0xFF666666),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _nameController,
-                              decoration: InputDecoration(
-                                hintText: 'Enter your full name',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 14,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.person_outline,
-                                  color: Colors.grey[400],
-                                  size: 20,
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[50],
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFF303F9F),
-                                    width: 1,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFF303F9F),
-                                    width: 1,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF303F9F),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 20),
-
-                            // New Password field
-                            const Text(
-                              'New Password',
-                              style: TextStyle(
-                                color: Color(0xFF666666),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              decoration: InputDecoration(
-                                hintText: 'Create a strong password',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 14,
-                                ),
-                                prefixIcon: Icon(
-                                  Icons.lock_outline,
-                                  color: Colors.grey[400],
-                                  size: 20,
-                                ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    color: Colors.grey[400],
-                                    size: 20,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _obscurePassword = !_obscurePassword;
-                                    });
-                                  },
-                                ),
-                                filled: true,
-                                fillColor: Colors.grey[50],
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFF303F9F),
-                                    width: 1,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFF303F9F),
-                                    width: 1,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF303F9F),
-                                    width: 1.5,
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 20),
-
                             // Email Address field
                             const Text(
                               'Email Address',
@@ -238,6 +128,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             const SizedBox(height: 8),
                             TextField(
                               controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
                               decoration: InputDecoration(
                                 hintText: 'Enter your email address',
                                 hintStyle: TextStyle(
@@ -279,9 +170,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                             ),
 
-                            const SizedBox(height: 16),
-
-                            // Remember your password? Login link
                             const SizedBox(height: 24),
 
                             // Reset Password button
@@ -289,12 +177,44 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               width: double.infinity,
                               child: ElevatedButton(
                                 onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => WelcomeScreen(),
+                                  final email = _emailController.text.trim();
+
+                                  // ✅ FIX: validate empty field
+                                  if (email.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Please enter your email address'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  // ✅ FIX: validate email format
+                                  final emailRegex = RegExp(
+                                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                                  if (!emailRegex.hasMatch(email)) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Please enter a valid email address'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  // ✅ FIX: show confirmation, go back to login
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Password reset link sent! Check your email.'),
+                                      backgroundColor: Colors.green,
                                     ),
                                   );
+
+                                  Navigator.pop(context);
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF303F9F),
@@ -317,9 +237,38 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 ),
                               ),
                             ),
+
+                            const SizedBox(height: 16),
+
+                            // Back to login link
+                            Center(
+                              child: GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: const Text.rich(
+                                  TextSpan(
+                                    text: 'Remember your password? ',
+                                    style: TextStyle(
+                                      color: Color(0xFF666666),
+                                      fontSize: 13,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Login',
+                                        style: TextStyle(
+                                          color: Color(0xFF303F9F),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
+
+                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
@@ -330,38 +279,4 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
     );
   }
-}
-
-// Custom painter for curved lines around the meditation icon
-class CurvedLinesPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.6)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2.5;
-
-    // Draw curved arc lines
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -2.8,
-      1.2,
-      false,
-      paint,
-    );
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      0.3,
-      1.2,
-      false,
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

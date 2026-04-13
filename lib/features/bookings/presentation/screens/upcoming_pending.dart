@@ -7,28 +7,22 @@ import '../utils/shared_pending_requests_manager.dart';
 
 class UpcomingScreen extends StatefulWidget {
   final int initialTabIndex;
-
   const UpcomingScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<UpcomingScreen> createState() => _UpcomingScreenState();
 }
 
-class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProviderStateMixin {
+class _UpcomingScreenState extends State<UpcomingScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  // Sample booking data
   late List<Map<String, dynamic>> _confirmedBookings;
 
   final List<Map<String, dynamic>> _pendingBookings = [
     {
-      'name': 'Mike Chen',
-      'activity': 'Football',
-      'date': 'Dec 17, 2025',
-      'time': '4:00 AM - 5:00 AM',
-      'location': 'Court 3',
-      'price': '\$ 25/hr',
-      'status': 'Pending',
+      'name': 'Mike Chen', 'activity': 'Football',
+      'date': 'Dec 17, 2025', 'time': '4:00 AM - 5:00 AM',
+      'location': 'Court 3', 'price': '250 LE/hr', 'status': 'Pending',
     },
   ];
 
@@ -38,16 +32,10 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 2,
-      vsync: this,
-      initialIndex: widget.initialTabIndex,
-    );
-
-    // Load all confirmed bookings from persistent store (persists across navigation)
+        length: 2, vsync: this, initialIndex: widget.initialTabIndex);
     _confirmedBookings = SharedBookingsManager.getConfirmedBookings();
-
-    // Load pending requests from shared manager
-    _pendingRequestBookings = SharedPendingRequestsManager.getAllPendingRequests();
+    _pendingRequestBookings =
+        SharedPendingRequestsManager.getAllPendingRequests();
   }
 
   @override
@@ -58,234 +46,238 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
 
   void _handleAcceptRequest(int index) {
     final request = _pendingRequestBookings[index];
-    final status = request['status'] as String?;
-
-    if (status == "You're busy") {
-      // Show conflict message
+    if (request['status'] == "You're busy") {
       showDialog(
         context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Conflict'),
-            content: const Text("You're busy at this time. You cannot accept this booking request."),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
+        builder: (_) => AlertDialog(
+          title: const Text('Conflict'),
+          content: const Text("You're busy at this time."),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+        ),
       );
       return;
     }
-
-    // Parse date string to extract date and time
-    // Format: "Dec 18 at 3:00 PM" -> convert to booking format
     final dateStr = request['date'] as String;
-    final timeStr = _extractTimeFromDate(dateStr);
-
-    // Extract date part (before " at ")
-    String parsedDate;
-    if (dateStr.contains(' at ')) {
-      final parts = dateStr.split(' at ');
-      parsedDate = '${parts[0]}, 2025'; // "Dec 18, 2025"
-    } else {
-      parsedDate = dateStr;
-    }
-
-    // Add to confirmed bookings (local and persistent so it survives navigation)
+    String parsedDate = dateStr.contains(' at ')
+        ? '${dateStr.split(' at ')[0]}, 2025'
+        : dateStr;
+    final timeStr = dateStr.contains(' at ') ? dateStr.split(' at ')[1] : 'TBD';
+    final newBooking = {
+      'name': request['name'], 'activity': request['activity'],
+      'date': parsedDate, 'time': timeStr,
+      'location': 'Court TBD', 'price': '250 LE/hr', 'status': 'Confirmed',
+    };
     setState(() {
-      final endTime = _addHourToTime(timeStr);
-      final newBooking = {
-        'name': request['name'],
-        'activity': request['activity'],
-        'date': parsedDate,
-        'time': '$timeStr - $endTime',
-        'location': 'Court TBD', // Default location
-        'price': '\$ 25/hr',
-        'status': 'Confirmed',
-      };
       _confirmedBookings.add(newBooking);
       SharedBookingsManager.addAcceptedBooking(newBooking);
-
-      // Remove from pending requests and shared manager
-      final requestToRemove = _pendingRequestBookings[index];
+      final r = _pendingRequestBookings[index];
       _pendingRequestBookings.removeAt(index);
       SharedPendingRequestsManager.removePendingRequest(
-        requestToRemove['name'] as String,
-        requestToRemove['date'] as String,
-      );
+          r['name'] as String, r['date'] as String);
     });
-
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${request['name']} booking accepted successfully'),
-        duration: const Duration(seconds: 2),
-      ),
+      SnackBar(content: Text('${request['name']} booking accepted')),
     );
   }
 
-  String _extractTimeFromDate(String dateStr) {
-    // Extract time from "Dec 18 at 3:00 PM" format
-    if (dateStr.contains(' at ')) {
-      final parts = dateStr.split(' at ');
-      if (parts.length > 1) {
-        return parts[1]; // Returns "3:00 PM"
-      }
-    }
-    return 'TBD';
-  }
-
-  String _addHourToTime(String timeStr) {
-    // Simple helper to add 1 hour to time string
-    // Format: "3:00 PM" -> "4:00 PM"
-    try {
-      if (timeStr.contains('PM')) {
-        final timePart = timeStr.replaceAll(' PM', '').trim();
-        final parts = timePart.split(':');
-        if (parts.length >= 2) {
-          final hour = int.tryParse(parts[0]) ?? 1;
-          final minute = parts[1];
-          final newHour = hour == 12 ? 1 : (hour + 1);
-          return '$newHour:$minute PM';
-        }
-      } else if (timeStr.contains('AM')) {
-        final timePart = timeStr.replaceAll(' AM', '').trim();
-        final parts = timePart.split(':');
-        if (parts.length >= 2) {
-          final hour = int.tryParse(parts[0]) ?? 1;
-          final minute = parts[1];
-          final newHour = hour == 12 ? 1 : (hour + 1);
-          return '$newHour:$minute AM';
-        }
-      }
-    } catch (e) {
-      // If parsing fails, return a default end time
-      return '4:00 PM';
-    }
-    return '4:00 PM';
-  }
-
   void _handleDeclineRequest(int index) {
-    final request = _pendingRequestBookings[index];
-
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Decline Request'),
-          content: Text('Are you sure you want to decline ${request['name']}\'s booking request?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                final requestToRemove = _pendingRequestBookings[index];
-                setState(() {
-                  _pendingRequestBookings.removeAt(index);
-                  SharedPendingRequestsManager.removePendingRequest(
-                    requestToRemove['name'] as String,
-                    requestToRemove['date'] as String,
-                  );
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Booking request declined'),
-                    duration: Duration(seconds: 2),
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64, height: 64,
+                decoration: BoxDecoration(
+                    color: const Color(0xFF1F3A93).withValues(alpha: 0.1),
+                    shape: BoxShape.circle),
+                child: const Icon(Icons.person_off_outlined,
+                    color: Color(0xFF1F3A93), size: 32),
+              ),
+              const SizedBox(height: 16),
+              const Text('Decline Request',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                'Decline ${_pendingRequestBookings[index]['name']}\'s booking request?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF1F3A93)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Cancel',
+                          style: TextStyle(
+                              color: Color(0xFF1F3A93),
+                              fontWeight: FontWeight.w600)),
+                    ),
                   ),
-                );
-              },
-              child: const Text('Decline', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        final r = _pendingRequestBookings[index];
+                        setState(() {
+                          _pendingRequestBookings.removeAt(index);
+                          SharedPendingRequestsManager.removePendingRequest(
+                              r['name'] as String, r['date'] as String);
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1F3A93),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        elevation: 0,
+                      ),
+                      child: const Text('Decline',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   void _handleCancelBooking(int index, bool isPending) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Cancel Booking'),
-          content: const Text('Are you sure you want to cancel this booking?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('No'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  if (isPending) {
-                    _pendingBookings.removeAt(index);
-                  } else {
-                    final removed = _confirmedBookings[index];
-                    _confirmedBookings.removeAt(index);
-                    SharedBookingsManager.removeConfirmedBooking(removed);
-                  }
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Booking cancelled successfully'),
-                    duration: Duration(seconds: 2),
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64, height: 64,
+                decoration: BoxDecoration(
+                    color: Colors.red.shade50, shape: BoxShape.circle),
+                child: const Icon(Icons.cancel_outlined,
+                    color: Colors.red, size: 32),
+              ),
+              const SizedBox(height: 16),
+              const Text('Cancel Booking',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text(
+                'Are you sure you want to cancel this booking?',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF1F3A93)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('No',
+                          style: TextStyle(
+                              color: Color(0xFF1F3A93),
+                              fontWeight: FontWeight.w600)),
+                    ),
                   ),
-                );
-              },
-              child: const Text('Yes', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          if (isPending) {
+                            _pendingBookings.removeAt(index);
+                          } else {
+                            final removed = _confirmedBookings[index];
+                            _confirmedBookings.removeAt(index);
+                            SharedBookingsManager.removeConfirmedBooking(removed);
+                          }
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Booking cancelled successfully'),
+                              duration: Duration(seconds: 2)),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        elevation: 0,
+                      ),
+                      child: const Text('Yes, Cancel',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.of(context).canPop();
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      // ✅ NO bottomNavigationBar - handled by CoachMainLayout
       body: Column(
         children: [
-          // Header with gradient
+          // ✅ Header with back button when pushed as route
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
-                colors: [
-                  Color(0xFF6FD3F5), // light blue
-                  Color(0xFF1F3A93), // deep blue
-                ],
+                colors: [Color(0xFF6FD3F5), Color(0xFF1F3A93)],
               ),
             ),
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                padding: const EdgeInsets.fromLTRB(4, 8, 20, 16),
                 child: Row(
                   children: [
-                    const Text(
-                      'My Bookings',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Poppins',
-                        color: Colors.white,
-                      ),
-                    ),
+                    // ✅ Back button shown when pushed as route
+                    if (canPop)
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_ios_new,
+                            color: Colors.white, size: 20),
+                      )
+                    else
+                      const SizedBox(width: 20),
+                    const Text('My Bookings',
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold,
+                            fontFamily: 'Poppins', color: Colors.white)),
                   ],
                 ),
               ),
@@ -300,71 +292,45 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
               indicatorWeight: 3,
               labelColor: AppColors.primaryBlue,
               unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Inter',
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                fontFamily: 'Inter',
-              ),
-              tabs: const [
-                Tab(text: 'Upcoming'),
-                Tab(text: 'Pending Requests'),
-              ],
+              labelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              tabs: const [Tab(text: 'Upcoming'), Tab(text: 'Pending Requests')],
             ),
           ),
-          // Tab content
           Expanded(
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Upcoming Tab
+                // Upcoming tab
                 SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
-                      // Confirmed bookings
                       ..._confirmedBookings.asMap().entries.map((entry) {
-                        final booking = entry.value;
+                        final b = entry.value;
                         return BookingCard(
-                          name: booking['name'],
-                          activity: booking['activity'],
-                          date: booking['date'],
-                          time: booking['time'],
-                          location: booking['location'],
-                          price: booking['price'],
-                          status: booking['status'],
+                          name: b['name'], activity: b['activity'],
+                          date: b['date'], time: b['time'],
+                          location: b['location'], price: b['price'],
+                          status: b['status'],
                           onCancel: () => _handleCancelBooking(entry.key, false),
                         );
                       }),
-                      // Pending Confirmation section
                       if (_pendingBookings.isNotEmpty) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                          child: Text(
-                            'Pending Confirmation (${_pendingBookings.length})',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Poppins',
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
+                          child: Text('Pending Confirmation (${_pendingBookings.length})',
+                              style: const TextStyle(fontSize: 17,
+                                  fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
                         ),
                         ..._pendingBookings.asMap().entries.map((entry) {
-                          final booking = entry.value;
+                          final b = entry.value;
                           return BookingCard(
-                            name: booking['name'],
-                            activity: booking['activity'],
-                            date: booking['date'],
-                            time: booking['time'],
-                            location: booking['location'],
-                            price: booking['price'],
-                            status: booking['status'],
+                            name: b['name'], activity: b['activity'],
+                            date: b['date'], time: b['time'],
+                            location: b['location'], price: b['price'],
+                            status: b['status'],
                             onCancel: () => _handleCancelBooking(entry.key, true),
                           );
                         }),
@@ -373,19 +339,17 @@ class _UpcomingScreenState extends State<UpcomingScreen> with SingleTickerProvid
                     ],
                   ),
                 ),
-                // Pending Requests Tab
+                // Pending Requests tab
                 SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 16),
                       ..._pendingRequestBookings.asMap().entries.map((entry) {
-                        final request = entry.value;
+                        final r = entry.value;
                         return PendingRequestCard(
-                          name: request['name'],
-                          sport: request['activity'],
-                          date: request['date'],
-                          status: request['status'],
+                          name: r['name'], sport: r['activity'],
+                          date: r['date'], status: r['status'],
                           onAccept: () => _handleAcceptRequest(entry.key),
                           onDecline: () => _handleDeclineRequest(entry.key),
                         );

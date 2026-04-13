@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
 
+// FILE: chat_screen.dart → CLASS: ChatScreen (CLIENT side)
 class ChatScreen extends StatefulWidget {
-  final String name;
-  final bool isOnline;
-  final int sessions;
-  final List<Map<String, dynamic>> initialMessages;
+  final String coachName;
+  final Color coachColor;
+  final String coachEmoji;
 
   const ChatScreen({
     super.key,
-    required this.name,
-    required this.isOnline,
-    required this.sessions,
-    required this.initialMessages,
+    required this.coachName,
+    required this.coachColor,
+    required this.coachEmoji,
   });
 
   @override
@@ -20,273 +18,172 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  late List<Map<String, dynamic>> _messages;
+  final _controller = TextEditingController();
+  final _scrollController = ScrollController();
 
-  @override
-  void initState() {
-    super.initState();
-    _messages = List.from(widget.initialMessages);
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
-  }
+  final List<_Message> _messages = [
+    _Message(text: "Hello! I'm excited for our upcoming session.", isMine: false, time: '10:00 AM'),
+    _Message(text: 'Me too! What should I bring?', isMine: true, time: '10:02 AM'),
+    _Message(text: 'Just bring comfortable sportswear and water.', isMine: false, time: '10:03 AM'),
+    _Message(text: 'Perfect, see you then!', isMine: true, time: '10:05 AM'),
+  ];
 
   void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
-
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
     setState(() {
-      _messages.add({
-        'text': _messageController.text.trim(),
-        'isSent': true,
-        'time': _getCurrentTime(),
-      });
+      _messages.add(_Message(text: text, isMine: true, time: _currentTime()));
+      _controller.clear();
     });
-
-    _messageController.clear();
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
-  String _getCurrentTime() {
+  String _currentTime() {
     final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
     final minute = now.minute.toString().padLeft(2, '0');
     final period = now.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF304CE9),
-                Color(0xFF1B2B83),
-              ],
-            ),
-          ),
-        ),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Row(
-          children: [
-            // Avatar
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF304CE9),
-                    Color(0xFF1B2B83),
-                  ],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  widget.name.isNotEmpty ? widget.name[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Inter',
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Name and status
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Inter',
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    widget.isOnline ? 'Online' : 'Offline',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontFamily: 'Inter',
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFFF5F6FA),
       body: Column(
         children: [
-          // Sessions info bar
+          // Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.white,
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.access_time,
-                  size: 16,
-                  color: Color(0xFF1B2B83),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF1F3A93), Color(0xFF6FD3F5)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 16, 16),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                    ),
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: widget.coachColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(widget.coachEmoji,
+                            style: const TextStyle(fontSize: 18)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.coachName,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16)),
+                          const Text('Online',
+                              style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.more_vert, color: Colors.white),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  '${widget.sessions} sessions',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    color: Color(0xFF1B2B83),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-          const Divider(height: 1),
-          // Messages list
+
+          // Messages
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isSent = message['isSent'] as bool;
-                
-                return Align(
-                  alignment: isSent ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: isSent
-                                ? const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Color(0xFF304CE9),
-                                      Color(0xFF1B2B83),
-                                    ],
-                                  )
-                                : null,
-                            color: isSent ? null : const Color(0xFFE5E5E5),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Text(
-                            message['text'],
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontFamily: 'Inter',
-                              color: isSent ? Colors.white : AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          message['time'],
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontFamily: 'Inter',
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+              itemBuilder: (context, index) =>
+                  _MessageBubble(message: _messages[index]),
             ),
           ),
-          // Message input
+
+          // Input bar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
                   offset: const Offset(0, -2),
                 ),
               ],
             ),
             child: SafeArea(
+              top: false,
               child: Row(
                 children: [
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.attach_file, color: Colors.grey, size: 22),
+                  ),
                   Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Type a message...',
-                        hintStyle: const TextStyle(
-                          fontSize: 14,
-                          fontFamily: 'Inter',
-                          color: AppColors.textSecondary,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF5F5F5),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F0F0),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: TextField(
+                        controller: _controller,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendMessage(),
+                        decoration: const InputDecoration(
+                          hintText: 'Type a message...',
+                          hintStyle: TextStyle(color: Colors.grey),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 10),
                         ),
                       ),
-                      onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF304CE9),
-                          Color(0xFF1B2B83),
-                        ],
+                  GestureDetector(
+                    onTap: _sendMessage,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1F3A93),
+                        shape: BoxShape.circle,
                       ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                      onPressed: _sendMessage,
+                      child: const Icon(Icons.send, color: Colors.white, size: 20),
                     ),
                   ),
                 ],
@@ -299,3 +196,57 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
+class _MessageBubble extends StatelessWidget {
+  final _Message message;
+  const _MessageBubble({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: message.isMine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+        decoration: BoxDecoration(
+          color: message.isMine ? const Color(0xFF1F3A93) : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(message.isMine ? 16 : 4),
+            bottomRight: Radius.circular(message.isMine ? 4 : 16),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment:
+          message.isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Text(message.text,
+                style: TextStyle(
+                    color: message.isMine ? Colors.white : Colors.black87,
+                    fontSize: 14)),
+            const SizedBox(height: 4),
+            Text(message.time,
+                style: TextStyle(
+                    fontSize: 10,
+                    color: message.isMine ? Colors.white60 : Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Message {
+  final String text;
+  final bool isMine;
+  final String time;
+  const _Message({required this.text, required this.isMine, required this.time});
+}

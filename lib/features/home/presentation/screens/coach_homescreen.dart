@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-
-import '../widgets/SectionTitle.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../widgets/SessionCard.dart';
 import '../widgets/header.dart';
 import '../widgets/pending_request_card.dart';
 import '../widgets/review_card.dart';
 import '../../../bookings/presentation/utils/shared_bookings_manager.dart';
+import '../../../bookings/presentation/screens/upcoming_pending.dart';
+import '../../../reviews/presentation/screens/all_reviews_screen.dart';
 import '../../../bookings/presentation/utils/shared_pending_requests_manager.dart';
+import '../../../../../core/widgets/app_side_menu.dart';
+import '../../../auth/presentation/screens/welcome_screen.dart';
 
 class CoachHomeScreen extends StatefulWidget {
   final VoidCallback onAuthRequired;
@@ -21,36 +24,57 @@ class CoachHomeScreen extends StatefulWidget {
 }
 
 class _CoachHomeScreenState extends State<CoachHomeScreen> {
-  // Pending requests list - initialized from shared manager
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   late List<Map<String, dynamic>> _pendingRequests;
+  late List<Map<String, dynamic>> _todaysSchedule;
+
+  String get _userName {
+    final user = FirebaseAuth.instance.currentUser;
+    return user?.displayName ?? user?.email?.split('@').first ?? 'Coach';
+  }
 
   @override
   void initState() {
     super.initState();
-    _refreshPendingRequests();
+    // ✅ Seed default sessions if empty so they show on first launch
+    if (SharedBookingsManager.getConfirmedBookings().isEmpty) {
+      SharedBookingsManager.addAcceptedBooking({
+        'name': 'Ahmed Mohamed', 'activity': 'Football',
+        'date': 'Dec 17, 2025', 'time': '10:00 AM - 11:00 AM',
+        'location': 'Court 3', 'price': '250 LE/hr', 'status': 'Confirmed',
+      });
+      SharedBookingsManager.addAcceptedBooking({
+        'name': 'Sarah Johnson', 'activity': 'Football',
+        'date': 'Dec 17, 2025', 'time': '2:00 PM - 3:00 PM',
+        'location': 'Court 1', 'price': '250 LE/hr', 'status': 'Confirmed',
+      });
+      SharedBookingsManager.addAcceptedBooking({
+        'name': 'Mike Chen', 'activity': 'Football',
+        'date': 'Dec 17, 2025', 'time': '4:00 PM - 5:00 PM',
+        'location': 'Court 2', 'price': '250 LE/hr', 'status': 'Pending',
+      });
+    }
+    _refresh();
   }
 
-  void _refreshPendingRequests() {
-    // Always show the first 2 pending requests from shared manager
+  // ✅ Single refresh — reads both lists from shared managers
+  void _refresh() {
     setState(() {
+      _todaysSchedule = SharedBookingsManager.getConfirmedBookings();
       _pendingRequests = SharedPendingRequestsManager.getNextPendingRequests(2);
     });
   }
 
   String _extractTimeFromDate(String dateStr) {
-    // Extract time from "Dec 18 at 3:00 PM" format
     if (dateStr.contains(' at ')) {
       final parts = dateStr.split(' at ');
-      if (parts.length > 1) {
-        return parts[1]; // Returns "3:00 PM"
-      }
+      if (parts.length > 1) return parts[1];
     }
     return 'TBD';
   }
 
   String _addHourToTime(String timeStr) {
-    // Simple helper to add 1 hour to time string
-    // Format: "3:00 PM" -> "4:00 PM"
     try {
       if (timeStr.contains('PM')) {
         final timePart = timeStr.replaceAll(' PM', '').trim();
@@ -72,7 +96,6 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
         }
       }
     } catch (e) {
-      // If parsing fails, return a default end time
       return '4:00 PM';
     }
     return '4:00 PM';
@@ -83,18 +106,15 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     final status = request['status'] as String?;
 
     if (status == "You're busy") {
-      // Show conflict message
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
             title: const Text('Conflict'),
-            content: const Text("You're busy at this time. You cannot accept this booking request."),
+            content: const Text("You're busy at this time."),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
+                onPressed: () => Navigator.of(context).pop(),
                 child: const Text('OK'),
               ),
             ],
@@ -104,46 +124,37 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       return;
     }
 
-    // Parse date string to extract date and time
     final dateStr = request['date'] as String;
     final timeStr = _extractTimeFromDate(dateStr);
-
-    // Extract date part (before " at ")
     String parsedDate;
     if (dateStr.contains(' at ')) {
       final parts = dateStr.split(' at ');
-      parsedDate = '${parts[0]}, 2025'; // "Dec 18, 2025"
+      parsedDate = '${parts[0]}, 2025';
     } else {
       parsedDate = dateStr;
     }
 
-    // Create booking object and add to shared manager
     final endTime = _addHourToTime(timeStr);
     final newBooking = {
       'name': request['name'],
       'activity': request['activity'],
       'date': parsedDate,
       'time': '$timeStr - $endTime',
-      'location': 'Court TBD', // Default location
-      'price': '\$ 25/hr',
+      'location': 'Court TBD',
+      'price': '250 LE/hr', // ✅ LE not $
       'status': 'Confirmed',
     };
 
-    // Add to shared bookings manager
     SharedBookingsManager.addAcceptedBooking(newBooking);
-
-    // Remove from shared manager
     SharedPendingRequestsManager.removePendingRequest(
       request['name'] as String,
       request['date'] as String,
     );
-
-    // Refresh the list to show next pending requests
-    _refreshPendingRequests();
+    _refresh(); // ✅ refresh home screen immediately
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${request['name']} booking accepted successfully. Check the Upcoming tab in Bookings.'),
+        content: Text('${request['name']} booking accepted successfully.'),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -151,43 +162,82 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
   void _handleDeclineRequest(int index) {
     final request = _pendingRequests[index];
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Decline Request'),
-          content: Text('Are you sure you want to decline ${request['name']}\'s booking request?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64, height: 64,
+                  decoration: BoxDecoration(
+                      color: const Color(0xFF1F3A93).withValues(alpha: 0.1),
+                      shape: BoxShape.circle),
+                  child: const Icon(Icons.person_off_outlined,
+                      color: Color(0xFF1F3A93), size: 32),
+                ),
+                const SizedBox(height: 16),
+                const Text('Decline Request',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text(
+                  'Decline ${request['name']}\'s booking request?',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF1F3A93)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text('Cancel',
+                            style: TextStyle(
+                                color: Color(0xFF1F3A93),
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          final r = _pendingRequests[index];
+                          SharedPendingRequestsManager.removePendingRequest(
+                            r['name'] as String, r['date'] as String,
+                          );
+                          _refresh();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Booking request declined')),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1F3A93),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: const Text('Decline',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                final requestToRemove = _pendingRequests[index];
-                // Remove from shared manager
-                SharedPendingRequestsManager.removePendingRequest(
-                  requestToRemove['name'] as String,
-                  requestToRemove['date'] as String,
-                );
-
-                // Refresh the list to show next pending requests
-                _refreshPendingRequests();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Booking request declined'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              child: const Text('Decline', style: TextStyle(color: Colors.red)),
-            ),
-          ],
+          ),
         );
       },
     );
@@ -196,120 +246,187 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: const Color(0xFFF5F5F5),
-      // ✅ NO bottomNavigationBar - handled by CoachMainLayout
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with gradient, avatar, welcome message, and stat cards
-              const CoachHomeHeader(),
+      drawer: AppSideMenu(
+        userName: _userName,
+        onLogout: () {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+                (route) => false,
+          );
+        },
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CoachHomeHeader(
+              onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+            ),
 
-              // Today's Schedule Section
-              const SectionTitle(title: "Today's Schedule"),
-              const SessionCard(
-                name: "Ahmed Mohamed",
-                sport: "Football",
-                time: "10:00 AM - 11:00 AM",
-                location: "Court 3",
-                status: "Confirmed",
-              ),
-              const SessionCard(
-                name: "Sarah Johnson",
-                sport: "Football",
-                time: "2:00 AM - 3:00 AM",
-                location: "Court 1",
-                status: "Confirmed",
-              ),
-              const SessionCard(
-                name: "Mike Chen",
-                sport: "Football",
-                time: "4:00 AM - 5:00 AM",
-                location: "Court 2",
-                status: "Pending",
-              ),
+            _SectionTitleWithViewAll(
+              title: "Today's Schedule",
+              // ✅ refresh when returning from booking screen
+              onViewAll: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const UpcomingScreen()),
+                );
+                _refresh();
+              },
+            ),
 
-              // Pending Requests Section
-              const SectionTitle(title: "Pending Requests"),
-              if (_pendingRequests.isEmpty)
-              // Empty state when no pending requests
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'All caught up!',
+            // ✅ Dynamic — reads from SharedBookingsManager
+            if (_todaysSchedule.isEmpty)
+              _emptyCard('No sessions scheduled today')
+            else
+              ..._todaysSchedule.take(3).map((s) => SessionCard(
+                name: s['name'] ?? '',
+                sport: s['activity'] ?? '',
+                time: s['time'] ?? '',
+                location: s['location'] ?? '',
+                status: s['status'] ?? 'Confirmed',
+              )),
+
+            _SectionTitleWithViewAll(
+              title: 'Pending Requests',
+              // ✅ refresh when returning from booking screen
+              onViewAll: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const UpcomingScreen(initialTabIndex: 1)),
+                );
+                _refresh();
+              },
+            ),
+
+            if (_pendingRequests.isEmpty)
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        size: 64, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text('All caught up!',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Poppins',
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'You have no pending requests at the moment.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontFamily: 'Inter',
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                ..._pendingRequests.asMap().entries.map((entry) {
-                  final request = entry.value;
-                  return PendingRequestCard(
-                    name: request['name'],
-                    sport: request['activity'],
-                    date: request['date'],
-                    status: request['status'],
-                    onAccept: () => _handleAcceptRequest(entry.key),
-                    onDecline: () => _handleDeclineRequest(entry.key),
-                  );
-                }),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700])),
+                    const SizedBox(height: 8),
+                    Text(
+                      'You have no pending requests at the moment.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ..._pendingRequests.asMap().entries.map((entry) {
+                final request = entry.value;
+                return PendingRequestCard(
+                  name: request['name'],
+                  sport: request['activity'],
+                  date: request['date'],
+                  status: request['status'],
+                  onAccept: () => _handleAcceptRequest(entry.key),
+                  onDecline: () => _handleDeclineRequest(entry.key),
+                );
+              }),
 
-              // Recent Reviews Section
-              const SectionTitle(title: "Recent Reviews"),
-              const ReviewCard(
-                name: "Ahmed Yasser",
-                review: "Excellent coaching! Really improved My skills",
-                timestamp: "2 days ago",
-                rating: 5,
-              ),
-              const ReviewCard(
-                name: "Maria K.",
-                review: "Very patient and professional.",
-                timestamp: "2 days ago",
-                rating: 5,
-              ),
+            _SectionTitleWithViewAll(
+              title: 'Recent Reviews',
+              onViewAll: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const AllReviewsScreen())),
+            ),
+            const ReviewCard(
+              name: "Ahmed Yasser",
+              review: "Excellent coaching! Really improved My skills",
+              timestamp: "2 days ago",
+              rating: 5,
+            ),
+            const ReviewCard(
+              name: "Maria K.",
+              review: "Very patient and professional.",
+              timestamp: "2 days ago",
+              rating: 5,
+            ),
 
-              const SizedBox(height: 24),
-            ],
-          ),
+            const SizedBox(height: 24),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _emptyCard(String message) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(message,
+            style: const TextStyle(color: Colors.grey, fontSize: 14)),
+      ),
+    );
+  }
+}
+
+class _SectionTitleWithViewAll extends StatelessWidget {
+  final String title;
+  final VoidCallback onViewAll;
+
+  const _SectionTitleWithViewAll({
+    required this.title,
+    required this.onViewAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Poppins',
+            ),
+          ),
+          GestureDetector(
+            onTap: onViewAll,
+            child: const Text(
+              'View All →',
+              style: TextStyle(
+                color: Color(0xFF1F3A93),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../home/presentation/widgets/review_card.dart';
 import '../utils/coach_profile_manager.dart';
+// ✅ FIX: import added so EditProfileScreen is recognized
 import 'edit_profile_screen.dart';
 
 class CoachProfileScreen extends StatefulWidget {
@@ -20,7 +21,6 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      // ✅ NO bottomNavigationBar - handled by CoachMainLayout
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,8 +32,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
                   colors: [
-                    Color(0xFF6FD3F5), // light blue
-                    Color(0xFF1F3A93), // deep blue
+                    Color(0xFF6FD3F5),
+                    Color(0xFF1F3A93),
                   ],
                 ),
               ),
@@ -44,11 +44,13 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Profile picture with edit icon (tap to open Edit Profile)
+                      // Profile picture with edit icon
                       GestureDetector(
                         onTap: () async {
                           final updated = await Navigator.of(context).push<bool>(
-                            MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const EditProfileScreen(),
+                            ),
                           );
                           if (updated == true) setState(() {});
                         },
@@ -127,7 +129,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontFamily: 'Inter',
-                                    color: Colors.white.withOpacity(0.8),
+                                    color: Colors.white.withValues(alpha: 0.8),
                                   ),
                                 ),
                               ],
@@ -188,7 +190,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                 borderRadius: BorderRadius.circular(13),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.25),
+                    color: Colors.black.withValues(alpha: 0.25),
                     blurRadius: 15,
                     offset: const Offset(0, 6),
                     spreadRadius: 0,
@@ -241,7 +243,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                 borderRadius: BorderRadius.circular(13),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.25),
+                    color: Colors.black.withValues(alpha: 0.25),
                     blurRadius: 15,
                     offset: const Offset(0, 6),
                     spreadRadius: 0,
@@ -254,7 +256,10 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                   const Divider(height: 24),
                   _buildContactRow(Icons.phone, CoachProfileManager.phone),
                   const Divider(height: 24),
-                  _buildContactRow(Icons.location_on, '${CoachProfileManager.location}, Egypt'),
+                  _buildContactRow(
+                    Icons.location_on,
+                    '${CoachProfileManager.location}, Egypt',
+                  ),
                 ],
               ),
             ),
@@ -315,7 +320,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             _buildSectionTitle('Reviews'),
             const ReviewCard(
               name: 'Aya Hassan',
-              review: 'Excellent coach! Really helped improve my football skills and confidence.',
+              review:
+              'Excellent coach! Really helped improve my football skills and confidence.',
               timestamp: 'Dec 20, 2025',
               rating: 5,
             ),
@@ -326,7 +332,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
               rating: 5,
             ),
             const SizedBox(height: 24),
-            // Coach Certifications section (uploaded + default placeholders)
+            // Coach Certifications section
             _buildSectionTitle('Coach Certifications'),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -335,7 +341,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                   ...CoachProfileManager.certificates.map((c) {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildCertificateCardFromFile(c['name'] ?? 'Certificate'),
+                      child: _buildCertificateCardFromFile(
+                          c['name'] ?? 'Certificate'),
                     );
                   }),
                   if (CoachProfileManager.certificates.isEmpty) ...[
@@ -388,7 +395,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           borderRadius: BorderRadius.circular(13),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.25),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 15,
               offset: const Offset(0, 6),
               spreadRadius: 0,
@@ -456,7 +463,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         borderRadius: BorderRadius.circular(13),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 15,
             offset: const Offset(0, 6),
             spreadRadius: 0,
@@ -518,7 +525,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.person, size: 50, color: AppColors.primaryBlue),
+          child: const Icon(Icons.person,
+              size: 50, color: AppColors.primaryBlue),
         );
       },
     );
@@ -531,7 +539,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         borderRadius: BorderRadius.circular(13),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 15,
             offset: const Offset(0, 6),
             spreadRadius: 0,
@@ -542,7 +550,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
+            borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(13)),
             child: Image.asset(
               imagePath,
               width: double.infinity,
@@ -584,7 +593,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         borderRadius: BorderRadius.circular(13),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 15,
             offset: const Offset(0, 6),
             spreadRadius: 0,
@@ -597,7 +606,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
+              color: Colors.red.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 28),

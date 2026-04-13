@@ -84,7 +84,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       phoneVal: _phoneController.text.trim(),
       bioVal: _bioController.text.trim(),
       years: _yearsOfExperience,
-      price: _priceController.text.trim().isNotEmpty ? _priceController.text.trim() : null,
+      price: _priceController.text.trim().isNotEmpty
+          ? _priceController.text.trim()
+          : null,
     );
     for (final c in _pendingCertificates) {
       CoachProfileManager.addCertificate(c['path']!, c['name']!);
@@ -131,16 +133,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _buildCertificationUpload(),
                     if (_pendingCertificates.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      ..._pendingCertificates.map((c) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.picture_as_pdf, color: Colors.red, size: 20),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text(c['name'] ?? '', overflow: TextOverflow.ellipsis)),
-                              ],
-                            ),
-                          )),
+                      ..._pendingCertificates.map(
+                            (c) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.picture_as_pdf,
+                                  color: Colors.red, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  c['name'] ?? '',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 32),
                     _buildSaveButton(),
@@ -163,13 +173,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         children: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 22),
+            icon: const Icon(Icons.arrow_back_ios_new,
+                color: Colors.white, size: 22),
           ),
           const Expanded(
             child: Text(
               'Edit Profile',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
           const SizedBox(width: 48),
@@ -190,23 +205,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               backgroundColor: Colors.grey.shade200,
               child: _profileImagePath != null
                   ? ClipOval(
-                      child: Image.file(
-                        File(_profileImagePath!),
-                        width: 112,
-                        height: 112,
-                        fit: BoxFit.cover,
-                      ),
-                    )
+                child: Image.file(
+                  File(_profileImagePath!),
+                  width: 112,
+                  height: 112,
+                  fit: BoxFit.cover,
+                ),
+              )
                   : CoachProfileManager.profileImagePath != null
-                      ? ClipOval(
-                          child: Image.file(
-                            File(CoachProfileManager.profileImagePath!),
-                            width: 112,
-                            height: 112,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : const Icon(Icons.person, size: 56, color: AppColors.primaryBlue),
+                  ? ClipOval(
+                child: Image.file(
+                  File(CoachProfileManager.profileImagePath!),
+                  width: 112,
+                  height: 112,
+                  fit: BoxFit.cover,
+                ),
+              )
+                  : const Icon(Icons.person,
+                  size: 56, color: AppColors.primaryBlue),
             ),
             Positioned(
               bottom: 0,
@@ -217,7 +233,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   color: AppColors.primaryBlue,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                child:
+                const Icon(Icons.camera_alt, color: Colors.white, size: 20),
               ),
             ),
           ],
@@ -249,11 +266,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primaryBlue.withOpacity(0.5)),
+          borderSide:
+          BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primaryBlue.withOpacity(0.5)),
+          borderSide:
+          BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+          const BorderSide(color: AppColors.primaryBlue, width: 1.5),
         ),
       ),
     );
@@ -270,11 +294,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primaryBlue.withOpacity(0.5)),
+          borderSide:
+          BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primaryBlue.withOpacity(0.5)),
+          borderSide:
+          BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+          const BorderSide(color: AppColors.primaryBlue, width: 1.5),
         ),
       ),
     );
@@ -286,13 +317,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primaryBlue.withOpacity(0.5)),
+        border: Border.all(
+            color: AppColors.primaryBlue.withValues(alpha: 0.5)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: _yearsOfExperience,
           isExpanded: true,
-          items: List.generate(20, (i) => i + 1).map((v) => DropdownMenuItem(value: v, child: Text('$v'))).toList(),
+          items: List.generate(20, (i) => i + 1)
+              .map((v) =>
+              DropdownMenuItem(value: v, child: Text('$v years experience')))
+              .toList(),
           onChanged: (v) => setState(() => _yearsOfExperience = v ?? 3),
         ),
       ),
@@ -307,23 +342,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primaryBlue, style: BorderStyle.solid),
+          border: Border.all(
+              color: AppColors.primaryBlue, style: BorderStyle.solid),
         ),
         child: Column(
           children: [
             Icon(Icons.upload_file, size: 48, color: AppColors.primaryBlue),
             const SizedBox(height: 12),
-            const Text('Upload certifications', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('Upload certifications',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            Text('PDF Files up to 10MB', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            Text('PDF Files up to 10MB',
+                style:
+                TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withOpacity(0.1),
+                color: AppColors.primaryBlue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Choose File', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w600)),
+              child: const Text('Choose File',
+                  style: TextStyle(
+                      color: AppColors.primaryBlue,
+                      fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -339,9 +382,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryBlue,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: const Text('Save Edit', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        child: const Text('Save Edit',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
       ),
     );
   }

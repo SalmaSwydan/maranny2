@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:maranny_two/features/auth/presentation/screens/welcome_screen2.dart';
+import 'package:maranny_two/features/home/presentation/screens/guest_homescreen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({Key? key}) : super(key: key);
@@ -15,7 +16,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
             fit: BoxFit.fill,
             image: AssetImage("assets/images/background_screen.png"),
@@ -25,8 +26,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           child: Column(
             children: [
               const Spacer(flex: 2),
-
-              // Logo and meditation icon
               Container(
                 width: 160,
                 height: 160,
@@ -41,10 +40,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 30),
-
-              // App name
               const Text(
                 'MARANNY',
                 style: TextStyle(
@@ -54,10 +50,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   letterSpacing: 2,
                 ),
               ),
-
               const SizedBox(height: 8),
-
-              // Welcome text
               const Text(
                 'welcome',
                 style: TextStyle(
@@ -67,22 +60,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   letterSpacing: 1,
                 ),
               ),
-
               const Spacer(flex: 2),
-
               const Text(
                 'How would you like to use MARANNY?',
                 style: TextStyle(
-                  color: Color.fromARGB(255, 255, 255, 255),
+                  color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 20),
-
-              // Selection card
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 20),
                 padding: const EdgeInsets.all(24),
@@ -98,14 +86,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          setState(() {
-                            selectedRole = 'trainee';
-                          });
-                          // ✅ PASS 'trainee' role to WelcomeScreen2
+                          setState(() => selectedRole = 'trainee');
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => WelcomeScreen2(userType: 'trainee'),
+                              builder: (context) =>
+                                  WelcomeScreen2(userType: 'trainee'),
                             ),
                           );
                         },
@@ -127,43 +113,31 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Column(
-                          children: const [
-                            Text(
-                              'I am a Trainee',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                        child: const Column(
+                          children: [
+                            Text('I am a Trainee',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600)),
                             SizedBox(height: 2),
-                            Text(
-                              '(Find a Coach)',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w300,
-                              ),
-                            ),
+                            Text('(Find a Coach)',
+                                style: TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w300)),
                           ],
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 12),
-
                     // Coach button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          setState(() {
-                            selectedRole = 'coach';
-                          });
-                          // ✅ PASS 'coach' role to WelcomeScreen2
+                          setState(() => selectedRole = 'coach');
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => WelcomeScreen2(userType: 'coach'),
+                              builder: (context) =>
+                                  WelcomeScreen2(userType: 'coach'),
                             ),
                           );
                         },
@@ -185,58 +159,57 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Column(
-                          children: const [
-                            Text(
-                              'I am a Coach',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                        child: const Column(
+                          children: [
+                            Text('I am a Coach',
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w600)),
                             SizedBox(height: 2),
-                            Text(
-                              '(Manage Sessions)',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w300,
-                              ),
-                            ),
+                            Text('(Manage Sessions)',
+                                style: TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w300)),
                           ],
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
-                    // Continue as guest
+                    // ✅ FIX: Continue as guest → GuestHomeScreen
                     TextButton(
                       onPressed: () {
-                        // Navigate to guest home
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => GuestHomeScreen(
+                              onAuthRequired: () {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const WelcomeScreen(),
+                                  ),
+                                      (route) => false,
+                                );
+                              },
+                            ),
+                          ),
+                        );
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Text(
                             'Continue as a guest',
                             style: TextStyle(
-                              color: Color(0xFF666666),
-                              fontSize: 14,
-                            ),
+                                color: Color(0xFF666666), fontSize: 14),
                           ),
                           SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_forward,
-                            size: 16,
-                            color: Color(0xFF666666),
-                          ),
+                          Icon(Icons.arrow_forward,
+                              size: 16, color: Color(0xFF666666)),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
-
               const Spacer(flex: 3),
             ],
           ),

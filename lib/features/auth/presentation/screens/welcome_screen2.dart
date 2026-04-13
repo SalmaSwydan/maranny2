@@ -4,23 +4,18 @@ import 'package:maranny_two/features/auth/presentation/screens/login_screen.dart
 import '../../../become_coach/presentation/screens/coach_info_screen.dart';
 import '../../../home/presentation/screens/guest_homescreen.dart';
 
-class WelcomeScreen2 extends StatefulWidget {
+class WelcomeScreen2 extends StatelessWidget {
   final String userType;
-
   const WelcomeScreen2({Key? key, required this.userType}) : super(key: key);
 
-  @override
-  State<WelcomeScreen2> createState() => _WelcomeScreenState2();
-}
-
-class _WelcomeScreenState2 extends State<WelcomeScreen2> {
-  String? selectedRole;
+  // Consistent blue used everywhere in app
+  static const Color _blue = Color(0xFF1F3A93);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
             fit: BoxFit.fill,
             image: AssetImage("assets/images/background_screen.png"),
@@ -31,232 +26,118 @@ class _WelcomeScreenState2 extends State<WelcomeScreen2> {
             children: [
               const Spacer(flex: 2),
 
-              // Logo and meditation icon
-              Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+              // Logo
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(
+                  'assets/images/maranny_logo.png',
+                  width: 140, height: 140, fit: BoxFit.cover,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.asset(
-                    'assets/images/maranny_logo.png',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              // App name
-              const Text(
-                'MARANNY',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // Welcome text
-              const Text(
-                'welcome',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-              ),
-
-              const Spacer(flex: 2),
-
-              const Text(
-                'Find your perfect coach',
-                style: TextStyle(
-                  color: Color.fromARGB(255, 255, 255, 255),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 20),
 
-              // Selection card
+              const Text('MARANNY',
+                  style: TextStyle(
+                      color: Colors.white, fontSize: 36,
+                      fontWeight: FontWeight.bold, letterSpacing: 2)),
+              const SizedBox(height: 6),
+              const Text('Welcome',
+                  style: TextStyle(
+                      color: Colors.white, fontSize: 22,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              const Text('Find your perfect coach',
+                  style: TextStyle(color: Colors.white70, fontSize: 14)),
+
+              const Spacer(flex: 2),
+
+              // Card
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
+                margin: const EdgeInsets.symmetric(horizontal: 24),
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(40),
+                  borderRadius: BorderRadius.circular(32),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // login button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            selectedRole = 'login';
-                          });
-                          // Use the userType for login
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LoginScreen(userType: widget.userType),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: selectedRole == 'login'
-                              ? Colors.white
-                              : const Color(0xFF303F9F),
-                          backgroundColor: selectedRole == 'login'
-                              ? const Color(0xFF303F9F)
-                              : Colors.white,
-                          side: BorderSide(
-                            color: selectedRole == 'login'
-                                ? Colors.white
-                                : const Color(0xFF303F9F),
-                            width: 1.5,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Column(
-                          children: const [
-                            Text(
-                              'LOGIN',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    // LOGIN button
+                    _PrimaryButton(
+                      label: 'LOGIN',
+                      color: _blue,
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) =>
+                              LoginScreen(userType: userType))),
                     ),
 
                     const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Text(
-                          'Don\'t have your account yet?',
-                          style: TextStyle(
-                            color: Color(0xFF666666),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
+
+                    const Text("Don't have an account yet?",
+                        style: TextStyle(color: Color(0xFF888888), fontSize: 13)),
+
                     const SizedBox(height: 12),
 
-                    // register button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            selectedRole = 'register';
-                          });
-                          // ✅ FIXED: Check userType and navigate accordingly
-                          if (widget.userType == 'coach') {
-                            // Navigate to Become a Coach screens
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => CoachInfoScreen(),
-                              ),
-                            );
-                          } else {
-                            // Navigate to regular RegisterScreen for trainee
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => RegisterScreen(),
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: selectedRole == 'register'
-                              ? Colors.white
-                              : const Color(0xFF303F9F),
-                          backgroundColor: selectedRole == 'register'
-                              ? const Color(0xFF303F9F)
-                              : Colors.white,
-                          side: BorderSide(
-                            color: selectedRole == 'register'
-                                ? Colors.white
-                                : const Color(0xFF303F9F),
-                            width: 1.5,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Column(
-                          children: const [
-                            Text(
-                              'REGISTER',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    // REGISTER button
+                    _OutlineButton(
+                      label: 'REGISTER',
+                      color: _blue,
+                      onTap: () {
+                        if (userType == 'coach') {
+                          Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => CoachInfoScreen()));
+                        } else {
+                          Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => const RegisterScreen()));
+                        }
+                      },
                     ),
 
                     const SizedBox(height: 16),
 
-                    // Continue as guest
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => GuestHomeScreen(
-                              onAuthRequired: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => LoginScreen(userType: 'trainee'),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                    // OR divider
+                    Row(children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('or', style: TextStyle(
+                            color: Colors.grey.shade500, fontSize: 13)),
+                      ),
+                      const Expanded(child: Divider()),
+                    ]),
+
+                    const SizedBox(height: 16),
+
+                    // Sign up with Google
+                    _GoogleButton(
+                      label: 'Sign up with Google',
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Google sign-in coming soon')),
                         );
                       },
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Continue as guest
+                    GestureDetector(
+                      onTap: () => Navigator.pushReplacement(context,
+                          MaterialPageRoute(builder: (_) => GuestHomeScreen(
+                            onAuthRequired: () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) =>
+                                    LoginScreen(userType: 'trainee'))),
+                          ))),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Text(
-                            'Continue as a guest',
-                            style: TextStyle(
-                              color: Color(0xFF666666),
-                              fontSize: 14,
-                            ),
-                          ),
+                          Text('Continue as a guest',
+                              style: TextStyle(
+                                  color: Color(0xFF666666), fontSize: 13)),
                           SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_forward,
-                            size: 16,
-                            color: Color(0xFF666666),
-                          ),
+                          Icon(Icons.arrow_forward,
+                              size: 14, color: Color(0xFF666666)),
                         ],
                       ),
                     ),
@@ -267,6 +148,99 @@ class _WelcomeScreenState2 extends State<WelcomeScreen2> {
               const Spacer(flex: 3),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Shared button widgets ─────────────────────────
+
+class _PrimaryButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _PrimaryButton({required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
+        ),
+        child: Text(label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                letterSpacing: 1)),
+      ),
+    );
+  }
+}
+
+class _OutlineButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _OutlineButton({required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: color, width: 1.5),
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        child: Text(label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                letterSpacing: 1)),
+      ),
+    );
+  }
+}
+
+class _GoogleButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _GoogleButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.black87,
+          side: BorderSide(color: Colors.grey.shade300),
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: Colors.white,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Google G logo colors
+            const Text('G',
+                style: TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold,
+                    color: Color(0xFF4285F4))),
+            const SizedBox(width: 10),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w500,
+                    color: Colors.black87)),
+          ],
         ),
       ),
     );

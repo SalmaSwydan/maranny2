@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class UpcomingSessionsSection extends StatelessWidget {
-  const UpcomingSessionsSection({super.key});
+  // ✅ callback to switch to bookings tab
+  final VoidCallback? onViewMore;
+
+  const UpcomingSessionsSection({super.key, this.onViewMore});
 
   @override
   Widget build(BuildContext context) {
@@ -36,24 +39,27 @@ class UpcomingSessionsSection extends StatelessWidget {
   }
 
   Widget _header() {
-    return Row(
-      children: [
-        const Text(
-          'Upcoming Sessions',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return Builder(
+      builder: (context) => Row(
+        children: [
+          const Text(
+            'Upcoming Sessions',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-        ),
-        const Spacer(),
-        Text(
-          'view more →',
-          style: TextStyle(
-            color: AppColors.primaryBlue,
-            fontWeight: FontWeight.w500,
+          const Spacer(),
+          // ✅ Tappable "view more" → switches to Bookings tab
+          GestureDetector(
+            onTap: onViewMore,
+            child: Text(
+              'view more →',
+              style: TextStyle(
+                color: AppColors.primaryBlue,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -83,30 +89,21 @@ class UpcomingSessionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 6),
-          )
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            name,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
+          Text(name,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 4),
-          Text(
-            sport,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 13,
-            ),
-          ),
+          Text(sport,
+              style: const TextStyle(color: Colors.grey, fontSize: 13)),
           const SizedBox(height: 10),
           const Divider(),
           const SizedBox(height: 8),

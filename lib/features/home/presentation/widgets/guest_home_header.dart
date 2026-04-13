@@ -11,121 +11,40 @@ class HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+      padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 24, 16, 20),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF122D86),
-            Color(0xFF6FD3F5),
-          ],
+          colors: [Color(0xFF122D86), Color(0xFF6FD3F5)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(10),
-          topRight: Radius.circular(10),
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 14),
-          const _TopRow(),
-          const SizedBox(height: 16),
-          const _WelcomeText(),
-          const SizedBox(height: 16),
-          const _SearchBar(),
-          const SizedBox(height: 16),
-
-          /// 👇 Sports Categories تحت الـ Search
+          // Welcome text — centered, no back button, no bell
+          const Text(
+            'welcome to MARANNY!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Browse verified coaches and book your first session',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: Colors.white70),
+          ),
+          const SizedBox(height: 20),
+          // Sports categories
           _SportsCategories(onTap: onCategoryTap),
-        ],
-      ),
-    );
-  }
-}
-
-// --------------------------------------------------
-
-class _TopRow extends StatelessWidget {
-  const _TopRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: const [
-        Icon(Icons.arrow_back_ios_new, color: Colors.white),
-        Icon(Icons.notifications_none, color: Colors.white),
-      ],
-    );
-  }
-}
-
-// --------------------------------------------------
-
-class _WelcomeText extends StatelessWidget {
-  const _WelcomeText();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        Text(
-          'Welcome to MARANNY!',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        SizedBox(height: 6),
-        Text(
-          'Browse verified coaches and book your first session',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white70,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// --------------------------------------------------
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.search, color: Colors.grey),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'Browse coaches by name',
-              style: TextStyle(color: Colors.grey),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: null, // Guest only
-            style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: const Text('Search'),
-          ),
         ],
       ),
     );
@@ -136,10 +55,7 @@ class _SearchBar extends StatelessWidget {
 
 class _SportsCategories extends StatelessWidget {
   final VoidCallback onTap;
-
-  const _SportsCategories({
-    required this.onTap,
-  });
+  const _SportsCategories({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -208,7 +124,7 @@ class _CategoryChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Row(
@@ -234,6 +150,5 @@ class _CategoryChip extends StatelessWidget {
 class _CategoryItem {
   final String label;
   final IconData icon;
-
   const _CategoryItem(this.label, this.icon);
 }

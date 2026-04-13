@@ -1,6 +1,5 @@
 import '../utils/marketplace_product.dart';
 
-/// Persists marketplace products so they survive navigation (e.g. Home → back to Marketplace).
 class SharedMarketplaceManager {
   SharedMarketplaceManager._();
 
@@ -16,22 +15,21 @@ class SharedMarketplaceManager {
         title: 'Professional Football',
         category: 'Equipment',
         condition: 'New',
-        price: 35,
+        price: 350,  // ✅ LE
         imageAsset: 'assets/images/professional_football.png',
         sellerName: 'Sports Store',
         sellerRating: 4.9,
         reviewers: 80,
         location: 'Cairo, Egypt',
         whatsapp: '+20 100 123 4567',
-        description:
-            'Professional grade football perfect for training and matches. Made with high-quality synthetic leather, excellent grip and durability.',
+        description: 'Professional grade football perfect for training and matches. Made with high-quality synthetic leather, excellent grip and durability.',
       ),
       const MarketplaceProduct(
         id: '2',
         title: 'Basketball Shoes',
         category: 'Clothing',
         condition: 'New',
-        price: 120,
+        price: 1200,  // ✅ LE
         imageAsset: 'assets/images/basketball_shoes.png',
         sellerName: 'Sports Store',
         sellerRating: 4.9,
@@ -45,7 +43,7 @@ class SharedMarketplaceManager {
         title: 'Yoga Mat',
         category: 'Accessories',
         condition: 'New',
-        price: 25,
+        price: 250,  // ✅ LE
         imageAsset: 'assets/images/yoga_matt.png',
         sellerName: 'Wellness Store',
         sellerRating: 4.5,
@@ -59,7 +57,7 @@ class SharedMarketplaceManager {
         title: 'Swimming Goggles',
         category: 'Accessories',
         condition: 'Used',
-        price: 12,
+        price: 120,  // ✅ LE
         imageAsset: 'assets/images/swimming_goggles.png',
         sellerName: 'Sports Store',
         sellerRating: 4.9,

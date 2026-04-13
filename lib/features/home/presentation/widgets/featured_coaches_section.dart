@@ -10,6 +10,7 @@ class FeaturedCoachesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Using the same real coach images from the client home screen
     final coaches = [
       _CoachItem(
         name: 'Ahmed Mohamed',
@@ -17,15 +18,15 @@ class FeaturedCoachesSection extends StatelessWidget {
         rating: 4.9,
         reviews: 80,
         price: 25,
-        emoji: '🧑‍🏫',
+        imagePath: 'assets/images/coach_ahmed_mohamed.png',
       ),
       _CoachItem(
-        name: 'Sarah Ahmed',
+        name: 'Sara Ahmed',
         sport: 'Swimming',
         rating: 4.0,
         reviews: 77,
         price: 15,
-        emoji: '👩‍🏫',
+        imagePath: 'assets/images/coach_sara_ahmed.png',
       ),
       _CoachItem(
         name: 'Ziad Marwan',
@@ -33,7 +34,7 @@ class FeaturedCoachesSection extends StatelessWidget {
         rating: 4.7,
         reviews: 16,
         price: 25,
-        emoji: '🙋‍♂️',
+        imagePath: 'assets/images/coach_ziad_marwan.png',
       ),
       _CoachItem(
         name: 'Omar Khaled',
@@ -41,7 +42,7 @@ class FeaturedCoachesSection extends StatelessWidget {
         rating: 4.8,
         reviews: 42,
         price: 20,
-        emoji: '💪',
+        imagePath: 'assets/images/coach_omar_khaled.png',
       ),
     ];
 
@@ -78,7 +79,6 @@ class FeaturedCoachesSection extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Coaches list
           SizedBox(
             height: 210,
             child: ListView.separated(
@@ -89,7 +89,7 @@ class FeaturedCoachesSection extends StatelessWidget {
               itemBuilder: (context, index) {
                 return _CoachCard(
                   coach: coaches[index],
-                  onTap: onSeeMore, // Guest behavior
+                  onTap: onSeeMore,
                 );
               },
             ),
@@ -99,14 +99,14 @@ class FeaturedCoachesSection extends StatelessWidget {
     );
   }
 }
+
+// --------------------------------------------------
+
 class _CoachCard extends StatelessWidget {
   final _CoachItem coach;
   final VoidCallback onTap;
 
-  const _CoachCard({
-    required this.coach,
-    required this.onTap,
-  });
+  const _CoachCard({required this.coach, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +120,7 @@ class _CoachCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -129,18 +129,26 @@ class _CoachCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Avatar
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                coach.emoji,
-                style: const TextStyle(fontSize: 28),
+            // ✅ Real coach image with fallback to icon
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                coach.imagePath,
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.person,
+                        size: 32, color: Colors.blue),
+                  );
+                },
               ),
             ),
 
@@ -157,10 +165,7 @@ class _CoachCard extends StatelessWidget {
 
             Text(
               coach.sport,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
 
             const SizedBox(height: 6),
@@ -193,13 +198,16 @@ class _CoachCard extends StatelessWidget {
     );
   }
 }
+
+// --------------------------------------------------
+
 class _CoachItem {
   final String name;
   final String sport;
   final double rating;
   final int reviews;
   final int price;
-  final String emoji;
+  final String imagePath;
 
   const _CoachItem({
     required this.name,
@@ -207,6 +215,6 @@ class _CoachItem {
     required this.rating,
     required this.reviews,
     required this.price,
-    required this.emoji,
+    required this.imagePath,
   });
 }

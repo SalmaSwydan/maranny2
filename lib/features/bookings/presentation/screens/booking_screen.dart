@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:maranny_two/features/bookings/presentation/screens/rate_coach_screen.dart';
+import '../../domain/models/coach_data_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/booking_session_model.dart';
 import '../../presentation/screens/coach_details_screen.dart';
 
 class BookingsScreen extends StatefulWidget {
   final VoidCallback onMessageTap;
+  // ✅ FIX: added callback for "Book Another Coach"
+  final VoidCallback onBookAnotherCoach;
 
-  const BookingsScreen({super.key, required this.onMessageTap});
+  const BookingsScreen({
+    super.key,
+    required this.onMessageTap,
+    required this.onBookAnotherCoach,
+  });
 
   @override
   State<BookingsScreen> createState() => _BookingsScreenState();
@@ -56,7 +63,12 @@ class _BookingsScreenState extends State<BookingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Bookings'),
+        title: const Text(
+          'My Bookings',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        automaticallyImplyLeading: false,
+        foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: AppColors.primaryGradient,
@@ -80,7 +92,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
               padding: const EdgeInsets.all(16),
               child: _primaryButton(
                 text: 'Book Another Coach',
-                onTap: () {},
+                // ✅ FIX: wire up the callback
+                onTap: widget.onBookAnotherCoach,
               ),
             ),
         ],
@@ -184,8 +197,10 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            CoachDetailsScreen(session: session, image: '',),
+                        builder: (_) => CoachDetailsScreen(
+                          session: session,
+                          image: '',
+                        ),
                       ),
                     );
                   },
@@ -227,7 +242,10 @@ class _BookingsScreenState extends State<BookingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       onPressed: onTap,
-      child: Text(text),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white),
+      ),
     );
   }
 }

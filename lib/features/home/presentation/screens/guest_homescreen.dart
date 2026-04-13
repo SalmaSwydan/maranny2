@@ -37,14 +37,15 @@ class GuestHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
-      body: SafeArea(
-        child: SingleChildScrollView(
+        backgroundColor: const Color(0xFFF6F6F6),
+        body: SingleChildScrollView(
           child: Column(
             children: [
               /// -------- Home Header --------
+              /// ✅ FIX: category taps now show the bottom sheet first
+              /// instead of jumping straight to sign up
               HomeHeader(
-                onCategoryTap: onAuthRequired,
+                onCategoryTap: () => _showReadyToGetStarted(context),
               ),
 
               const SizedBox(height: 16),
@@ -63,16 +64,13 @@ class GuestHomeScreen extends StatelessWidget {
 
               /// -------- Featured Coaches --------
               FeaturedCoachesSection(
-                onSeeMore: () {
-                  _showReadyToGetStarted(context);
-                },
+                onSeeMore: () => _showReadyToGetStarted(context),
               ),
 
               const SizedBox(height: 24),
             ],
           ),
-        ),
-      ),
+        )
     );
-  }
+    }
 }

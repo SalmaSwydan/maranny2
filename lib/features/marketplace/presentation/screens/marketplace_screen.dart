@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../../../core/theme/app_colors.dart';
 import '../utils/marketplace_product.dart';
 import '../utils/shared_marketplace_manager.dart';
@@ -37,22 +36,22 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   List<MarketplaceProduct> get _filtered {
     final q = _search.trim().toLowerCase();
-
     return _products.where((p) {
       final matchesSearch = q.isEmpty ? true : p.title.toLowerCase().contains(q);
-
       final matchesTab = () {
         if (_selectedTab == 'All') return true;
         if (_selectedTab == 'Used') return p.condition == 'Used';
         return p.category == _selectedTab;
       }();
-
       return matchesSearch && matchesTab;
     }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    // ✅ FIX: use MediaQuery so header fills under status bar
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
@@ -66,63 +65,61 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
         backgroundColor: AppColors.primaryBlue,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      // ✅ NO bottomNavigationBar here - parent handles it!
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Gradient header - Market Place
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-              decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
-              ),
-              child: const Text(
-                'Market Place',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+      // ✅ NO SafeArea — header handles the top padding manually
+      body: Column(
+        children: [
+          // ✅ Header extends under status bar
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(16, topPadding + 16, 16, 20),
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryGradient,
+            ),
+            child: const Text(
+              'Market Place',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
-            MarketplaceSearchBar(
-              hint: 'Search for what you need',
-              onChanged: (v) => setState(() => _search = v),
-            ),
-            CategoryChips(
-              selected: _selectedTab,
-              onSelected: (tab) => setState(() => _selectedTab = tab),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: _filtered.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.58,
-                ),
-                itemBuilder: (context, i) {
-                  final product = _filtered[i];
-                  return ProductCard(
-                    product: product,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProductDetailsScreen(product: product),
-                        ),
-                      );
-                    },
-                  );
-                },
+          ),
+          MarketplaceSearchBar(
+            hint: 'Search for what you need',
+            onChanged: (v) => setState(() => _search = v),
+          ),
+          CategoryChips(
+            selected: _selectedTab,
+            onSelected: (tab) => setState(() => _selectedTab = tab),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: _filtered.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.58,
               ),
+              itemBuilder: (context, i) {
+                final product = _filtered[i];
+                return ProductCard(
+                  product: product,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProductDetailsScreen(product: product),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
