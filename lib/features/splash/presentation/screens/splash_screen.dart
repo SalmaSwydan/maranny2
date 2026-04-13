@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:maranny_two/features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../../../core/utils/app_assets.dart';
+import '../../../onboarding/presentation/screens/onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -9,13 +10,14 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  @override
   void initState() {
     super.initState();
-    // Navigate to next screen after 3 seconds
     Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => OnboardingScreen()),
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
       );
     });
   }
@@ -26,7 +28,8 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/background_screen.png'),
+            // ✅ AppAssets
+            image: AssetImage(AppAssets.backgroundScreen),
             fit: BoxFit.cover,
           ),
         ),
@@ -35,13 +38,11 @@ class _SplashScreenState extends State<SplashScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/images/maranny_logo.png',
+                AppAssets.marannyLogo,
                 width: 200,
                 height: 200,
               ),
               const SizedBox(height: 20),
-
-              // App name
               const Text(
                 'MARANNY',
                 style: TextStyle(

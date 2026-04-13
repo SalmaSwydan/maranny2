@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ScheduleCard extends StatelessWidget {
   final String name;
   final String sport;
   final String time;
   final String court;
-  final String status; // Confirmed / Pending
+  final String status;
 
   const ScheduleCard({
     super.key,
@@ -17,13 +18,17 @@ class ScheduleCard extends StatelessWidget {
   });
 
   Color _pillBg() {
-    if (status.toLowerCase().contains('confirm')) return const Color(0xFFD8FFE0);
-    return const Color(0xFFFFF3C8);
+    if (status.toLowerCase().contains('confirm')) {
+      return AppColors.confirmedLight;
+    }
+    return AppColors.pendingLight;
   }
 
   Color _pillText() {
-    if (status.toLowerCase().contains('confirm')) return const Color(0xFF2E7D32);
-    return const Color(0xFF8D6E00);
+    if (status.toLowerCase().contains('confirm')) {
+      return AppColors.confirmed;
+    }
+    return AppColors.pending;
   }
 
   @override
@@ -38,8 +43,8 @@ class ScheduleCard extends StatelessWidget {
           BoxShadow(
             blurRadius: 18,
             offset: const Offset(0, 10),
-            color: Colors.black.withOpacity(0.12),
-          )
+            color: Colors.black.withValues(alpha: 0.12),
+          ),
         ],
       ),
       child: Column(
@@ -50,15 +55,19 @@ class ScheduleCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   name,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: _pillBg(),
                   borderRadius: BorderRadius.circular(18),
@@ -66,7 +75,7 @@ class ScheduleCard extends StatelessWidget {
                     BoxShadow(
                       blurRadius: 12,
                       offset: const Offset(0, 6),
-                      color: Colors.black.withOpacity(0.12),
+                      color: Colors.black.withValues(alpha: 0.12),
                     ),
                   ],
                 ),
@@ -86,20 +95,24 @@ class ScheduleCard extends StatelessWidget {
           Text(
             sport,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.black54,
+              color: AppColors.textSecondary,
               fontFamily: 'Poppins',
             ),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.access_time, size: 18, color: Colors.black54),
+              const Icon(Icons.access_time,
+                  size: 18, color: AppColors.textSecondary),
               const SizedBox(width: 8),
-              Text(time, style: const TextStyle(color: Colors.black87)),
+              Text(time,
+                  style: const TextStyle(color: AppColors.textPrimary)),
               const SizedBox(width: 16),
-              const Icon(Icons.location_on, size: 18, color: Colors.black54),
+              const Icon(Icons.location_on,
+                  size: 18, color: AppColors.textSecondary),
               const SizedBox(width: 6),
-              Text(court, style: const TextStyle(color: Colors.black87)),
+              Text(court,
+                  style: const TextStyle(color: AppColors.textPrimary)),
             ],
           ),
         ],

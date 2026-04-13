@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class BookingSessionCard extends StatefulWidget {
   final String name;
@@ -26,28 +27,23 @@ class _BookingSessionCardState extends State<BookingSessionCard> {
     return Card(
       elevation: 6,
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// الاسم + الايموجي
             Text(
               '👤 ${widget.name}',
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+                  fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 4),
-            Text(
-              '🏀 ${widget.sport}',
-              style: const TextStyle(color: Colors.grey),
-            ),
+            Text('🏀 ${widget.sport}',
+                style:
+                const TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 8),
-
-            /// التاريخ والوقت
             Row(
               children: [
                 const Icon(Icons.calendar_today, size: 16),
@@ -59,31 +55,26 @@ class _BookingSessionCardState extends State<BookingSessionCard> {
                 Text(widget.time),
               ],
             ),
-
             const SizedBox(height: 16),
-
-            /// الأزرار
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                      isMessageSelected ? Colors.blue : Colors.white,
-                      foregroundColor:
-                      isMessageSelected ? Colors.white : Colors.blue,
-                      side: const BorderSide(color: Colors.blue),
+                      // ✅ AppColors
+                      backgroundColor: isMessageSelected
+                          ? AppColors.primaryBlue
+                          : Colors.white,
+                      foregroundColor: isMessageSelected
+                          ? Colors.white
+                          : AppColors.primaryBlue,
+                      side: const BorderSide(
+                          color: AppColors.primaryBlue),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        isMessageSelected = true;
-                      });
-
-                      /// بعدين نفتح messages
-                    },
+                    onPressed: () =>
+                        setState(() => isMessageSelected = true),
                     child: const Text('💬 Message Coach'),
                   ),
                 ),
@@ -91,22 +82,19 @@ class _BookingSessionCardState extends State<BookingSessionCard> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                      !isMessageSelected ? Colors.blue : Colors.white,
-                      foregroundColor:
-                      !isMessageSelected ? Colors.white : Colors.blue,
-                      side: const BorderSide(color: Colors.blue),
+                      backgroundColor: !isMessageSelected
+                          ? AppColors.primaryBlue
+                          : Colors.white,
+                      foregroundColor: !isMessageSelected
+                          ? Colors.white
+                          : AppColors.primaryBlue,
+                      side: const BorderSide(
+                          color: AppColors.primaryBlue),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        isMessageSelected = false;
-                      });
-
-                      /// بعدين نفتح profile
-                    },
+                    onPressed: () =>
+                        setState(() => isMessageSelected = false),
                     child: const Text('📄 Details'),
                   ),
                 ),

@@ -1,0 +1,236 @@
+import 'package:flutter/material.dart';
+
+// ── Auth ──────────────────────────────────────────────────────
+import '../../features/splash/presentation/screens/splash_screen.dart';
+import '../../features/auth/presentation/screens/welcome_screen.dart';
+import '../../features/auth/presentation/screens/welcome_screen2.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/register_screen.dart';
+import '../../features/auth/presentation/screens/forget_password_screen.dart';
+
+// ── Onboarding ────────────────────────────────────────────────
+import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+
+// ── Layouts ───────────────────────────────────────────────────
+import '../../layout/main_layout.dart';
+import '../../layout/coach_layout.dart';
+
+// ── Become a Coach ────────────────────────────────────────────
+import '../../features/become_coach/presentation/screens/coach_info_screen.dart';
+import '../../features/become_coach/presentation/screens/coach_specialties_screen.dart';
+import '../../features/become_coach/presentation/screens/coach_days_screen.dart';
+import '../../features/become_coach/presentation/screens/coach_certifications_screen.dart';
+
+// ── Settings / Support ────────────────────────────────────────
+import '../../features/settings/presentation/screens/support_screen.dart';
+import '../../features/settings/presentation/screens/safety_moderation_screen.dart';
+
+// ── Reviews ───────────────────────────────────────────────────
+import '../../features/reviews/presentation/screens/all_reviews_screen.dart';
+
+// ── Guest ─────────────────────────────────────────────────────
+import '../../features/home/presentation/screens/guest_homescreen.dart';
+
+/// ─────────────────────────────────────────────────────────────
+/// ROUTE ARGUMENTS — typed, no raw Maps in navigation calls
+/// ─────────────────────────────────────────────────────────────
+class UserTypeArgs {
+  final String userType; // 'client' | 'coach'
+  const UserTypeArgs(this.userType);
+}
+
+/// ─────────────────────────────────────────────────────────────
+/// APP ROUTER
+///
+/// Navigate:
+///   AppRouter.pushNamed(context, AppRouter.login,
+///       args: UserTypeArgs('coach'));
+///
+/// Clear stack (logout):
+///   AppRouter.pushNamedAndClearStack(context, AppRouter.welcome);
+/// ─────────────────────────────────────────────────────────────
+class AppRouter {
+  AppRouter._();
+
+  // ── Route name constants ──────────────────────────────────
+  static const String splash           = '/';
+  static const String onboarding       = '/onboarding';
+  static const String welcome          = '/welcome';
+  static const String welcome2         = '/welcome2';
+  static const String login            = '/login';
+  static const String register         = '/register';
+  static const String forgotPassword   = '/forgot-password';
+  static const String clientHome       = '/client';
+  static const String coachHome        = '/coach';
+  static const String becomeCoachInfo           = '/become-coach/info';
+  static const String becomeCoachSpecialties    = '/become-coach/specialties';
+  static const String becomeCoachDays           = '/become-coach/days';
+  static const String becomeCoachCertifications = '/become-coach/certifications';
+  static const String support    = '/support';
+  static const String safety     = '/safety';
+  static const String allReviews = '/reviews';
+  static const String guestHome  = '/guest';
+
+  // ── Route generator ───────────────────────────────────────
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    final args = settings.arguments;
+
+    switch (settings.name) {
+
+      case splash:
+        return _fade(const SplashScreen());
+
+      case onboarding:
+        return _slide(const OnboardingScreen());
+
+      case welcome:
+        return _build(const WelcomeScreen());
+
+      case welcome2:
+        final userType = args is UserTypeArgs ? args.userType : 'trainee';
+        return _build(WelcomeScreen2(userType: userType));
+
+      case login:
+        final userType = args is UserTypeArgs ? args.userType : 'trainee';
+        return _build(LoginScreen(userType: userType));
+
+      case register:
+      // ✅ Routes to CoachInfoScreen for coach, MainLayout for trainee
+        final userType = args is UserTypeArgs ? args.userType : 'trainee';
+        return _build(RegisterScreen(userType: userType));
+
+      case forgotPassword:
+        return _build(const ForgotPasswordScreen());
+
+      case clientHome:
+        return _build(const MainLayout());
+
+      case coachHome:
+        return _build(const CoachMainLayout());
+
+      case becomeCoachInfo:
+        return _build(const CoachInfoScreen());
+
+      case becomeCoachSpecialties:
+        return _build(const CoachSpecialtiesScreen());
+
+      case becomeCoachDays:
+        return _build(const CoachDaysScreen());
+
+      case becomeCoachCertifications:
+        return _build(const CoachCertificationsScreen());
+
+      case support:
+        final userType = args is UserTypeArgs ? args.userType : 'client';
+        return _build(SupportScreen(userType: userType));
+
+      case safety:
+        final userType = args is UserTypeArgs ? args.userType : 'client';
+        return _build(SafetyModerationScreen(userType: userType));
+
+      case allReviews:
+        return _build(const AllReviewsScreen());
+
+      case guestHome:
+        return _build(GuestHomeScreen(onAuthRequired: () {}));
+
+      default:
+        return _build(_NotFoundScreen(routeName: settings.name ?? '?'));
+    }
+  }
+
+  // ── Navigation helpers ────────────────────────────────────
+
+  static Future<T?> pushNamed<T>(
+      BuildContext context,
+      String routeName, {
+        Object? args,
+      }) =>
+      Navigator.pushNamed<T>(context, routeName, arguments: args);
+
+  static Future<T?> pushReplacementNamed<T, TO>(
+      BuildContext context,
+      String routeName, {
+        Object? args,
+      }) =>
+      Navigator.pushReplacementNamed<T, TO>(
+          context, routeName, arguments: args);
+
+  static Future<T?> pushNamedAndClearStack<T>(
+      BuildContext context,
+      String routeName, {
+        Object? args,
+      }) =>
+      Navigator.pushNamedAndRemoveUntil<T>(
+        context, routeName, (route) => false,
+        arguments: args,
+      );
+
+  static void pop<T>(BuildContext context, [T? result]) =>
+      Navigator.pop<T>(context, result);
+
+  static void popUntil(BuildContext context, String routeName) =>
+      Navigator.popUntil(context, ModalRoute.withName(routeName));
+
+  // ── Page transitions ─────────────────────────────────────
+
+  static MaterialPageRoute<dynamic> _build(Widget page) =>
+      MaterialPageRoute(builder: (_) => page);
+
+  static PageRouteBuilder<dynamic> _fade(Widget page) =>
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 400),
+      );
+
+  static PageRouteBuilder<dynamic> _slide(Widget page) =>
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) =>
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1.0, 0.0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInOut,
+              )),
+              child: child,
+            ),
+        transitionDuration: const Duration(milliseconds: 350),
+      );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 404 SCREEN
+// ─────────────────────────────────────────────────────────────
+class _NotFoundScreen extends StatelessWidget {
+  final String routeName;
+  const _NotFoundScreen({required this.routeName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Page Not Found')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline,
+                size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text('Route "$routeName" not found.',
+                style: const TextStyle(color: Colors.grey)),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Go Back'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

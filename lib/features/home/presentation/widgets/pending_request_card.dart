@@ -181,7 +181,7 @@ class PendingRequestCard extends StatelessWidget {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.declineGray,
+                    color: AppColors.disabledGray,
                     borderRadius: BorderRadius.circular(13),
                     boxShadow: [
                       BoxShadow(
