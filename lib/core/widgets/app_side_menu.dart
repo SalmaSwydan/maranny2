@@ -1,15 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../features/settings/presentation/screens/safety_moderation_screen.dart';
+import '../../../features/settings/presentation/screens/support_screen.dart';
 
+/// ─────────────────────────────────────────────────────────────
+/// APP SIDE MENU
+///
+/// In client home screen:
+///   AppSideMenu(userName: _userName, userType: 'client', onLogout: ...)
+///
+/// In coach home screen / coach layout:
+///   AppSideMenu(userName: _userName, userType: 'coach', onLogout: ...)
+/// ─────────────────────────────────────────────────────────────
 class AppSideMenu extends StatelessWidget {
   final String userName;
+  final String userType; // 'client' or 'coach'
   final VoidCallback onLogout;
 
   const AppSideMenu({
     super.key,
     required this.userName,
+    required this.userType,
     required this.onLogout,
   });
+
+  bool get _isCoach => userType == 'coach';
 
   @override
   Widget build(BuildContext context) {
@@ -32,43 +47,62 @@ class AppSideMenu extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                // ✅ removed "Menu" title — just show user avatar and name
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.25),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          userName.isNotEmpty
-                              ? userName[0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      userName,
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      userName.isNotEmpty
+                          ? userName[0].toUpperCase()
+                          : 'U',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Role badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white
+                              .withValues(alpha: 0.2),
+                          borderRadius:
+                          BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _isCoach ? 'Coach' : 'Trainee',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -76,33 +110,48 @@ class AppSideMenu extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // ── Menu items ──
+          // ── Support ──
           _MenuItem(
             icon: Icons.help_outline,
             iconColor: const Color(0xFF1F3A93),
             title: 'Support',
-            subtitle: 'Get help with any issues',
+            subtitle: _isCoach
+                ? 'Coach support centre'
+                : 'Get help with any issues',
             onTap: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Support coming soon')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  // ✅ passes the correct userType
+                  builder: (_) => SupportScreen(userType: userType),
+                ),
               );
             },
           ),
 
+          // ── Report ──
           _MenuItem(
             icon: Icons.warning_amber_outlined,
             iconColor: Colors.orange,
             title: 'Report',
-            subtitle: 'Report an issue or problem',
+            subtitle: _isCoach
+                ? 'Report a trainee or issue'
+                : 'Report a coach or issue',
             onTap: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Report feature coming soon')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  // ✅ passes the correct userType
+                  builder: (_) =>
+                      SafetyModerationScreen(userType: userType),
+                ),
               );
             },
           ),
 
+          // ── Logout ──
           _MenuItem(
             icon: Icons.logout,
             iconColor: Colors.red,
@@ -145,40 +194,34 @@ class _MenuItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 20, vertical: 14),
+        child: Row(children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
+            child: Icon(icon, color: iconColor, size: 22),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
                   style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: titleColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: titleColor)),
+              const SizedBox(height: 2),
+              Text(subtitle,
                   style: const TextStyle(
-                      fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ],
-        ),
+                      fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+        ]),
       ),
     );
   }

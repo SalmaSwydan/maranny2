@@ -8,7 +8,6 @@ import '../../../../../core/widgets/app_side_menu.dart';
 import '../../../auth/presentation/screens/welcome_screen.dart';
 
 class ClientHomeScreen extends StatefulWidget {
-  // ✅ callback from MainLayout to switch to Bookings tab
   final VoidCallback? onGoToBookings;
 
   const ClientHomeScreen({super.key, this.onGoToBookings});
@@ -31,6 +30,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       key: _scaffoldKey,
       drawer: AppSideMenu(
         userName: _userName,
+        userType: 'client', // ✅ FIX: required param added
         onLogout: () {
           Navigator.pushAndRemoveUntil(
             context,
@@ -49,7 +49,6 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: UpcomingSessionsSection(
-                // ✅ "view more" switches to Bookings tab
                 onViewMore: widget.onGoToBookings,
               ),
             ),
