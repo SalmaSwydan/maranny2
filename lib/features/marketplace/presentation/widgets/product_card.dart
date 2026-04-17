@@ -17,19 +17,22 @@ class ProductCard extends StatelessWidget {
       child: Card(
         elevation: 2,
         shadowColor: Colors.black.withValues(alpha: 0.08),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(14)),
               child: AspectRatio(
                 aspectRatio: 16 / 12,
                 child: _buildProductImage(product),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 2),
+              // ✅ reduced top padding 8→5 to fix overflow
+              padding: const EdgeInsets.fromLTRB(10, 5, 10, 2),
               child: Text(product.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -41,12 +44,13 @@ class ProductCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(product.condition,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                  style: TextStyle(
+                      color: Colors.grey.shade600, fontSize: 12)),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+              // ✅ reduced vertical padding 4/6→2/4 to fix overflow
+              padding: const EdgeInsets.fromLTRB(10, 2, 10, 4),
               child: Text(
-                // ✅ LE instead of $
                 '${product.price.toStringAsFixed(0)} LE',
                 style: const TextStyle(
                     fontWeight: FontWeight.w700,
@@ -57,32 +61,39 @@ class ProductCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(20)),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.store_outlined, size: 16, color: Colors.grey.shade700),
+                    Icon(Icons.store_outlined,
+                        size: 16, color: Colors.grey.shade700),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(product.sellerName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade700)),
                     ),
-                    Icon(Icons.star, size: 14, color: Colors.amber.shade700),
+                    Icon(Icons.star,
+                        size: 14, color: Colors.amber.shade700),
                     const SizedBox(width: 2),
                     Text(product.sellerRating.toString(),
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700)),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 6),
+            // ✅ removed SizedBox(height:6) to save space
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+              padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
               child: SizedBox(
                 height: 32,
                 child: ElevatedButton.icon(
@@ -93,7 +104,8 @@ class ProductCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                   ),
-                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  icon: const Icon(Icons.chat_bubble_outline,
+                      size: 18),
                   label: const Text('Contact seller'),
                 ),
               ),

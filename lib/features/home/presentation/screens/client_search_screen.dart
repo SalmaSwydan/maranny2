@@ -3,7 +3,6 @@ import '../../../bookings/presentation/screens/coach_details_screen.dart';
 import '../../../bookings/domain/models/booking_session_model.dart';
 import '../../../bookings/domain/models/coach_data_model.dart';
 
-// ── Egyptian cities & areas ───────────────────────────
 const Map<String, List<String>> _egyptLocations = {
   'Cairo': ['Nasr City', 'Maadi', 'Heliopolis', 'New Cairo', 'Zamalek', 'Dokki', 'Mohandessin', '6th of October'],
   'Alexandria': ['Smouha', 'Miami', 'Montazah', 'Sporting', 'Sidi Bishr', 'Stanley', 'Gleem'],
@@ -25,7 +24,6 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   String _selectedCategory = 'All';
   String _searchQuery = '';
 
-  // Filter state
   double _maxPrice = 1000;
   String? _selectedCity;
   String? _selectedArea;
@@ -95,10 +93,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       else if (_ratingFilter == '4.0+') minRating = 4.0;
       else if (_ratingFilter == '3.0+') minRating = 3.0;
       final matchesRating = (coach['rating'] as double) >= minRating;
-      final matchesCity = _selectedCity == null ||
-          coach['city'] == _selectedCity;
-      final matchesArea = _selectedArea == null ||
-          coach['area'] == _selectedArea;
+      final matchesCity = _selectedCity == null || coach['city'] == _selectedCity;
+      final matchesArea = _selectedArea == null || coach['area'] == _selectedArea;
       return matchesCategory && matchesSearch && matchesPrice &&
           matchesRating && matchesCity && matchesArea;
     }).toList();
@@ -169,7 +165,6 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       backgroundColor: const Color(0xFFF5F6FA),
       body: Column(
         children: [
-          // Header
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -199,13 +194,11 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
               ),
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Search bar
                 Container(
                   height: 48,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -238,8 +231,6 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-
-                // Category chips
                 SizedBox(
                   height: 36,
                   child: ListView.separated(
@@ -255,46 +246,61 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 6),
                           decoration: BoxDecoration(
-                            color: selected ? const Color(0xFF1F3A93) : Colors.white,
+                            color: selected
+                                ? const Color(0xFF1F3A93)
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: selected ? const Color(0xFF1F3A93) : Colors.grey.shade300,
+                              color: selected
+                                  ? const Color(0xFF1F3A93)
+                                  : Colors.grey.shade300,
                             ),
                           ),
                           child: Text(cat,
                               style: TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w500,
-                                  color: selected ? Colors.white : Colors.black87)),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: selected
+                                      ? Colors.white
+                                      : Colors.black87)),
                         ),
                       );
                     },
                   ),
                 ),
                 const SizedBox(height: 14),
-
-                // Advanced filter row
                 GestureDetector(
                   onTap: _openFilter,
                   child: Row(
                     children: [
-                      Icon(Icons.filter_list, size: 18,
-                          color: _filterApplied ? const Color(0xFF1F3A93) : Colors.grey),
+                      Icon(Icons.filter_list,
+                          size: 18,
+                          color: _filterApplied
+                              ? const Color(0xFF1F3A93)
+                              : Colors.grey),
                       const SizedBox(width: 6),
                       Text('Advanced filter',
                           style: TextStyle(
                               fontSize: 13,
-                              color: _filterApplied ? const Color(0xFF1F3A93) : Colors.grey.shade600,
-                              fontWeight: _filterApplied ? FontWeight.w600 : FontWeight.normal)),
+                              color: _filterApplied
+                                  ? const Color(0xFF1F3A93)
+                                  : Colors.grey.shade600,
+                              fontWeight: _filterApplied
+                                  ? FontWeight.w600
+                                  : FontWeight.normal)),
                       if (_filterApplied) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: const Color(0xFF1F3A93),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Text('ON',
-                              style: TextStyle(color: Colors.white, fontSize: 10,
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.bold)),
                         ),
                       ],
@@ -304,8 +310,6 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
               ],
             ),
           ),
-
-          // Coach list
           Expanded(
             child: _filtered.isEmpty
                 ? const Center(
@@ -332,8 +336,6 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     );
   }
 }
-
-// ── Filter Bottom Sheet ────────────────────────────────
 
 class _FilterSheet extends StatefulWidget {
   final double initialMaxPrice;
@@ -408,12 +410,9 @@ class _FilterSheetState extends State<_FilterSheet> {
                     borderRadius: BorderRadius.circular(2)),
               ),
             ),
-
             const Text('Filter',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-
-            // ── Price ──
             const Text('Range price per session',
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
@@ -428,15 +427,11 @@ class _FilterSheetState extends State<_FilterSheet> {
               children: [
                 Text('100 LE', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
                 Text('${_maxPrice.toInt()} LE',
-                    style: const TextStyle(color: Color(0xFF1F3A93),
-                        fontWeight: FontWeight.bold)),
+                    style: const TextStyle(color: Color(0xFF1F3A93), fontWeight: FontWeight.bold)),
                 Text('1000 LE', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
               ],
             ),
-
             const SizedBox(height: 20),
-
-            // ── City ──
             const Text('City', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
             Wrap(
@@ -446,14 +441,12 @@ class _FilterSheetState extends State<_FilterSheet> {
                 return GestureDetector(
                   onTap: () => setState(() {
                     _selectedCity = selected ? null : city;
-                    _selectedArea = null; // reset area when city changes
+                    _selectedArea = null;
                   }),
                   child: _chip(city, selected),
                 );
               }).toList(),
             ),
-
-            // ── Area (only shown when city is selected) ──
             if (_selectedCity != null && areas.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text('Area in $_selectedCity',
@@ -472,10 +465,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 }).toList(),
               ),
             ],
-
             const SizedBox(height: 20),
-
-            // ── Certification ──
             const Text('Coach Certification',
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
@@ -488,24 +478,19 @@ class _FilterSheetState extends State<_FilterSheet> {
               ))
                   .toList(),
             ),
-
             const SizedBox(height: 20),
-
-            // ── Rating ──
             const Text('Coach Rating',
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8, runSpacing: 8,
-              children: ['4.5+', '4.0+', '3.0+', "Doesn't Matter"]
-                  .map((opt) {
+              children: ['4.5+', '4.0+', '3.0+', "Doesn't Matter"].map((opt) {
                 final hasStars = opt != "Doesn't Matter";
                 final selected = _rating == opt;
                 return GestureDetector(
                   onTap: () => setState(() => _rating = opt),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: selected ? const Color(0xFF1F3A93) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -532,17 +517,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                 );
               }).toList(),
             ),
-
             const SizedBox(height: 28),
-
-            // Apply button
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 onPressed: () {
-                  widget.onApply(
-                      _maxPrice, _selectedCity, _selectedArea,
+                  widget.onApply(_maxPrice, _selectedCity, _selectedArea,
                       _certification, _rating);
                   Navigator.pop(context);
                 },
@@ -554,8 +535,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 child: Text(
                   _activeCount > 0 ? 'Apply ($_activeCount)' : 'Apply',
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600,
-                      color: Colors.white),
+                      fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             ),
@@ -583,8 +563,6 @@ class _FilterSheetState extends State<_FilterSheet> {
     );
   }
 }
-
-// ── Coach Card ────────────────────────────────────────
 
 class _CoachCard extends StatelessWidget {
   final Map<String, dynamic> coach;
@@ -618,7 +596,8 @@ class _CoachCard extends StatelessWidget {
                     color: (coach['color'] as Color).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.person, color: coach['color'] as Color, size: 32),
+                  child: Icon(Icons.person,
+                      color: coach['color'] as Color, size: 32),
                 ),
               ),
             ),
@@ -647,7 +626,8 @@ class _CoachCard extends StatelessWidget {
                           fontSize: 12, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
                   Text(coach['description'],
-                      style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.black54)),
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -655,11 +635,20 @@ class _CoachCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text('${coach['rating']} (${coach['reviews']} reviews)',
                           style: const TextStyle(fontSize: 11)),
-                      const SizedBox(width: 10),
-                      const Icon(Icons.location_on, size: 13, color: Colors.grey),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.location_on,
+                          size: 13, color: Colors.grey),
                       const SizedBox(width: 2),
-                      Text('${coach['area']}, ${coach['city']}',
-                          style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      // ✅ FIX: wrapped in Flexible to prevent 30px overflow
+                      Flexible(
+                        child: Text(
+                          '${coach['area']}, ${coach['city']}',
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
                     ],
                   ),
                 ],
