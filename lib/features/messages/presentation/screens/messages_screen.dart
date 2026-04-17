@@ -234,7 +234,7 @@ class _ConversationTile extends StatelessWidget {
   }
 }
 
-// ── Data model ──
+// ── Data models ──
 class _Conversation {
   final String name;
   final String lastMessage;

@@ -26,6 +26,8 @@ dependencies:
   flutter_svg: ^2.2.2
   # ✅ Added for persistent profile storage
   shared_preferences: ^2.3.2
+  dio: ^5.9.2
+  flutter_secure_storage: ^10.0.0
 
 dev_dependencies:
   flutter_test:
