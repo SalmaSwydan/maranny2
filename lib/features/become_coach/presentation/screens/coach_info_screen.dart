@@ -13,6 +13,7 @@ class CoachInfoScreen extends StatefulWidget {
 class _CoachInfoScreenState extends State<CoachInfoScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
+  final _nationalIdController = TextEditingController();
   final _locationController = TextEditingController();
   final _priceController = TextEditingController();
   
@@ -32,6 +33,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
   @override
   void dispose() {
     _fullNameController.dispose();
+    _nationalIdController.dispose();
     _locationController.dispose();
     _priceController.dispose();
     super.dispose();
@@ -40,6 +42,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
   void _handleContinue() {
     if (_formKey.currentState!.validate()) {
       debugPrint('Full Name: ${_fullNameController.text}');
+      debugPrint('National ID: ${_nationalIdController.text}');
       debugPrint('Location: ${_locationController.text}');
       debugPrint('Years of Experience: $_selectedYears');
       debugPrint('Session Price: ${_priceController.text}');
@@ -96,6 +99,33 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter your full name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // National ID (required)
+                      _buildTextField(
+                        label: 'National ID',
+                        controller: _nationalIdController,
+                        placeholder: '14-digit national ID number',
+                        keyboardType: TextInputType.number,
+                        fieldMaxLength: 14,
+                        helperText: 'Required. Enter your 14-digit national ID.',
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your national ID';
+                          }
+                          final digits = value.trim();
+                          if (digits.length != 14) {
+                            return 'National ID must be exactly 14 digits';
+                          }
+                          if (!RegExp(r'^\d{14}$').hasMatch(digits)) {
+                            return 'National ID must contain only numbers';
                           }
                           return null;
                         },
@@ -237,6 +267,8 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
+    int? fieldMaxLength,
+    String? helperText,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,11 +288,23 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           validator: validator,
+          maxLength: fieldMaxLength,
+          buildCounter: fieldMaxLength != null
+              ? (_, {required currentLength, required isFocused, required int? maxLength}) =>
+                  const SizedBox.shrink()
+              : null,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+            helperText: helperText,
+            helperMaxLines: 2,
+            helperStyle: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
               color: AppColors.textSecondary,
             ),
             filled: true,
@@ -276,15 +320,15 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: const BorderSide(color: AppColors.busy, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: const BorderSide(color: AppColors.busy, width: 1.5),
             ),
           ),
         ),
