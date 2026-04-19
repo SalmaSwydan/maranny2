@@ -3,9 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:maranny_two/layout/main_layout.dart';
 import '../../../become_coach/presentation/screens/coach_info_screen.dart';
+// ✅ NEW: import the 2 new onboarding screens
+import '../../../onboarding/presentation/screens/sports_selection_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  // ✅ 'trainee' → MainLayout | 'coach' → CoachInfoScreen
   final String userType;
 
   const RegisterScreen({
@@ -65,25 +66,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
       );
 
-      // Save display name
       await credential.user
           ?.updateDisplayName(_nameController.text.trim());
 
       if (!mounted) return;
 
-      // ✅ Route based on userType
       if (_isCoach) {
-        // Coach → start the 4-step become-a-coach flow
+        // Coach → start become-a-coach flow
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const CoachInfoScreen()),
               (route) => false,
         );
       } else {
-        // Trainee → go to main client layout
+        // ✅ Client → go to sports selection first
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const MainLayout()),
+          MaterialPageRoute(
+              builder: (_) => const SportsSelectionScreen()),
               (route) => false,
         );
       }
@@ -134,7 +134,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       const SizedBox(height: 40),
 
-                      // ── Logo ──
                       ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: Image.asset(
@@ -159,7 +158,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       const SizedBox(height: 6),
 
-                      // ✅ Title adapts to role
                       Text(
                         _isCoach ? 'Join as a Coach!' : 'Join Us!',
                         style: const TextStyle(
@@ -172,7 +170,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       const SizedBox(height: 30),
 
-                      // ── Form card ──
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -182,14 +179,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // ✅ Coach info banner
                             if (_isCoach) ...[
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE8F4FD),
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius:
+                                  BorderRadius.circular(10),
                                   border: Border.all(
                                       color: const Color(0xFF6FD3F5)
                                           .withValues(alpha: 0.5)),
@@ -197,7 +194,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 child: const Row(
                                   children: [
                                     Icon(Icons.info_outline,
-                                        color: Color(0xFF1F3A93), size: 18),
+                                        color: Color(0xFF1F3A93),
+                                        size: 18),
                                     SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
@@ -214,26 +212,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               const SizedBox(height: 20),
                             ],
 
-                            // Full Name
                             TextField(
                               controller: _nameController,
                               decoration: _inputDeco('Full Name'),
                             ),
                             const SizedBox(height: 16),
 
-                            // Email
                             TextField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
-                              decoration: _inputDeco('Email Address'),
+                              decoration:
+                              _inputDeco('Email Address'),
                             ),
                             const SizedBox(height: 16),
 
-                            // Password
                             TextField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
-                              decoration: _inputDeco('Password').copyWith(
+                              decoration:
+                              _inputDeco('Password').copyWith(
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscurePassword
@@ -242,20 +239,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: Colors.grey[400],
                                     size: 20,
                                   ),
-                                  onPressed: () => setState(
-                                          () => _obscurePassword =
-                                      !_obscurePassword),
+                                  onPressed: () => setState(() =>
+                                  _obscurePassword =
+                                  !_obscurePassword),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 16),
 
-                            // Confirm Password
                             TextField(
                               controller: _confirmPasswordController,
                               obscureText: _obscureConfirmPassword,
                               decoration:
-                              _inputDeco('Confirm Password').copyWith(
+                              _inputDeco('Confirm Password')
+                                  .copyWith(
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscureConfirmPassword
@@ -264,15 +261,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: Colors.grey[400],
                                     size: 20,
                                   ),
-                                  onPressed: () => setState(
-                                          () => _obscureConfirmPassword =
-                                      !_obscureConfirmPassword),
+                                  onPressed: () => setState(() =>
+                                  _obscureConfirmPassword =
+                                  !_obscureConfirmPassword),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 16),
 
-                            // Terms checkbox
                             Row(
                               children: [
                                 SizedBox(
@@ -281,8 +277,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   child: Checkbox(
                                     value: _agreeToTerms,
                                     onChanged: (v) => setState(
-                                            () => _agreeToTerms = v ?? false),
-                                    activeColor: const Color(0xFF303F9F),
+                                            () =>
+                                        _agreeToTerms = v ?? false),
+                                    activeColor:
+                                    const Color(0xFF303F9F),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
                                         BorderRadius.circular(4)),
@@ -302,16 +300,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                             const SizedBox(height: 24),
 
-                            // Register button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: _agreeToTerms ? _register : null,
+                                onPressed:
+                                _agreeToTerms ? _register : null,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF303F9F),
+                                  backgroundColor:
+                                  const Color(0xFF303F9F),
                                   foregroundColor: Colors.white,
-                                  disabledBackgroundColor: Colors.grey[300],
-                                  disabledForegroundColor: Colors.grey[500],
+                                  disabledBackgroundColor:
+                                  Colors.grey[300],
+                                  disabledForegroundColor:
+                                  Colors.grey[500],
                                   padding: const EdgeInsets.symmetric(
                                       vertical: 16),
                                   shape: RoundedRectangleBorder(
@@ -320,7 +321,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   elevation: 0,
                                 ),
                                 child: Text(
-                                  // ✅ Label adapts to role
                                   _isCoach
                                       ? 'REGISTER & CONTINUE'
                                       : 'REGISTER',
@@ -351,23 +351,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
   InputDecoration _inputDeco(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+      hintStyle:
+      TextStyle(color: Colors.grey[400], fontSize: 14),
       filled: true,
       fillColor: Colors.grey[50],
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(25),
-        borderSide: const BorderSide(color: Color(0xFF303F9F), width: 1),
+        borderSide:
+        const BorderSide(color: Color(0xFF303F9F), width: 1),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(25),
-        borderSide: const BorderSide(color: Color(0xFF303F9F), width: 1),
+        borderSide:
+        const BorderSide(color: Color(0xFF303F9F), width: 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(25),
-        borderSide: const BorderSide(color: Color(0xFF303F9F), width: 1.5),
+        borderSide: const BorderSide(
+            color: Color(0xFF303F9F), width: 1.5),
       ),
-      contentPadding:
-      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20, vertical: 16),
     );
   }
 }
