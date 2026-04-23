@@ -2,23 +2,17 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 
 import '../../../become_coach/presentation/screens/coach_info_screen.dart';
-import '../../../onboarding/presentation/screens/sports_selection_screen.dart';
 import '../../data/models/auth_models.dart';
 import '../../data/repositories/auth_repository.dart';
 
-class RegisterScreen extends StatefulWidget {
-  final String userType;
-
-  const RegisterScreen({
-    super.key,
-    this.userType = 'trainee',
-  });
+class CoachRegisterScreen extends StatefulWidget {
+  const CoachRegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<CoachRegisterScreen> createState() => _CoachRegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _CoachRegisterScreenState extends State<CoachRegisterScreen> {
   final _authRepo = AuthRepository();
 
   bool _agreeToTerms = false;
@@ -31,8 +25,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-
-  bool get _isCoach => widget.userType.toLowerCase() == 'coach';
 
   @override
   void dispose() {
@@ -54,13 +46,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (parts.isEmpty) return ['', ''];
     if (parts.length == 1) return [parts.first, parts.first];
 
-    final firstName = parts.first;
-    final lastName = parts.sublist(1).join(' ');
-    return [firstName, lastName];
+    return [parts.first, parts.sublist(1).join(' ')];
   }
 
-  Future<void> _register() async {
-    if (_nameController.text.trim().isEmpty) {
+  Future<void> _registerCoach() async {
+    final fullName = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    if (fullName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter your full name'),
@@ -70,7 +66,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (_phoneController.text.trim().isEmpty) {
+    if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter your phone number'),
@@ -80,17 +76,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (_emailController.text.trim().isEmpty) {
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter your email'),
+          content: Text('Please enter your email address'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    if (_passwordController.text.trim().isEmpty) {
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter your password'),
@@ -100,7 +106,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (_passwordController.text != _confirmPasswordController.text) {
+    if (password.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password must be at least 8 characters'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please confirm your password'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
       AwesomeDialog(
         context: context,
         dialogType: DialogType.error,
@@ -111,20 +137,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final names = _splitName(_nameController.text);
-    final backendUserType = _isCoach ? 'Coach' : 'Client';
+    if (!_agreeToTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please agree to terms and conditions'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final names = _splitName(fullName);
 
     setState(() => _isLoading = true);
 
     try {
       await _authRepo.register(
         RegisterRequest(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+          email: email,
+          password: password,
           firstName: names[0],
           lastName: names[1],
-          phoneNumber: _phoneController.text.trim(),
-          userType: backendUserType,
+          phoneNumber: phone,
+          userType: 'Coach',
         ),
       );
 
@@ -135,25 +170,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
         dialogType: DialogType.success,
         animType: AnimType.rightSlide,
         title: 'Success',
-        desc: 'Registration successful',
+        desc: 'Registration successful. Continue to complete your coach profile.',
         btnOkOnPress: () {
-          if (_isCoach) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const CoachInfoScreen(email: '', password: '',),
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CoachInfoScreen(
+                email: email,
+                password: password,
               ),
-                  (route) => false,
-            );
-          } else {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const SportsSelectionScreen(),
-              ),
-                  (route) => false,
-            );
-          }
+            ),
+                (route) => false,
+          );
         },
       ).show();
     } catch (e) {
@@ -177,6 +205,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  InputDecoration _inputDeco(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+      filled: true,
+      fillColor: Colors.grey[50],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(25),
+        borderSide: const BorderSide(
+          color: Color(0xFF303F9F),
+          width: 1,
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(25),
+        borderSide: const BorderSide(
+          color: Color(0xFF303F9F),
+          width: 1,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(25),
+        borderSide: const BorderSide(
+          color: Color(0xFF303F9F),
+          width: 1.5,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 16,
+      ),
+    );
   }
 
   @override
@@ -223,9 +285,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        _isCoach ? 'Join as a Coach!' : 'Join Us!',
-                        style: const TextStyle(
+                      const Text(
+                        'Join as a Coach!',
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -242,40 +304,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (_isCoach) ...[
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE8F4FD),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: const Color(0xFF6FD3F5)
-                                        .withValues(alpha: 0.5),
-                                  ),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      color: Color(0xFF1F3A93),
-                                      size: 18,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        "After registering, you'll complete your coach profile.",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF1F3A93),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F4FD),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: const Color(0xFF6FD3F5)
+                                      .withValues(alpha: 0.5),
                                 ),
                               ),
-                              const SizedBox(height: 20),
-                            ],
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: Color(0xFF1F3A93),
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "After registering, you'll complete your coach profile.",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF1F3A93),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
                             TextField(
                               controller: _nameController,
                               decoration: _inputDeco('Full Name'),
@@ -317,8 +377,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             TextField(
                               controller: _confirmPasswordController,
                               obscureText: _obscureConfirmPassword,
-                              decoration:
-                              _inputDeco('Confirm Password').copyWith(
+                              decoration: _inputDeco('Confirm Password').copyWith(
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscureConfirmPassword
@@ -371,15 +430,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed:
-                                (_agreeToTerms && !_isLoading) ? _register : null,
+                                onPressed: (_agreeToTerms && !_isLoading)
+                                    ? _registerCoach
+                                    : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF303F9F),
                                   foregroundColor: Colors.white,
                                   disabledBackgroundColor: Colors.grey[300],
                                   disabledForegroundColor: Colors.grey[500],
-                                  padding:
-                                  const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -387,18 +448,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                                 child: _isLoading
                                     ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
+                                  width: 22,
+                                  height: 22,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     color: Colors.white,
                                   ),
                                 )
-                                    : Text(
-                                  _isCoach
-                                      ? 'REGISTER & CONTINUE'
-                                      : 'REGISTER',
-                                  style: const TextStyle(
+                                    : const Text(
+                                  'REGISTER & CONTINUE',
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 1,
@@ -417,40 +476,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDeco(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-      filled: true,
-      fillColor: Colors.grey[50],
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(25),
-        borderSide: const BorderSide(
-          color: Color(0xFF303F9F),
-          width: 1,
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(25),
-        borderSide: const BorderSide(
-          color: Color(0xFF303F9F),
-          width: 1,
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(25),
-        borderSide: const BorderSide(
-          color: Color(0xFF303F9F),
-          width: 1.5,
-        ),
-      ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 16,
       ),
     );
   }

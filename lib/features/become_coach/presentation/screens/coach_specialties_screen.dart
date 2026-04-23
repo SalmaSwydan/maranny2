@@ -1,19 +1,27 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
+import '../../data/model/become_coach_models.dart';
 import 'coach_days_screen.dart';
 
 class CoachSpecialtiesScreen extends StatefulWidget {
-  const CoachSpecialtiesScreen({super.key});
+  final CompleteCoachOnboardingRequest request;
+
+  const CoachSpecialtiesScreen({
+    super.key,
+    required this.request,
+  });
 
   @override
-  State<CoachSpecialtiesScreen> createState() => _CoachSpecialtiesScreenState();
+  State<CoachSpecialtiesScreen> createState() =>
+      _CoachSpecialtiesScreenState();
 }
 
 class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
-  final _bioController = TextEditingController();
+  final TextEditingController _bioController = TextEditingController();
   final Set<String> _selectedSpecialties = {};
 
-  List<String> _sports = [
+  final List<String> _sports = [
     'Football',
     'Basketball',
     'Padel',
@@ -23,6 +31,17 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
     'Yoga',
     'Martial Arts',
   ];
+
+  final Map<String, int> _sportIds = {
+    'Football': 1,
+    'Basketball': 2,
+    'Swimming': 3,
+    'Tennis': 4,
+    'Gym Training': 5,
+    'Padel': 6,
+    'Yoga': 7,
+    'Martial Arts': 8,
+  };
 
   @override
   void dispose() {
@@ -47,13 +66,32 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
       );
       return;
     }
-    debugPrint('Selected Specialties: $_selectedSpecialties');
-    debugPrint('Bio: ${_bioController.text}');
-    
-    // Navigate to coach days screen
+
+    final List<CoachSportRequest> selectedSports = _selectedSpecialties.map((sport) {
+      return CoachSportRequest(
+        sportID: _sportIds[sport] ?? 1,
+        description: sport.trim(),
+      );
+    }).toList();
+
+    debugPrint('=== SELECTED SPORTS ===');
+    debugPrint(_selectedSpecialties.toString());
+    debugPrint('=== SPORTS REQUEST ===');
+    debugPrint(selectedSports.map((e) => e.toJson()).toList().toString());
+
+    final updatedRequest = widget.request.copyWith(
+      sports: selectedSports,
+      bio: _bioController.text.trim(),
+    );
+
+    debugPrint('=== UPDATED REQUEST FROM SPECIALTIES ===');
+    debugPrint(updatedRequest.toJson().toString());
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const CoachDaysScreen(),
+        builder: (context) => CoachDaysScreen(
+          request: updatedRequest,
+        ),
       ),
     );
   }
@@ -65,34 +103,23 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with gradient
             _buildHeader(),
-
-            // Progress Indicator (Step 2 of 4)
             _buildProgressIndicator(currentStep: 2),
-
-            // Form Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Your Specialties Section
                     _buildSpecialtiesSection(),
-
                     const SizedBox(height: 32),
-
-                    // Bio Section
                     _buildBioSection(),
-
                     const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
-
-            // Continue Button
             _buildContinueButton(),
           ],
         ),
@@ -107,8 +134,8 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF1F3A93), // deep blue (darker) - left side
-            Color(0xFF6FD3F5), // light blue (brighter) - right side
+            Color(0xFF1F3A93),
+            Color(0xFF6FD3F5),
           ],
         ),
       ),
@@ -132,7 +159,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(width: 48), // Balance the back button
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -147,10 +174,11 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
           final isActive = index < currentStep;
           return Expanded(
             child: Container(
-              height: 6, // Thick progress indicator
+              height: 6,
               margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
               decoration: BoxDecoration(
-                color: isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
+                color:
+                isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -183,10 +211,8 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
           ),
         ),
         const SizedBox(height: 20),
-
-        // Sports Grid
         GridView.builder(
-          key: ValueKey('sports_grid_${_sports.length}'),
+          key: ValueKey('sports_grid_${_sports.length}_${_selectedSpecialties.length}'),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -202,10 +228,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
             return _buildSportButton(sport, isSelected);
           },
         ),
-
         const SizedBox(height: 16),
-
-        // Add Other Sports Button
         _buildAddOtherSportsButton(),
       ],
     );
@@ -223,7 +246,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -232,6 +255,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
           child: Center(
             child: Text(
               sport,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,
@@ -249,7 +273,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _showAddSportDialog(),
+        onTap: _showAddSportDialog,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
@@ -259,7 +283,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -268,11 +292,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.add,
-                color: AppColors.textPrimary,
-                size: 20,
-              ),
+              Icon(Icons.add, color: AppColors.textPrimary, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Add Other Sports',
@@ -309,7 +329,6 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Title
                   const Text(
                     'Add a Sport',
                     style: TextStyle(
@@ -321,8 +340,6 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Instruction
                   Text(
                     'Please enter the name of the sport you coach.',
                     style: TextStyle(
@@ -333,8 +350,6 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
-                  
-                  // Input Field
                   TextFormField(
                     controller: sportController,
                     autofocus: true,
@@ -355,41 +370,33 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primaryBlue, width: 2),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryBlue,
+                          width: 2,
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    ),
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter a sport name';
                       }
                       final trimmedValue = value.trim();
-                      if (_sports.any((sport) => sport.toLowerCase() == trimmedValue.toLowerCase())) {
+                      if (_sports.any(
+                            (sport) =>
+                        sport.toLowerCase() == trimmedValue.toLowerCase(),
+                      )) {
                         return 'This sport already exists';
                       }
                       return null;
                     },
-                    onFieldSubmitted: (value) {
-                      if (formKey.currentState!.validate()) {
-                        final sportName = value.trim();
-                        if (sportName.isNotEmpty) {
-                          _addSport(sportName);
-                          Navigator.of(context).pop();
-                        }
-                      }
-                    },
                   ),
                   const SizedBox(height: 24),
-                  
-                  // Buttons
                   Row(
                     children: [
-                      // Cancel Button
                       Expanded(
                         child: Material(
                           color: Colors.transparent,
@@ -397,7 +404,8 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                             onTap: () => Navigator.of(context).pop(),
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 14),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
@@ -422,8 +430,6 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      
-                      // Add Button
                       Expanded(
                         child: Material(
                           color: Colors.transparent,
@@ -431,15 +437,14 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                             onTap: () {
                               if (formKey.currentState!.validate()) {
                                 final sportName = sportController.text.trim();
-                                if (sportName.isNotEmpty) {
-                                  _addSport(sportName);
-                                  Navigator.of(context).pop();
-                                }
+                                _addSport(sportName);
+                                Navigator.of(context).pop();
                               }
                             },
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 14),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryBlue,
                                 borderRadius: BorderRadius.circular(12),
@@ -474,12 +479,16 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
 
   void _addSport(String sportName) {
     if (sportName.isEmpty) return;
-    
+
     setState(() {
-      // Check if sport already exists (case-insensitive)
-      final exists = _sports.any((sport) => sport.toLowerCase() == sportName.toLowerCase());
+      final exists = _sports.any(
+            (sport) => sport.toLowerCase() == sportName.toLowerCase(),
+      );
+
       if (!exists) {
         _sports.add(sportName);
+        _selectedSpecialties.add(sportName);
+        _sportIds[sportName] = _sportIds.length + 1;
       }
     });
   }
@@ -508,7 +517,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -518,7 +527,8 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
             controller: _bioController,
             maxLines: 8,
             decoration: InputDecoration(
-              hintText: 'Tell clients about your coaching style and experience...',
+              hintText:
+              'Tell clients about your coaching style and experience...',
               hintStyle: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 14,
@@ -547,7 +557,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -566,17 +576,16 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
-                    Color(0xFF1B2B83), // darker blue - left (from Figma)
-                    Color(0xFF304CE9), // brighter blue - right (from Figma)
+                    Color(0xFF1B2B83),
+                    Color(0xFF304CE9),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
-                    spreadRadius: 0,
                   ),
                 ],
               ),
@@ -599,4 +608,3 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
     );
   }
 }
-

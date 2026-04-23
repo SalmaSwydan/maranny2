@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../widgets/profile_header.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/models/user_model.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
 import '../../widgets/profile_input_field.dart';
 import '../../widgets/profile_stats.dart';
-import '../../../../core/theme/app_colors.dart';
 import 'client_edit_profile_screen.dart';
-import 'edit_profile_screen.dart';
-// ✅ FIX: import the correct CLIENT edit screen, not the coach one
+import 'change_password_screen.dart';
 
 class ClientProfileScreen extends StatefulWidget {
   const ClientProfileScreen({super.key});
@@ -15,20 +16,93 @@ class ClientProfileScreen extends StatefulWidget {
 }
 
 class _ClientProfileScreenState extends State<ClientProfileScreen> {
-  String name = "Ahmed Ali";
-  String email = "ahmed.ali@example.com";
-  String city = "Cairo";
-  String phone = "+20 100 123 567";
-  String bio = "Football player who loves training.";
+  final AuthRepository _authRepo = AuthRepository();
+
+  UserModel? _user;
+  bool _isLoading = true;
+  String? _error;
+  List<String> _selectedSports = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    try {
+      final user = await _authRepo.getCurrentUser();
+      final prefs = await SharedPreferences.getInstance();
+      final sports = prefs.getStringList('selected_sports') ?? [];
+
+      if (!mounted) return;
+
+      setState(() {
+        _user = user;
+        _selectedSports = sports;
+        _isLoading = false;
+        _error = null;
+      });
+    } catch (e) {
+      debugPrint('PROFILE LOAD ERROR: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _error = 'Failed to load profile';
+        _isLoading = false;
+      });
+    }
+  }
+
+  String get _sportsText {
+    if (_selectedSports.isEmpty) return 'No sports selected yet';
+    return _selectedSports.join(', ');
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xffF5F6FA),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error!),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _isLoading = true;
+                    _error = null;
+                  });
+                  _loadProfileData();
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final user = _user!;
+
     return Scaffold(
       backgroundColor: const Color(0xffF5F6FA),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const ProfileHeader(),
+            _buildDynamicProfileHeader(user),
 
             const SizedBox(height: 70),
 
@@ -38,34 +112,30 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
 
             ProfileInputField(
               label: "Full Name",
-              hint: name,
+              hint: user.fullName,
             ),
 
             ProfileInputField(
               label: "Email",
-              hint: email,
+              hint: user.email,
             ),
 
             ProfileInputField(
-              label: "Location / City",
-              hint: city,
+              label: "User Type",
+              hint: user.userType,
             ),
 
             ProfileInputField(
-              label: "Phone Number",
-              hint: phone,
+              label: "Verification Status",
+              hint: user.verificationStatus ?? "N/A",
             ),
 
             ProfileInputField(
-              label: "Bio / About You",
-              hint: bio,
-              maxLines: 4,
-            ),
-
-            const ProfileInputField(
               label: "Sports",
-              hint: "Football, Swimming",
+              hint: _sportsText,
             ),
+
+            const SizedBox(height: 20),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -80,33 +150,58 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
                     ),
                   ),
                   onPressed: () async {
-                    // ✅ FIX: navigate to ClientEditProfileScreen (not coach screen)
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ClientEditProfileScreen(
-                          name: name,
-                          email: email,
-                          city: city,
-                          phone: phone,
-                          bio: bio,
+                          name: user.fullName,
+                          email: user.email,
+                          city: '',
+                          phone: '',
+                          bio: '',
                         ),
                       ),
                     );
 
-                    // ✅ Update fields if the user saved changes
-                    if (result != null && result is Map) {
+                    if (result == true) {
                       setState(() {
-                        name = result['name'] ?? name;
-                        email = result['email'] ?? email;
-                        city = result['city'] ?? city;
-                        phone = result['phone'] ?? phone;
-                        bio = result['bio'] ?? bio;
+                        _isLoading = true;
                       });
+                      _loadProfileData();
                     }
                   },
                   child: const Text(
                     "Edit Profile",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChangePasswordScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "Change Password",
                     style: TextStyle(fontSize: 16),
                   ),
                 ),
@@ -118,5 +213,81 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildDynamicProfileHeader(UserModel user) {
+    final initials = _getInitials(user.fullName);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        Container(
+          height: 180,
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(28),
+              bottomRight: Radius.circular(28),
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Column(
+                children: [
+                  const SizedBox(height: 8),
+                  Text(
+                    user.fullName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    user.userType,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: -45,
+          child: CircleAvatar(
+            radius: 46,
+            backgroundColor: Colors.white,
+            child: CircleAvatar(
+              radius: 42,
+              backgroundColor: AppColors.lightBlue,
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ').where((e) => e.isNotEmpty).toList();
+
+    if (parts.isEmpty) return 'U';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+
+    return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 }

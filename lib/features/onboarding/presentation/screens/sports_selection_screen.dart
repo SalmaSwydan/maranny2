@@ -6,8 +6,7 @@ class SportsSelectionScreen extends StatefulWidget {
   const SportsSelectionScreen({super.key});
 
   @override
-  State<SportsSelectionScreen> createState() =>
-      _SportsSelectionScreenState();
+  State<SportsSelectionScreen> createState() => _SportsSelectionScreenState();
 }
 
 class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
@@ -15,46 +14,45 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
 
   static const int _minimum = 3;
 
-  // ── All available sports (matches AI service sports list) ──
   static const List<Map<String, String>> _sports = [
-    {'name': 'Fitness',              'emoji': '🏋️'},
-    {'name': 'Wrestling',            'emoji': '🤼'},
-    {'name': 'Weightlifting',        'emoji': '🏋️'},
-    {'name': 'Material Arts',        'emoji': '🥋'},
-    {'name': 'Boxing',               'emoji': '🥊'},
-    {'name': 'Swimming',             'emoji': '🏊'},
-    {'name': 'Diving',               'emoji': '🤿'},
-    {'name': 'Football',             'emoji': '⚽'},
-    {'name': 'Basketball',           'emoji': '🏀'},
-    {'name': 'Volleyball',           'emoji': '🏐'},
-    {'name': 'Handball',             'emoji': '🤾'},
-    {'name': 'Gymnastics',           'emoji': '🤸'},
-    {'name': 'Ballet',               'emoji': '🩰'},
-    {'name': 'Pilates',              'emoji': '🧘'},
-    {'name': 'Lifestyle',            'emoji': '🌿'},
-    {'name': 'Dancing',              'emoji': '💃'},
-    {'name': 'Skating',              'emoji': '⛸️'},
-    {'name': 'Padel',                'emoji': '🎾'},
-    {'name': 'Squash',               'emoji': '🎱'},
-    {'name': 'Tennis',               'emoji': '🎾'},
-    {'name': 'Badminton',            'emoji': '🏸'},
-    {'name': 'Equestrian',           'emoji': '🐎'},
-    {'name': 'Track and Field',      'emoji': '🏃'},
+    {'name': 'Fitness', 'emoji': '🏋️'},
+    {'name': 'Wrestling', 'emoji': '🤼'},
+    {'name': 'Weightlifting', 'emoji': '🏋️'},
+    {'name': 'Martial Arts', 'emoji': '🥋'},
+    {'name': 'Boxing', 'emoji': '🥊'},
+    {'name': 'Swimming', 'emoji': '🏊'},
+    {'name': 'Diving', 'emoji': '🤿'},
+    {'name': 'Football', 'emoji': '⚽'},
+    {'name': 'Basketball', 'emoji': '🏀'},
+    {'name': 'Volleyball', 'emoji': '🏐'},
+    {'name': 'Handball', 'emoji': '🤾'},
+    {'name': 'Gymnastics', 'emoji': '🤸'},
+    {'name': 'Ballet', 'emoji': '🩰'},
+    {'name': 'Pilates', 'emoji': '🧘'},
+    {'name': 'Lifestyle', 'emoji': '🌿'},
+    {'name': 'Dancing', 'emoji': '💃'},
+    {'name': 'Skating', 'emoji': '⛸️'},
+    {'name': 'Padel', 'emoji': '🎾'},
+    {'name': 'Squash', 'emoji': '🎾'},
+    {'name': 'Tennis', 'emoji': '🎾'},
+    {'name': 'Badminton', 'emoji': '🏸'},
+    {'name': 'Equestrian', 'emoji': '🐎'},
+    {'name': 'Track and Field', 'emoji': '🏃'},
     {'name': 'Strength & Conditioning', 'emoji': '💪'},
-    {'name': 'Archery',              'emoji': '🏹'},
-    {'name': 'Fencing',              'emoji': '🤺'},
-    {'name': 'Nutrition',            'emoji': '🥗'},
-    {'name': 'Yoga',                 'emoji': '🧘'},
-    {'name': 'CrossFit',             'emoji': '🏋️'},
-    {'name': 'MMA',                  'emoji': '🥋'},
-    {'name': 'Karate',               'emoji': '🥋'},
-    {'name': 'Judo',                 'emoji': '🥋'},
-    {'name': 'Taekwondo',            'emoji': '🥋'},
-    {'name': 'Kickboxing',           'emoji': '🥊'},
-    {'name': 'Kung Fu',              'emoji': '🥋'},
-    {'name': 'Calisthenics',         'emoji': '🤸'},
-    {'name': 'Rehabilitation',       'emoji': '🏥'},
-    {'name': 'Horse Riding',         'emoji': '🐎'},
+    {'name': 'Archery', 'emoji': '🏹'},
+    {'name': 'Fencing', 'emoji': '🤺'},
+    {'name': 'Nutrition', 'emoji': '🥗'},
+    {'name': 'Yoga', 'emoji': '🧘'},
+    {'name': 'CrossFit', 'emoji': '🏋️'},
+    {'name': 'MMA', 'emoji': '🥋'},
+    {'name': 'Karate', 'emoji': '🥋'},
+    {'name': 'Judo', 'emoji': '🥋'},
+    {'name': 'Taekwondo', 'emoji': '🥋'},
+    {'name': 'Kickboxing', 'emoji': '🥊'},
+    {'name': 'Kung Fu', 'emoji': '🥋'},
+    {'name': 'Calisthenics', 'emoji': '🤸'},
+    {'name': 'Rehabilitation', 'emoji': '🏥'},
+    {'name': 'Horse Riding', 'emoji': '🐎'},
   ];
 
   bool get _canContinue => _selected.length >= _minimum;
@@ -90,7 +88,6 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // ── Header ──────────────────────────────────────
               const SizedBox(height: 24),
               const Text(
                 '100+ sports profiles',
@@ -107,8 +104,6 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-
-              // ── Sports grid ──────────────────────────────────
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -118,15 +113,18 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
                       runSpacing: 10,
                       alignment: WrapAlignment.center,
                       children: _sports.map((sport) {
-                        final name     = sport['name']!;
-                        final emoji    = sport['emoji']!;
+                        final name = sport['name']!;
+                        final emoji = sport['emoji']!;
                         final selected = _selected.contains(name);
+
                         return GestureDetector(
                           onTap: () => _toggle(name),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 180),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 9),
+                              horizontal: 14,
+                              vertical: 9,
+                            ),
                             decoration: BoxDecoration(
                               color: selected
                                   ? Colors.white
@@ -156,8 +154,6 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
                   ),
                 ),
               ),
-
-              // ── Bottom bar ───────────────────────────────────
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                 child: Column(
@@ -165,9 +161,7 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
                     Text(
                       'Selected: ${_selected.length} / Minimum: $_minimum',
                       style: TextStyle(
-                        color: _canContinue
-                            ? Colors.white
-                            : Colors.white60,
+                        color: _canContinue ? Colors.white : Colors.white60,
                         fontSize: 13,
                       ),
                     ),
@@ -178,13 +172,13 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
                       child: ElevatedButton(
                         onPressed: _canContinue ? _continue : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _canContinue
-                              ? Colors.white
-                              : Colors.white30,
+                          backgroundColor:
+                          _canContinue ? Colors.white : Colors.white30,
                           foregroundColor: AppColors.primaryBlue,
                           disabledBackgroundColor: Colors.white30,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30)),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                           elevation: 0,
                         ),
                         child: Text(
@@ -192,7 +186,9 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
                               ? 'Continue →'
                               : 'Select $_minimum sports to continue',
                           style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),

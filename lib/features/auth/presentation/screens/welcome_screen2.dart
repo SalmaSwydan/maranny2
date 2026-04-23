@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:maranny_two/features/auth/presentation/screens/CoachRegister.dart';
 import 'package:maranny_two/features/auth/presentation/screens/register_screen.dart';
 import 'package:maranny_two/features/auth/presentation/screens/login_screen.dart';
 import '../../../become_coach/presentation/screens/coach_info_screen.dart';
@@ -111,7 +112,7 @@ class _WelcomeScreen2State extends State<WelcomeScreen2> {
                           await Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => CoachInfoScreen()),
+                                builder: (_) => CoachRegisterScreen()),
                           );
                         } else {
                           await Navigator.push(

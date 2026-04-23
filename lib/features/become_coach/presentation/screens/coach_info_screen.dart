@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../../../core/theme/app_colors.dart';
+import '../../data/model/become_coach_models.dart';
 import 'coach_specialties_screen.dart';
 
 class CoachInfoScreen extends StatefulWidget {
-  const CoachInfoScreen({super.key});
+  final String email;
+  final String password;
+
+  const CoachInfoScreen({
+    super.key,
+    required this.email,
+    required this.password,
+  });
 
   @override
   State<CoachInfoScreen> createState() => _CoachInfoScreenState();
@@ -16,10 +25,9 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
   final _nationalIdController = TextEditingController();
   final _locationController = TextEditingController();
   final _priceController = TextEditingController();
-  
+
   String? _selectedYears;
-  
-  // Years of experience options
+
   final List<String> _yearsOptions = [
     'Less than 1 year',
     '1-2 years',
@@ -39,21 +47,49 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
     super.dispose();
   }
 
-  void _handleContinue() {
-    if (_formKey.currentState!.validate()) {
-      debugPrint('Full Name: ${_fullNameController.text}');
-      debugPrint('National ID: ${_nationalIdController.text}');
-      debugPrint('Location: ${_locationController.text}');
-      debugPrint('Years of Experience: $_selectedYears');
-      debugPrint('Session Price: ${_priceController.text}');
-      
-      // Navigate to coach specialties screen
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => const CoachSpecialtiesScreen(),
-        ),
-      );
+  int _mapYears(String value) {
+    switch (value) {
+      case 'Less than 1 year':
+        return 0;
+      case '1-2 years':
+        return 2;
+      case '3-5 years':
+        return 5;
+      case '6-10 years':
+        return 10;
+      case '11-15 years':
+        return 15;
+      case '16-20 years':
+        return 20;
+      case 'More than 20 years':
+        return 21;
+      default:
+        return 0;
     }
+  }
+
+  void _handleContinue() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final request = CompleteCoachOnboardingRequest(
+      email: widget.email,
+      password: widget.password,
+      fullName: _fullNameController.text.trim(),
+      nationalId: _nationalIdController.text.trim(),
+      city: _locationController.text.trim(),
+      experienceYears: _mapYears(_selectedYears!),
+      sessionPrice: double.parse(_priceController.text.trim()),
+      sports: [],
+      availableDays: [],
+      bio: '',
+      certificateUrl: '',
+    );
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => CoachSpecialtiesScreen(request: request),
+      ),
+    );
   }
 
   @override
@@ -63,22 +99,17 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with gradient
             _buildHeader(),
-            
-            // Progress Indicator
             _buildProgressIndicator(currentStep: 1),
-            
-            // Form Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Title
                       const Text(
                         'Tell Us About You',
                         style: TextStyle(
@@ -90,8 +121,6 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 32),
-                      
-                      // Full Name Field
                       _buildTextField(
                         label: 'Full Name',
                         controller: _fullNameController,
@@ -104,15 +133,14 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-
-                      // National ID (required)
                       _buildTextField(
                         label: 'National ID',
                         controller: _nationalIdController,
                         placeholder: '14-digit national ID number',
                         keyboardType: TextInputType.number,
                         fieldMaxLength: 14,
-                        helperText: 'Required. Enter your 14-digit national ID.',
+                        helperText:
+                        'Required. Enter your 14-digit national ID.',
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                         ],
@@ -131,8 +159,6 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      
-                      // Location Field
                       _buildTextField(
                         label: 'Location / City',
                         controller: _locationController,
@@ -145,8 +171,6 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      
-                      // Years of Experience Dropdown
                       _buildDropdownField(
                         label: 'Years of Experience',
                         value: _selectedYears,
@@ -165,21 +189,24 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      
-                      // Session Price Field
                       _buildTextField(
-                        label: 'Session Price (\$)',
+                        label: 'Session Price',
                         controller: _priceController,
                         placeholder: 'Price per session',
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}$'),
+                          ),
                         ],
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter session price';
                           }
-                          if (double.tryParse(value) == null || double.parse(value) <= 0) {
+                          final parsed = double.tryParse(value.trim());
+                          if (parsed == null || parsed <= 0) {
                             return 'Please enter a valid price';
                           }
                           return null;
@@ -191,8 +218,6 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                 ),
               ),
             ),
-            
-            // Continue Button
             _buildContinueButton(),
           ],
         ),
@@ -207,8 +232,8 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF1F3A93), // deep blue (darker) - left side
-            Color(0xFF6FD3F5), // light blue (brighter) - right side
+            Color(0xFF1F3A93),
+            Color(0xFF6FD3F5),
           ],
         ),
       ),
@@ -232,7 +257,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(width: 48), // Balance the back button
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -247,10 +272,11 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
           final isActive = index < currentStep;
           return Expanded(
             child: Container(
-              height: 6, // Made thicker
+              height: 6,
               margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
               decoration: BoxDecoration(
-                color: isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
+                color:
+                isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -291,7 +317,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
           maxLength: fieldMaxLength,
           buildCounter: fieldMaxLength != null
               ? (_, {required currentLength, required isFocused, required int? maxLength}) =>
-                  const SizedBox.shrink()
+          const SizedBox.shrink()
               : null,
           decoration: InputDecoration(
             hintText: placeholder,
@@ -309,7 +335,8 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
             ),
             filled: true,
             fillColor: const Color(0xFFF5F5F5),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -320,7 +347,8 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+              borderSide:
+              const BorderSide(color: AppColors.primaryBlue, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -383,7 +411,8 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
             ),
             filled: true,
             fillColor: const Color(0xFFF5F5F5),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -396,21 +425,12 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
           ),
           icon: Icon(
             Icons.keyboard_arrow_down,
             color: AppColors.textSecondary,
             size: 24,
           ),
-          iconSize: 24,
           dropdownColor: Colors.white,
         ),
       ],
@@ -424,7 +444,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -460,7 +480,4 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
       ),
     );
   }
-
 }
-
-

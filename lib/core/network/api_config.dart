@@ -6,7 +6,7 @@ class ApiConfig {
   ApiConfig._();
 
   // ✅ Dev tunnel URL — works for everyone on any device
-  static const String baseUrl = 'https://9zjzst4z-7112.uks1.devtunnels.ms/api';
+  static const String baseUrl = 'https://4vhc9cv9-7112.uks1.devtunnels.ms/api';
 
   // ── Auth endpoints ────────────────────────────────────────
   static const String register          = '/auth/register';

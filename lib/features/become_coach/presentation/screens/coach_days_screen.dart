@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
+import '../../data/model/become_coach_models.dart';
 import 'coach_certifications_screen.dart';
 
 class CoachDaysScreen extends StatefulWidget {
-  const CoachDaysScreen({super.key});
+  final CompleteCoachOnboardingRequest request;
+
+  const CoachDaysScreen({
+    super.key,
+    required this.request,
+  });
 
   @override
   State<CoachDaysScreen> createState() => _CoachDaysScreenState();
@@ -39,12 +46,19 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
       );
       return;
     }
-    debugPrint('Selected Days: $_selectedDays');
-    
-    // Navigate to coach certifications screen
+
+    final updatedRequest = widget.request.copyWith(
+      availableDays: _selectedDays.toList(),
+    );
+
+    debugPrint('=== DAYS REQUEST ===');
+    debugPrint(updatedRequest.toJson().toString());
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const CoachCertificationsScreen(),
+        builder: (context) => CoachCertificationsScreen(
+          request: updatedRequest,
+        ),
       ),
     );
   }
@@ -56,20 +70,15 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with gradient
             _buildHeader(),
-
-            // Progress Indicator (Step 3 of 4)
             _buildProgressIndicator(currentStep: 3),
-
-            // Form Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     const Text(
                       'Available Days',
                       style: TextStyle(
@@ -80,8 +89,6 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    
-                    // Subtitle
                     Text(
                       'When are you available to coach?',
                       style: TextStyle(
@@ -91,13 +98,12 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Days Grid
                     GridView.builder(
                       key: ValueKey('days_grid_${_selectedDays.length}'),
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
@@ -110,14 +116,11 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                         return _buildDayButton(day, isSelected);
                       },
                     ),
-
                     const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
-
-            // Continue Button
             _buildContinueButton(),
           ],
         ),
@@ -132,8 +135,8 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF1F3A93), // deep blue (darker) - left side
-            Color(0xFF6FD3F5), // light blue (brighter) - right side
+            Color(0xFF1F3A93),
+            Color(0xFF6FD3F5),
           ],
         ),
       ),
@@ -157,7 +160,7 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(width: 48), // Balance the back button
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -172,10 +175,11 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
           final isActive = index < currentStep;
           return Expanded(
             child: Container(
-              height: 6, // Thick progress indicator
+              height: 6,
               margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
               decoration: BoxDecoration(
-                color: isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
+                color:
+                isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -197,7 +201,7 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -226,7 +230,7 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -245,17 +249,16 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
-                    Color(0xFF1B2B83), // darker blue - left (from Figma)
-                    Color(0xFF304CE9), // brighter blue - right (from Figma)
+                    Color(0xFF1B2B83),
+                    Color(0xFF304CE9),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
-                    spreadRadius: 0,
                   ),
                 ],
               ),
@@ -278,4 +281,3 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
     );
   }
 }
-
