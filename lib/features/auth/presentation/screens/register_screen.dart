@@ -1,18 +1,15 @@
 import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:maranny_two/layout/main_layout.dart';
+
+import '../../../auth/data/models/auth_models.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../become_coach/presentation/screens/coach_info_screen.dart';
-// ✅ NEW: import the 2 new onboarding screens
-import '../../../onboarding/presentation/screens/sports_selection_screen.dart';
+import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String userType;
 
-  const RegisterScreen({
-    Key? key,
-    this.userType = 'trainee',
-  }) : super(key: key);
+  const RegisterScreen({super.key, this.userType = 'trainee'});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -22,10 +19,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _agreeToTerms = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isSubmitting = false;
+
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final AuthRepository _authRepository = AuthRepository();
 
   bool get _isCoach => widget.userType == 'coach';
 
@@ -39,74 +39,120 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    if (_nameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your full name'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (_isSubmitting) return;
+
+    final fullName = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (fullName.isEmpty) {
+      _showSnackBar('Please enter your full name');
       return;
     }
+
+    if (email.isEmpty) {
+      _showSnackBar('Please enter your email');
+      return;
+    }
+
+    if (password.isEmpty) {
+      _showSnackBar('Please enter your password');
+      return;
+    }
+
     if (_passwordController.text != _confirmPasswordController.text) {
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.error,
-        animType: AnimType.rightSlide,
-        title: 'Error',
-        desc: 'Passwords do not match.',
-      ).show();
+      _showErrorDialog('Passwords do not match.');
       return;
     }
+
+    final parts = fullName
+        .split(RegExp(r'\s+'))
+        .where((part) => part.trim().isNotEmpty)
+        .toList(growable: false);
+    final firstName = parts.isNotEmpty ? parts.first : fullName;
+    final lastName =
+        parts.length > 1 ? parts.sublist(1).join(' ') : firstName;
+
+    setState(() {
+      _isSubmitting = true;
+    });
 
     try {
-      final credential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+      await _authRepository.register(
+        RegisterRequest(
+          email: email,
+          password: password,
+          firstName: firstName,
+          lastName: lastName,
+          phoneNumber: null,
+          userType: _isCoach ? 'Coach' : 'Client',
+          isCertified: false,
+        ),
       );
-
-      await credential.user
-          ?.updateDisplayName(_nameController.text.trim());
 
       if (!mounted) return;
 
       if (_isCoach) {
-        // Coach → start become-a-coach flow
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const CoachInfoScreen()),
-              (route) => false,
-        );
-      } else {
-        // ✅ Client → go to sports selection first
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-              builder: (_) => const SportsSelectionScreen()),
-              (route) => false,
+            builder:
+                (_) => CoachInfoScreen(
+                  email: email,
+                  password: password,
+                  initialFullName: fullName,
+                ),
+          ),
+          (route) => false,
         );
+      } else {
+        await AwesomeDialog(
+          context: context,
+          dialogType: DialogType.success,
+          animType: AnimType.rightSlide,
+          title: 'Success',
+          desc:
+              'Registration successful. Please confirm your email, then log in.',
+          btnOkOnPress: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const LoginScreen(userType: 'trainee'),
+              ),
+            );
+          },
+        ).show();
       }
-    } on FirebaseAuthException catch (e) {
+    } on ApiError catch (e) {
       if (!mounted) return;
-      String msg = 'Registration failed. Please try again.';
-      if (e.code == 'weak-password') {
-        msg = 'The password provided is too weak.';
-      } else if (e.code == 'email-already-in-use') {
-        msg = 'An account already exists for that email.';
-      } else if (e.code == 'invalid-email') {
-        msg = 'Invalid email address.';
-      }
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.error,
-        animType: AnimType.rightSlide,
-        title: 'Error',
-        desc: msg,
-      ).show();
+      _showErrorDialog(e.fullMessage);
     } catch (e) {
+      if (!mounted) return;
+      _showErrorDialog('Registration failed. Please try again.');
       debugPrint('Register error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.error,
+      animType: AnimType.rightSlide,
+      title: 'Error',
+      desc: message,
+    ).show();
   }
 
   @override
@@ -123,7 +169,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height -
+                minHeight:
+                    MediaQuery.of(context).size.height -
                     MediaQuery.of(context).padding.top -
                     MediaQuery.of(context).padding.bottom,
               ),
@@ -133,7 +180,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Column(
                     children: [
                       const SizedBox(height: 40),
-
                       ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: Image.asset(
@@ -143,9 +189,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           fit: BoxFit.cover,
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
                       const Text(
                         'MARANNY',
                         style: TextStyle(
@@ -155,9 +199,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           letterSpacing: 2,
                         ),
                       ),
-
                       const SizedBox(height: 6),
-
                       Text(
                         _isCoach ? 'Join as a Coach!' : 'Join Us!',
                         style: const TextStyle(
@@ -167,9 +209,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           letterSpacing: 1,
                         ),
                       ),
-
                       const SizedBox(height: 30),
-
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -185,17 +225,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE8F4FD),
-                                  borderRadius:
-                                  BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                      color: const Color(0xFF6FD3F5)
-                                          .withValues(alpha: 0.5)),
+                                    color: const Color(
+                                      0xFF6FD3F5,
+                                    ).withValues(alpha: 0.5),
+                                  ),
                                 ),
                                 child: const Row(
                                   children: [
-                                    Icon(Icons.info_outline,
-                                        color: Color(0xFF1F3A93),
-                                        size: 18),
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: Color(0xFF1F3A93),
+                                      size: 18,
+                                    ),
                                     SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
@@ -211,26 +254,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                               const SizedBox(height: 20),
                             ],
-
                             TextField(
                               controller: _nameController,
                               decoration: _inputDeco('Full Name'),
                             ),
                             const SizedBox(height: 16),
-
                             TextField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
-                              decoration:
-                              _inputDeco('Email Address'),
+                              decoration: _inputDeco('Email Address'),
                             ),
                             const SizedBox(height: 16),
-
                             TextField(
                               controller: _passwordController,
                               obscureText: _obscurePassword,
-                              decoration:
-                              _inputDeco('Password').copyWith(
+                              decoration: _inputDeco('Password').copyWith(
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscurePassword
@@ -239,20 +277,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: Colors.grey[400],
                                     size: 20,
                                   ),
-                                  onPressed: () => setState(() =>
-                                  _obscurePassword =
-                                  !_obscurePassword),
+                                  onPressed:
+                                      () => setState(
+                                        () =>
+                                            _obscurePassword =
+                                                !_obscurePassword,
+                                      ),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 16),
-
                             TextField(
                               controller: _confirmPasswordController,
                               obscureText: _obscureConfirmPassword,
-                              decoration:
-                              _inputDeco('Confirm Password')
-                                  .copyWith(
+                              decoration: _inputDeco(
+                                'Confirm Password',
+                              ).copyWith(
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscureConfirmPassword
@@ -261,14 +301,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: Colors.grey[400],
                                     size: 20,
                                   ),
-                                  onPressed: () => setState(() =>
-                                  _obscureConfirmPassword =
-                                  !_obscureConfirmPassword),
+                                  onPressed:
+                                      () => setState(
+                                        () =>
+                                            _obscureConfirmPassword =
+                                                !_obscureConfirmPassword,
+                                      ),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 16),
-
                             Row(
                               children: [
                                 SizedBox(
@@ -276,14 +318,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   height: 20,
                                   child: Checkbox(
                                     value: _agreeToTerms,
-                                    onChanged: (v) => setState(
-                                            () =>
-                                        _agreeToTerms = v ?? false),
-                                    activeColor:
-                                    const Color(0xFF303F9F),
+                                    onChanged:
+                                        (value) => setState(
+                                          () => _agreeToTerms = value ?? false,
+                                        ),
+                                    activeColor: const Color(0xFF303F9F),
                                     shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                        BorderRadius.circular(4)),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -291,51 +333,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   child: Text(
                                     'I agree to terms and Conditions',
                                     style: TextStyle(
-                                        color: Color(0xFF666666),
-                                        fontSize: 13),
+                                      color: Color(0xFF666666),
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 24),
-
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
                                 onPressed:
-                                _agreeToTerms ? _register : null,
+                                    _agreeToTerms && !_isSubmitting
+                                        ? _register
+                                        : null,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                  const Color(0xFF303F9F),
+                                  backgroundColor: const Color(0xFF303F9F),
                                   foregroundColor: Colors.white,
-                                  disabledBackgroundColor:
-                                  Colors.grey[300],
-                                  disabledForegroundColor:
-                                  Colors.grey[500],
+                                  disabledBackgroundColor: Colors.grey[300],
+                                  disabledForegroundColor: Colors.grey[500],
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 16),
+                                    vertical: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                      BorderRadius.circular(12)),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   elevation: 0,
                                 ),
-                                child: Text(
-                                  _isCoach
-                                      ? 'REGISTER & CONTINUE'
-                                      : 'REGISTER',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
+                                child:
+                                    _isSubmitting
+                                        ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
+                                          ),
+                                        )
+                                        : Text(
+                                          _isCoach
+                                              ? 'REGISTER & CONTINUE'
+                                              : 'REGISTER',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
                               ),
                             ),
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 30),
                     ],
                   ),
@@ -351,27 +404,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
   InputDecoration _inputDeco(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle:
-      TextStyle(color: Colors.grey[400], fontSize: 14),
+      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
       filled: true,
       fillColor: Colors.grey[50],
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(25),
-        borderSide:
-        const BorderSide(color: Color(0xFF303F9F), width: 1),
+        borderSide: const BorderSide(color: Color(0xFF303F9F), width: 1),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(25),
-        borderSide:
-        const BorderSide(color: Color(0xFF303F9F), width: 1),
+        borderSide: const BorderSide(color: Color(0xFF303F9F), width: 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(25),
-        borderSide: const BorderSide(
-            color: Color(0xFF303F9F), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF303F9F), width: 1.5),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
     );
   }
 }

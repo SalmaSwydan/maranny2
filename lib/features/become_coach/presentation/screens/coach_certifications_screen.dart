@@ -1,9 +1,15 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../layout/coach_layout.dart';
 
-// Custom painter for dashed border
+import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+
+import '../../../../core/theme/app_colors.dart';
+import '../../../auth/data/models/auth_models.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
+import '../../data/models/coach_onboarding_draft.dart';
+
 class DashedBorderPainter extends CustomPainter {
   final Color color;
   final double strokeWidth;
@@ -21,122 +27,100 @@ class DashedBorderPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
+    final paint =
+        Paint()
+          ..color = color
+          ..strokeWidth = strokeWidth
+          ..style = PaintingStyle.stroke;
 
-    final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Radius.circular(radius),
-      ));
-
-    final dashPath = _createDashPath(path, dashLength, dashSpace);
-    canvas.drawPath(dashPath, paint);
-  }
-
-  Path _createDashPath(Path path, double dashLength, double dashSpace) {
-    final dashPath = Path();
-    final pathMetrics = path.computeMetrics();
-
-    for (final pathMetric in pathMetrics) {
-      double distance = 0;
-      while (distance < pathMetric.length) {
-        final length = (distance + dashLength < pathMetric.length)
-            ? dashLength
-            : pathMetric.length - distance;
-        dashPath.addPath(
-          pathMetric.extractPath(distance, distance + length),
-          Offset.zero,
+    final path =
+        Path()..addRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(0, 0, size.width, size.height),
+            Radius.circular(radius),
+          ),
         );
+
+    final dashPath = Path();
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final end = (distance + dashLength).clamp(
+          0.0,
+          metric.length,
+        ).toDouble();
+        dashPath.addPath(metric.extractPath(distance, end), Offset.zero);
         distance += dashLength + dashSpace;
       }
     }
-    return dashPath;
+
+    canvas.drawPath(dashPath, paint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// Custom painter for upload icon (exact match from image - thinner arrow, inverted base/tray)
 class UploadIconPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final centerX = size.width / 2;
-
-    // Create gradient for the icon
-    final gradient = LinearGradient(
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final shader = const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [
-        const Color(0xFF304CE9), // brighter blue - top
-        const Color(0xFF1B2B83), // darker blue - bottom
-      ],
-    );
+      colors: [Color(0xFF304CE9), Color(0xFF1B2B83)],
+    ).createShader(rect);
 
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final gradientPaint = Paint()
-      ..shader = gradient.createShader(rect)
-      ..style = PaintingStyle.fill;
+    final strokePaint =
+        Paint()
+          ..shader = shader
+          ..strokeWidth = 6
+          ..strokeCap = StrokeCap.round;
 
-    // Draw the base/tray shape (horizontal line with vertical lines extending UP - inverted)
+    final fillPaint = Paint()..shader = shader;
+
     final baseY = size.height * 0.72;
     final baseWidth = size.width * 0.65;
     final baseHeight = size.height * 0.18;
 
-    // Horizontal bottom line of the base (thicker) - this is the bottom of the inverted tray
-    final basePaint = Paint()
-      ..shader = gradient.createShader(rect)
-      ..strokeWidth = 7
-      ..strokeCap = StrokeCap.round;
-
     canvas.drawLine(
       Offset(centerX - baseWidth / 2, baseY),
       Offset(centerX + baseWidth / 2, baseY),
-      basePaint,
+      strokePaint,
     );
-
-    // Left vertical line extending UP (inverted)
     canvas.drawLine(
       Offset(centerX - baseWidth / 2, baseY),
       Offset(centerX - baseWidth / 2, baseY - baseHeight),
-      basePaint,
+      strokePaint,
     );
-
-    // Right vertical line extending UP (inverted)
     canvas.drawLine(
       Offset(centerX + baseWidth / 2, baseY),
       Offset(centerX + baseWidth / 2, baseY - baseHeight),
-      basePaint,
+      strokePaint,
     );
 
-    // Draw upward arrow (thinner shaft, proper arrowhead) - keep as is
     final arrowTopY = size.height * 0.12;
-    final arrowBottomY = baseY - baseHeight - 3; // Arrow starts above the inverted tray
+    final arrowBottomY = baseY - baseHeight - 3;
     final arrowWidth = size.width * 0.28;
-
-    // Arrow shaft (vertical line - thinner)
-    final arrowShaftPaint = Paint()
-      ..shader = gradient.createShader(rect)
-      ..strokeWidth = 5.5
-      ..strokeCap = StrokeCap.round;
 
     canvas.drawLine(
       Offset(centerX, arrowBottomY),
       Offset(centerX, arrowTopY + arrowWidth * 0.35),
-      arrowShaftPaint,
+      Paint()
+        ..shader = shader
+        ..strokeWidth = 5.5
+        ..strokeCap = StrokeCap.round,
     );
 
-    // Arrow head (triangle pointing up - thinner)
-    final arrowPath = Path()
-      ..moveTo(centerX, arrowTopY) // Top point
-      ..lineTo(centerX - arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35) // Bottom left
-      ..lineTo(centerX + arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35) // Bottom right
-      ..close();
+    final arrowPath =
+        Path()
+          ..moveTo(centerX, arrowTopY)
+          ..lineTo(centerX - arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35)
+          ..lineTo(centerX + arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35)
+          ..close();
 
-    canvas.drawPath(arrowPath, gradientPaint);
+    canvas.drawPath(arrowPath, fillPaint);
   }
 
   @override
@@ -144,47 +128,104 @@ class UploadIconPainter extends CustomPainter {
 }
 
 class CoachCertificationsScreen extends StatefulWidget {
-  const CoachCertificationsScreen({super.key});
+  final CoachOnboardingDraft draft;
+
+  const CoachCertificationsScreen({required this.draft, super.key});
 
   @override
-  State<CoachCertificationsScreen> createState() => _CoachCertificationsScreenState();
+  State<CoachCertificationsScreen> createState() =>
+      _CoachCertificationsScreenState();
 }
 
 class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
-  List<File> _selectedFiles = [];
+  final AuthRepository _authRepository = AuthRepository();
+  List<File> _selectedFiles = <File>[];
+  bool _isSubmitting = false;
 
-  void _handleChooseFile() async {
-    // TODO: Implement file picker using file_picker package
-    // For now, this is a placeholder that shows a message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('File picker will be implemented with file_picker package'),
-      ),
+  Future<void> _handleChooseFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf'],
+      allowMultiple: false,
     );
 
-    // Example: You would use file_picker like this:
-    // final result = await FilePicker.platform.pickFiles(
-    //   type: FileType.custom,
-    //   allowedExtensions: ['pdf'],
-    // );
-    // if (result != null && result.files.single.path != null) {
-    //   setState(() {
-    //     _selectedFiles.add(File(result.files.single.path!));
-    //   });
-    // }
+    final path = result?.files.single.path;
+    if (path == null) return;
+
+    setState(() {
+      _selectedFiles = [File(path)];
+    });
   }
 
-  void _handleContinue() {
-    // TODO: Upload files to backend if any selected
-    debugPrint('Selected Files: ${_selectedFiles.length}');
+  Future<void> _handleContinue() async {
+    if (_isSubmitting) return;
 
-    // ✅ FIXED: Navigate to Coach Home Screen
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => CoachMainLayout(),
-      ),
-          (route) => false, // Remove all previous routes
-    );
+    if (widget.draft.unsupportedSports.isNotEmpty) {
+      _showErrorDialog(
+        'These sports are not supported by the backend yet: '
+        '${widget.draft.unsupportedSports.join(', ')}.\n'
+        'Please choose supported sports only.',
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      final response = await _authRepository.completeCoachOnboarding(
+        widget.draft
+            .copyWith(
+              certificateUrl:
+                  _selectedFiles.isNotEmpty ? _selectedFiles.first.path : null,
+            )
+            .toRequest(),
+      );
+
+      if (!mounted) return;
+
+      await AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.rightSlide,
+        title: 'Success',
+        desc: response.message,
+        btnOkOnPress: () {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const LoginScreen(userType: 'coach'),
+            ),
+            (route) => false,
+          );
+        },
+      ).show();
+    } on ApiError catch (e) {
+      if (!mounted) return;
+      _showErrorDialog(e.fullMessage);
+    } catch (e) {
+      if (!mounted) return;
+      _showErrorDialog(
+        'Could not complete coach onboarding. Please try again.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  void _showErrorDialog(String message) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.error,
+      animType: AnimType.rightSlide,
+      title: 'Error',
+      desc: message,
+    ).show();
   }
 
   @override
@@ -194,20 +235,17 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with gradient
             _buildHeader(),
-
-            // Progress Indicator (Step 4 of 4 - all segments blue)
             _buildProgressIndicator(currentStep: 4),
-
-            // Form Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Title
                     const Text(
                       'Certifications (Optional)',
                       style: TextStyle(
@@ -218,8 +256,6 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-
-                    // Subtitle
                     Text(
                       'Upload certificates to boost your credibility.',
                       style: TextStyle(
@@ -229,22 +265,28 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                       ),
                     ),
                     const SizedBox(height: 40),
-
-                    // Upload Area - Centered and Bigger
                     _buildUploadArea(),
-
+                    if (_selectedFiles.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        _selectedFiles.first.path
+                            .split(Platform.pathSeparator)
+                            .last,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 32),
-
-                    // Note Section
                     _buildNoteSection(),
-
                     const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
-
-            // Continue Button
             _buildContinueButton(),
           ],
         ),
@@ -258,10 +300,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1F3A93), // deep blue (darker) - left side
-            Color(0xFF6FD3F5), // light blue (brighter) - right side
-          ],
+          colors: [Color(0xFF1F3A93), Color(0xFF6FD3F5)],
         ),
       ),
       child: Padding(
@@ -284,7 +323,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(width: 48), // Balance the back button
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -299,10 +338,11 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
           final isActive = index < currentStep;
           return Expanded(
             child: Container(
-              height: 6, // Thick progress indicator
+              height: 6,
               margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
               decoration: BoxDecoration(
-                color: isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
+                color:
+                    isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -331,7 +371,6 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
         ),
         child: Stack(
           children: [
-            // Dashed border using CustomPaint
             Positioned.fill(
               child: CustomPaint(
                 painter: DashedBorderPainter(
@@ -343,7 +382,6 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                 ),
               ),
             ),
-            // Content - Centered from all directions with good spacing
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
               child: Center(
@@ -351,14 +389,11 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Upload Icon - Custom to match image exactly
                     CustomPaint(
                       size: const Size(100, 100),
                       painter: UploadIconPainter(),
                     ),
                     const SizedBox(height: 40),
-
-                    // Upload Text
                     const Text(
                       'Upload certifications',
                       style: TextStyle(
@@ -369,8 +404,6 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    // File Type Info
                     Text(
                       'PDF Files up to 10MB',
                       style: TextStyle(
@@ -380,8 +413,6 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                       ),
                     ),
                     const SizedBox(height: 50),
-
-                    // Choose File Button
                     _buildChooseFileButton(),
                   ],
                 ),
@@ -405,24 +436,9 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
             gradient: const LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
-              colors: [
-                Color(0xFF1B2B83), // darker blue - left (from Figma)
-                Color(0xFF304CE9), // brighter blue - right (from Figma)
-              ],
+              colors: [Color(0xFF1B2B83), Color(0xFF304CE9)],
             ),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.transparent,
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-                spreadRadius: 0,
-              ),
-            ],
           ),
           child: const Text(
             'Choose File',
@@ -442,7 +458,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE3F2FD), // Light blue background
+        color: const Color(0xFFE3F2FD),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -490,39 +506,40 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: _handleContinue,
+            onTap: _isSubmitting ? null : _handleContinue,
             borderRadius: BorderRadius.circular(14),
             child: Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: [
-                    Color(0xFF1B2B83), // darker blue - left (from Figma)
-                    Color(0xFF304CE9), // brighter blue - right (from Figma)
-                  ],
+                  colors: [Color(0xFF1B2B83), Color(0xFF304CE9)],
                 ),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                    spreadRadius: 0,
-                  ),
-                ],
               ),
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: const Center(
-                child: Text(
-                  'Continue',
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
+              child: Center(
+                child:
+                    _isSubmitting
+                        ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                        : const Text(
+                          'Continue',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
               ),
             ),
           ),

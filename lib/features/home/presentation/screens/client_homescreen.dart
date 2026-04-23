@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../../core/network/token_storage.dart';
 import '../widgets/client_home_header.dart';
 import '../widgets/upcoming_sessions.dart';
 import '../widgets/coaches_for_you.dart';
@@ -18,10 +18,20 @@ class ClientHomeScreen extends StatefulWidget {
 
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  String _userName = 'Ahmed';
 
-  String get _userName {
-    final user = FirebaseAuth.instance.currentUser;
-    return user?.displayName ?? user?.email?.split('@').first ?? 'Ahmed';
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final displayName = await TokenStorage.getDisplayName();
+    if (!mounted || displayName == null || displayName.trim().isEmpty) return;
+    setState(() {
+      _userName = displayName;
+    });
   }
 
   @override
@@ -35,7 +45,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                (route) => false,
+            (route) => false,
           );
         },
       ),
@@ -48,9 +58,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
             Padding(
               padding: const EdgeInsets.all(16),
-              child: UpcomingSessionsSection(
-                onViewMore: widget.onGoToBookings,
-              ),
+              child: UpcomingSessionsSection(onViewMore: widget.onGoToBookings),
             ),
 
             Padding(

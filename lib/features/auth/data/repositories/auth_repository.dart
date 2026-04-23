@@ -18,8 +18,7 @@ class AuthRepository {
         ApiConfig.register,
         data: request.toJson(),
       );
-      return RegisterResponse.fromJson(
-          response.data as Map<String, dynamic>);
+      return RegisterResponse.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -27,18 +26,38 @@ class AuthRepository {
 
   Future<LoginResponse> login(LoginRequest request) async {
     try {
-      final response = await _dio.post(
-        ApiConfig.login,
-        data: request.toJson(),
-      );
+      final response = await _dio.post(ApiConfig.login, data: request.toJson());
       final loginResponse = LoginResponse.fromJson(
-          response.data as Map<String, dynamic>);
+        response.data as Map<String, dynamic>,
+      );
       await TokenStorage.saveTokens(
-        accessToken:  loginResponse.accessToken,
+        accessToken: loginResponse.accessToken,
         refreshToken: loginResponse.refreshToken,
       );
       await TokenStorage.saveUserType(loginResponse.user.userType);
+      await TokenStorage.saveUserProfile(
+        userId: loginResponse.user.id.toString(),
+        email: loginResponse.user.email,
+        firstName: loginResponse.user.firstName,
+        lastName: loginResponse.user.lastName,
+      );
       return loginResponse;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<CompleteCoachOnboardingResponse> completeCoachOnboarding(
+    CompleteCoachOnboardingRequest request,
+  ) async {
+    try {
+      final response = await _dio.post(
+        ApiConfig.completeCoachOnboarding,
+        data: request.toJson(),
+      );
+      return CompleteCoachOnboardingResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -62,8 +81,7 @@ class AuthRepository {
   Future<UserModel> getCurrentUser() async {
     try {
       final response = await _dio.get(ApiConfig.me);
-      return UserModel.fromJson(
-          response.data as Map<String, dynamic>);
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -96,11 +114,9 @@ class AuthRepository {
   ApiError _handleError(DioException e) {
     if (e.response?.data != null) {
       try {
-        return ApiError.fromJson(
-            e.response!.data as Map<String, dynamic>);
+        return ApiError.fromJson(e.response!.data as Map<String, dynamic>);
       } catch (_) {}
     }
-    return ApiError(
-        message: e.message ?? 'Network error. Please try again.');
+    return ApiError(message: e.message ?? 'Network error. Please try again.');
   }
 }

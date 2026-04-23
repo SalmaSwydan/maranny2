@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../features/auth/data/repositories/auth_repository.dart';
 import '../../../features/settings/presentation/screens/safety_moderation_screen.dart';
 import '../../../features/settings/presentation/screens/support_screen.dart';
 
@@ -25,6 +25,7 @@ class AppSideMenu extends StatelessWidget {
   });
 
   bool get _isCoach => userType == 'coach';
+  static final AuthRepository _authRepository = AuthRepository();
 
   @override
   Widget build(BuildContext context) {
@@ -58,9 +59,7 @@ class AppSideMenu extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      userName.isNotEmpty
-                          ? userName[0].toUpperCase()
-                          : 'U',
+                      userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -86,19 +85,20 @@ class AppSideMenu extends StatelessWidget {
                       // Role badge
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.white
-                              .withValues(alpha: 0.2),
-                          borderRadius:
-                          BorderRadius.circular(20),
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           _isCoach ? 'Coach' : 'Trainee',
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500),
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -115,9 +115,8 @@ class AppSideMenu extends StatelessWidget {
             icon: Icons.help_outline,
             iconColor: const Color(0xFF1F3A93),
             title: 'Support',
-            subtitle: _isCoach
-                ? 'Coach support centre'
-                : 'Get help with any issues',
+            subtitle:
+                _isCoach ? 'Coach support centre' : 'Get help with any issues',
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -135,17 +134,17 @@ class AppSideMenu extends StatelessWidget {
             icon: Icons.warning_amber_outlined,
             iconColor: Colors.orange,
             title: 'Report',
-            subtitle: _isCoach
-                ? 'Report a trainee or issue'
-                : 'Report a coach or issue',
+            subtitle:
+                _isCoach
+                    ? 'Report a trainee or issue'
+                    : 'Report a coach or issue',
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   // ✅ passes the correct userType
-                  builder: (_) =>
-                      SafetyModerationScreen(userType: userType),
+                  builder: (_) => SafetyModerationScreen(userType: userType),
                 ),
               );
             },
@@ -160,7 +159,7 @@ class AppSideMenu extends StatelessWidget {
             titleColor: Colors.red,
             onTap: () async {
               Navigator.pop(context);
-              await FirebaseAuth.instance.signOut();
+              await _authRepository.logout();
               onLogout();
             },
           ),
@@ -194,34 +193,39 @@ class _MenuItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 20, vertical: 14),
-        child: Row(children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
             ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
                   style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: titleColor)),
-              const SizedBox(height: 2),
-              Text(subtitle,
-                  style: const TextStyle(
-                      fontSize: 12, color: Colors.grey)),
-            ],
-          ),
-        ]),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: titleColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
