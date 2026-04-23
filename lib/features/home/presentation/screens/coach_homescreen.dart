@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../../../../core/network/token_storage.dart';
 import '../widgets/SessionCard.dart';
 import '../widgets/header.dart';
 import '../widgets/pending_request_card.dart';
@@ -14,10 +14,7 @@ import '../../../auth/presentation/screens/welcome_screen.dart';
 class CoachHomeScreen extends StatefulWidget {
   final VoidCallback onAuthRequired;
 
-  const CoachHomeScreen({
-    super.key,
-    required this.onAuthRequired,
-  });
+  const CoachHomeScreen({super.key, required this.onAuthRequired});
 
   @override
   State<CoachHomeScreen> createState() => _CoachHomeScreenState();
@@ -28,40 +25,56 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
   late List<Map<String, dynamic>> _pendingRequests;
   late List<Map<String, dynamic>> _todaysSchedule;
-
-  String get _userName {
-    final user = FirebaseAuth.instance.currentUser;
-    return user?.displayName ?? user?.email?.split('@').first ?? 'Coach';
-  }
+  String _userName = 'Coach';
 
   @override
   void initState() {
     super.initState();
+    _loadUserName();
     if (SharedBookingsManager.getConfirmedBookings().isEmpty) {
       SharedBookingsManager.addAcceptedBooking({
-        'name': 'Ahmed Mohamed', 'activity': 'Football',
-        'date': 'Dec 17, 2025', 'time': '10:00 AM - 11:00 AM',
-        'location': 'Court 3', 'price': '250 LE/hr', 'status': 'Confirmed',
+        'name': 'Ahmed Mohamed',
+        'activity': 'Football',
+        'date': 'Dec 17, 2025',
+        'time': '10:00 AM - 11:00 AM',
+        'location': 'Court 3',
+        'price': '250 LE/hr',
+        'status': 'Confirmed',
       });
       SharedBookingsManager.addAcceptedBooking({
-        'name': 'Sarah Johnson', 'activity': 'Football',
-        'date': 'Dec 17, 2025', 'time': '2:00 PM - 3:00 PM',
-        'location': 'Court 1', 'price': '250 LE/hr', 'status': 'Confirmed',
+        'name': 'Sarah Johnson',
+        'activity': 'Football',
+        'date': 'Dec 17, 2025',
+        'time': '2:00 PM - 3:00 PM',
+        'location': 'Court 1',
+        'price': '250 LE/hr',
+        'status': 'Confirmed',
       });
       SharedBookingsManager.addAcceptedBooking({
-        'name': 'Mike Chen', 'activity': 'Football',
-        'date': 'Dec 17, 2025', 'time': '4:00 PM - 5:00 PM',
-        'location': 'Court 2', 'price': '250 LE/hr', 'status': 'Pending',
+        'name': 'Mike Chen',
+        'activity': 'Football',
+        'date': 'Dec 17, 2025',
+        'time': '4:00 PM - 5:00 PM',
+        'location': 'Court 2',
+        'price': '250 LE/hr',
+        'status': 'Pending',
       });
     }
     _refresh();
   }
 
+  Future<void> _loadUserName() async {
+    final displayName = await TokenStorage.getDisplayName();
+    if (!mounted || displayName == null || displayName.trim().isEmpty) return;
+    setState(() {
+      _userName = displayName;
+    });
+  }
+
   void _refresh() {
     setState(() {
       _todaysSchedule = SharedBookingsManager.getConfirmedBookings();
-      _pendingRequests =
-          SharedPendingRequestsManager.getNextPendingRequests(2);
+      _pendingRequests = SharedPendingRequestsManager.getNextPendingRequests(2);
     });
   }
 
@@ -153,8 +166,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content:
-        Text('${request['name']} booking accepted successfully.'),
+        content: Text('${request['name']} booking accepted successfully.'),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -167,7 +179,8 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       builder: (BuildContext context) {
         return Dialog(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -177,43 +190,46 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                      color: const Color(0xFF1F3A93)
-                          .withValues(alpha: 0.1),
-                      shape: BoxShape.circle),
-                  child: const Icon(Icons.person_off_outlined,
-                      color: Color(0xFF1F3A93), size: 32),
+                    color: const Color(0xFF1F3A93).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person_off_outlined,
+                    color: Color(0xFF1F3A93),
+                    size: 32,
+                  ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Decline Request',
-                    style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Decline Request',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'Decline ${request['name']}\'s booking request?',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      color: Colors.grey, fontSize: 14),
+                  style: const TextStyle(color: Colors.grey, fontSize: 14),
                 ),
                 const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () =>
-                            Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                              color: Color(0xFF1F3A93)),
+                          side: const BorderSide(color: Color(0xFF1F3A93)),
                           shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text('Cancel',
-                            style: TextStyle(
-                                color: Color(0xFF1F3A93),
-                                fontWeight: FontWeight.w600)),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Color(0xFF1F3A93),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -222,33 +238,30 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                         onPressed: () {
                           Navigator.of(context).pop();
                           final r = _pendingRequests[index];
-                          SharedPendingRequestsManager
-                              .removePendingRequest(
+                          SharedPendingRequestsManager.removePendingRequest(
                             r['name'] as String,
                             r['date'] as String,
                           );
                           _refresh();
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(
+                          ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content: Text(
-                                    'Booking request declined')),
+                              content: Text('Booking request declined'),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                          const Color(0xFF1F3A93),
+                          backgroundColor: const Color(0xFF1F3A93),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           elevation: 0,
                         ),
-                        child: const Text('Decline',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600)),
+                        child: const Text(
+                          'Decline',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
                   ],
@@ -268,12 +281,13 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       backgroundColor: const Color(0xFFF5F5F5),
       drawer: AppSideMenu(
         userName: _userName,
-        userType: 'coach', // ✅ FIX: was missing — caused coach to see client screens
+        userType:
+            'coach', // ✅ FIX: was missing — caused coach to see client screens
         onLogout: () {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                (route) => false,
+            (route) => false,
           );
         },
       ),
@@ -282,8 +296,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CoachHomeHeader(
-              onMenuTap: () =>
-                  _scaffoldKey.currentState?.openDrawer(),
+              onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
             ),
 
             _SectionTitleWithViewAll(
@@ -291,8 +304,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
               onViewAll: () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (_) => const UpcomingScreen()),
+                  MaterialPageRoute(builder: (_) => const UpcomingScreen()),
                 );
                 _refresh();
               },
@@ -301,13 +313,17 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
             if (_todaysSchedule.isEmpty)
               _emptyCard('No sessions scheduled today')
             else
-              ..._todaysSchedule.take(3).map((s) => SessionCard(
-                name: s['name'] ?? '',
-                sport: s['activity'] ?? '',
-                time: s['time'] ?? '',
-                location: s['location'] ?? '',
-                status: s['status'] ?? 'Confirmed',
-              )),
+              ..._todaysSchedule
+                  .take(3)
+                  .map(
+                    (s) => SessionCard(
+                      name: s['name'] ?? '',
+                      sport: s['activity'] ?? '',
+                      time: s['time'] ?? '',
+                      location: s['location'] ?? '',
+                      status: s['status'] ?? 'Confirmed',
+                    ),
+                  ),
 
             _SectionTitleWithViewAll(
               title: 'Pending Requests',
@@ -315,8 +331,8 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) =>
-                      const UpcomingScreen(initialTabIndex: 1)),
+                    builder: (_) => const UpcomingScreen(initialTabIndex: 1),
+                  ),
                 );
                 _refresh();
               },
@@ -325,7 +341,9 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
             if (_pendingRequests.isEmpty)
               Container(
                 margin: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 16),
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -340,20 +358,25 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.check_circle_outline,
-                        size: 64, color: Colors.grey[400]),
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 64,
+                      color: Colors.grey[400],
+                    ),
                     const SizedBox(height: 16),
-                    Text('All caught up!',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[700])),
+                    Text(
+                      'All caught up!',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[700],
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'You have no pending requests at the moment.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 14, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -367,22 +390,21 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                   date: request['date'],
                   status: request['status'],
                   onAccept: () => _handleAcceptRequest(entry.key),
-                  onDecline: () =>
-                      _handleDeclineRequest(entry.key),
+                  onDecline: () => _handleDeclineRequest(entry.key),
                 );
               }),
 
             _SectionTitleWithViewAll(
               title: 'Recent Reviews',
-              onViewAll: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const AllReviewsScreen())),
+              onViewAll:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AllReviewsScreen()),
+                  ),
             ),
             const ReviewCard(
               name: "Ahmed Yasser",
-              review:
-              "Excellent coaching! Really improved My skills",
+              review: "Excellent coaching! Really improved My skills",
               timestamp: "2 days ago",
               rating: 5,
             ),
@@ -402,17 +424,17 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
   Widget _emptyCard(String message) {
     return Container(
-      margin:
-      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
-        child: Text(message,
-            style:
-            const TextStyle(color: Colors.grey, fontSize: 14)),
+        child: Text(
+          message,
+          style: const TextStyle(color: Colors.grey, fontSize: 14),
+        ),
       ),
     );
   }

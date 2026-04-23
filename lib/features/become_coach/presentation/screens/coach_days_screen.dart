@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
+import '../../data/models/coach_onboarding_draft.dart';
 import 'coach_certifications_screen.dart';
 
 class CoachDaysScreen extends StatefulWidget {
-  const CoachDaysScreen({super.key});
+  final CoachOnboardingDraft draft;
+
+  const CoachDaysScreen({required this.draft, super.key});
 
   @override
   State<CoachDaysScreen> createState() => _CoachDaysScreenState();
 }
 
 class _CoachDaysScreenState extends State<CoachDaysScreen> {
-  final Set<String> _selectedDays = {};
+  late final Set<String> _selectedDays;
 
-  final List<String> _daysOfWeek = [
+  final List<String> _daysOfWeek = const [
     'Saturday',
     'Sunday',
     'Monday',
@@ -21,6 +25,12 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
     'Thursday',
     'Friday',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDays = widget.draft.availableDays.toSet();
+  }
 
   void _toggleDay(String day) {
     setState(() {
@@ -39,12 +49,15 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
       );
       return;
     }
-    debugPrint('Selected Days: $_selectedDays');
-    
-    // Navigate to coach certifications screen
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const CoachCertificationsScreen(),
+        builder:
+            (context) => CoachCertificationsScreen(
+              draft: widget.draft.copyWith(
+                availableDays: _selectedDays.toList(growable: false),
+              ),
+            ),
       ),
     );
   }
@@ -56,20 +69,17 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with gradient
             _buildHeader(),
-
-            // Progress Indicator (Step 3 of 4)
             _buildProgressIndicator(currentStep: 3),
-
-            // Form Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     const Text(
                       'Available Days',
                       style: TextStyle(
@@ -80,8 +90,6 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    
-                    // Subtitle
                     Text(
                       'When are you available to coach?',
                       style: TextStyle(
@@ -91,33 +99,30 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Days Grid
                     GridView.builder(
-                      key: ValueKey('days_grid_${_selectedDays.length}'),
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 2.5,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 2.5,
+                          ),
                       itemCount: _daysOfWeek.length,
                       itemBuilder: (context, index) {
                         final day = _daysOfWeek[index];
-                        final isSelected = _selectedDays.contains(day);
-                        return _buildDayButton(day, isSelected);
+                        return _buildDayButton(
+                          day,
+                          _selectedDays.contains(day),
+                        );
                       },
                     ),
-
                     const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
-
-            // Continue Button
             _buildContinueButton(),
           ],
         ),
@@ -131,10 +136,7 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1F3A93), // deep blue (darker) - left side
-            Color(0xFF6FD3F5), // light blue (brighter) - right side
-          ],
+          colors: [Color(0xFF1F3A93), Color(0xFF6FD3F5)],
         ),
       ),
       child: Padding(
@@ -157,7 +159,7 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(width: 48), // Balance the back button
+            const SizedBox(width: 48),
           ],
         ),
       ),
@@ -172,10 +174,11 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
           final isActive = index < currentStep;
           return Expanded(
             child: Container(
-              height: 6, // Thick progress indicator
+              height: 6,
               margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
               decoration: BoxDecoration(
-                color: isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
+                color:
+                    isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -244,20 +247,9 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                 gradient: const LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: [
-                    Color(0xFF1B2B83), // darker blue - left (from Figma)
-                    Color(0xFF304CE9), // brighter blue - right (from Figma)
-                  ],
+                  colors: [Color(0xFF1B2B83), Color(0xFF304CE9)],
                 ),
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                    spreadRadius: 0,
-                  ),
-                ],
               ),
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: const Center(
@@ -278,4 +270,3 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
     );
   }
 }
-

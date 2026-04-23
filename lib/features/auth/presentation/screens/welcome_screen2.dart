@@ -107,19 +107,14 @@ class _WelcomeScreen2State extends State<WelcomeScreen2> {
                       activeColor: _blue,
                       onTap: () async {
                         setState(() => _activeButton = 'register');
-                        if (widget.userType == 'coach') {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => CoachInfoScreen()),
-                          );
-                        } else {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const RegisterScreen()),
-                          );
-                        }
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RegisterScreen(
+                              userType: widget.userType,
+                            ),
+                          ),
+                        );
                         if (mounted) setState(() => _activeButton = null);
                       },
                     ),

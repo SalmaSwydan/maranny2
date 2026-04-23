@@ -17,6 +17,7 @@ import '../../layout/coach_layout.dart';
 
 // ── Become a Coach ────────────────────────────────────────────
 import '../../features/become_coach/presentation/screens/coach_info_screen.dart';
+import '../../features/become_coach/data/models/coach_onboarding_draft.dart';
 import '../../features/become_coach/presentation/screens/coach_specialties_screen.dart';
 import '../../features/become_coach/presentation/screens/coach_days_screen.dart';
 import '../../features/become_coach/presentation/screens/coach_certifications_screen.dart';
@@ -109,16 +110,16 @@ class AppRouter {
         return _build(const CoachMainLayout());
 
       case becomeCoachInfo:
-        return _build(const CoachInfoScreen());
+        return _build(const CoachInfoScreen(email: '', password: ''));
 
       case becomeCoachSpecialties:
-        return _build(const CoachSpecialtiesScreen());
+        return _build(CoachSpecialtiesScreen(draft: CoachOnboardingDraft(email: '', password: '')));
 
       case becomeCoachDays:
-        return _build(const CoachDaysScreen());
+        return _build(CoachDaysScreen(draft: CoachOnboardingDraft(email: '', password: '')));
 
       case becomeCoachCertifications:
-        return _build(const CoachCertificationsScreen());
+        return _build(CoachCertificationsScreen(draft: CoachOnboardingDraft(email: '', password: '')));
 
       case support:
         final userType = args is UserTypeArgs ? args.userType : 'client';

@@ -1,7 +1,3 @@
-/// ─────────────────────────────────────────────────────────────
-/// PROFILE MODELS
-/// ─────────────────────────────────────────────────────────────
-
 class UpdateProfileRequest {
   final String? firstName;
   final String? lastName;
@@ -12,68 +8,99 @@ class UpdateProfileRequest {
   final String? dateOfBirth;
   final String? gender;
   final String? bio;
-  final int?    experienceYears;
+  final int? experienceYears;
   final String? certificateUrl;
 
   const UpdateProfileRequest({
-    this.firstName, this.lastName, this.phoneNumber,
-    this.city, this.street, this.buildingNumber,
-    this.dateOfBirth, this.gender, this.bio,
-    this.experienceYears, this.certificateUrl,
+    this.firstName,
+    this.lastName,
+    this.phoneNumber,
+    this.city,
+    this.street,
+    this.buildingNumber,
+    this.dateOfBirth,
+    this.gender,
+    this.bio,
+    this.experienceYears,
+    this.certificateUrl,
   });
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
-    if (firstName != null)       map['firstName']       = firstName;
-    if (lastName != null)        map['lastName']        = lastName;
-    if (phoneNumber != null)     map['phoneNumber']     = phoneNumber;
-    if (city != null)            map['city']            = city;
-    if (street != null)          map['street']          = street;
-    if (buildingNumber != null)  map['buildingNumber']  = buildingNumber;
-    if (dateOfBirth != null)     map['dateOfBirth']     = dateOfBirth;
-    if (gender != null)          map['gender']          = gender;
-    if (bio != null)             map['bio']             = bio;
+    if (firstName != null) map['firstName'] = firstName;
+    if (lastName != null) map['lastName'] = lastName;
+    if (phoneNumber != null) map['phoneNumber'] = phoneNumber;
+    if (city != null) map['city'] = city;
+    if (street != null) map['street'] = street;
+    if (buildingNumber != null) map['buildingNumber'] = buildingNumber;
+    if (dateOfBirth != null) map['dateOfBirth'] = dateOfBirth;
+    if (gender != null) map['gender'] = gender;
+    if (bio != null) map['bio'] = bio;
     if (experienceYears != null) map['experienceYears'] = experienceYears;
-    if (certificateUrl != null)  map['certificateUrl']  = certificateUrl;
+    if (certificateUrl != null) map['certificateUrl'] = certificateUrl;
     return map;
   }
 }
 
 class UpdatePreferencesRequest {
-  final String? sports;
+  final List<String>? sports;
   final double? budgetMin;
   final double? budgetMax;
   final double? maxDistance;
+  final String? city;
+  final String? area;
+  final String? locationPreference;
+  final String? ratingPreference;
+  final String? coachGender;
+  final String? coachAgeRange;
+  final bool? certifiedOnly;
 
   const UpdatePreferencesRequest({
-    this.sports, this.budgetMin, this.budgetMax, this.maxDistance,
+    this.sports,
+    this.budgetMin,
+    this.budgetMax,
+    this.maxDistance,
+    this.city,
+    this.area,
+    this.locationPreference,
+    this.ratingPreference,
+    this.coachGender,
+    this.coachAgeRange,
+    this.certifiedOnly,
   });
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
-    if (sports != null)      map['sports']      = sports;
-    if (budgetMin != null)   map['budgetMin']   = budgetMin;
-    if (budgetMax != null)   map['budgetMax']   = budgetMax;
+    if (sports != null) map['sports'] = sports;
+    if (budgetMin != null) map['budgetMin'] = budgetMin;
+    if (budgetMax != null) map['budgetMax'] = budgetMax;
     if (maxDistance != null) map['maxDistance'] = maxDistance;
+    if (city != null) map['city'] = city;
+    if (area != null) map['area'] = area;
+    if (locationPreference != null) map['locationPreference'] = locationPreference;
+    if (ratingPreference != null) map['ratingPreference'] = ratingPreference;
+    if (coachGender != null) map['coachGender'] = coachGender;
+    if (coachAgeRange != null) map['coachAgeRange'] = coachAgeRange;
+    if (certifiedOnly != null) map['certifiedOnly'] = certifiedOnly;
     return map;
   }
 }
 
 class CoachProfileModel {
-  final int    coachID;
+  final int coachID;
   final String name;
   final String? bio;
-  final int    experienceYears;
+  final int experienceYears;
   final double avgRating;
   final String? gender;
-  final String? profilePictureUrl; // ⚠️ API field is 'url'
+  final String? profilePictureUrl;
   final String? certificateUrl;
-  final String  verificationStatus;
+  final String verificationStatus;
   final String? email;
   final String? phoneNumber;
-  final List<CoachSportModel>      sports;
-  final List<String>               locations;
-  final int                        totalReviews;
+  final List<CoachSportModel> sports;
+  final List<String> locations;
+  final int totalReviews;
   final List<Map<String, dynamic>> upcomingSessions;
   final List<Map<String, dynamic>> recentReviews;
 
@@ -88,58 +115,62 @@ class CoachProfileModel {
     required this.totalReviews,
     required this.upcomingSessions,
     required this.recentReviews,
-    this.bio, this.gender, this.profilePictureUrl,
-    this.certificateUrl, this.email, this.phoneNumber,
+    this.bio,
+    this.gender,
+    this.profilePictureUrl,
+    this.certificateUrl,
+    this.email,
+    this.phoneNumber,
   });
 
-  factory CoachProfileModel.fromJson(Map<String, dynamic> json) =>
-      CoachProfileModel(
-        coachID:            json['coachID']            as int,
-        name:               json['name']               as String,
-        bio:                json['bio']                as String?,
-        experienceYears:    json['experienceYears']    as int,
-        avgRating:          (json['avgRating']         as num).toDouble(),
-        gender:             json['gender']             as String?,
-        profilePictureUrl:  json['url']                as String?,
-        certificateUrl:     json['certificateUrl']     as String?,
-        verificationStatus: json['verificationStatus'] as String,
-        email:              json['email']              as String?,
-        phoneNumber:        json['phoneNumber']        as String?,
-        sports: (json['sports'] as List<dynamic>? ?? [])
-            .map((e) =>
-            CoachSportModel.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        locations: List<String>.from(json['locations'] ?? []),
-        totalReviews: json['totalReviews'] as int,
-        upcomingSessions: List<Map<String, dynamic>>.from(
-            json['upcomingSessions'] ?? []),
-        recentReviews: List<Map<String, dynamic>>.from(
-            json['recentReviews'] ?? []),
-      );
+  factory CoachProfileModel.fromJson(Map<String, dynamic> json) {
+    return CoachProfileModel(
+      coachID: json['coachID'] as int,
+      name: json['name'] as String,
+      bio: json['bio'] as String?,
+      experienceYears: json['experienceYears'] as int? ?? 0,
+      avgRating: (json['avgRating'] as num?)?.toDouble() ?? 0,
+      gender: json['gender'] as String?,
+      profilePictureUrl: json['url'] as String?,
+      certificateUrl: json['certificateUrl'] as String?,
+      verificationStatus: json['verificationStatus'] as String? ?? 'Pending',
+      email: json['email'] as String?,
+      phoneNumber: json['phoneNumber'] as String?,
+      sports: (json['sports'] as List<dynamic>? ?? [])
+          .map((e) => CoachSportModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      locations: List<String>.from(json['locations'] ?? []),
+      totalReviews: json['totalReviews'] as int? ?? 0,
+      upcomingSessions: List<Map<String, dynamic>>.from(json['upcomingSessions'] ?? []),
+      recentReviews: List<Map<String, dynamic>>.from(json['recentReviews'] ?? []),
+    );
+  }
 }
 
 class CoachSportModel {
-  final int    id; // ⚠️ API uses 'id' not 'sportID'
+  final int id;
   final String name;
   final String? description;
   final double? pricePerSession;
-  final int?    experienceYears;
+  final int? experienceYears;
 
   const CoachSportModel({
-    required this.id, required this.name,
-    this.description, this.pricePerSession, this.experienceYears,
+    required this.id,
+    required this.name,
+    this.description,
+    this.pricePerSession,
+    this.experienceYears,
   });
 
-  factory CoachSportModel.fromJson(Map<String, dynamic> json) =>
-      CoachSportModel(
-        id:              json['id']   as int,
-        name:            json['name'] as String,
-        description:     json['description']    as String?,
-        pricePerSession: json['pricePerSession'] != null
-            ? (json['pricePerSession'] as num).toDouble()
-            : null,
-        experienceYears: json['experienceYears'] as int?,
-      );
+  factory CoachSportModel.fromJson(Map<String, dynamic> json) {
+    return CoachSportModel(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      pricePerSession: (json['pricePerSession'] as num?)?.toDouble(),
+      experienceYears: json['experienceYears'] as int?,
+    );
+  }
 }
 
 class ChangePasswordRequest {
@@ -154,8 +185,8 @@ class ChangePasswordRequest {
   });
 
   Map<String, dynamic> toJson() => {
-    'currentPassword': currentPassword,
-    'newPassword':     newPassword,
-    'confirmPassword': confirmPassword,
-  };
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+        'confirmPassword': confirmPassword,
+      };
 }
