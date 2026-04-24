@@ -7,7 +7,6 @@ import '../widgets/book_session_sheet.dart';
 class CoachDetailsScreen extends StatefulWidget {
   final BookingSessionModel session;
   final String image;
-  // ✅ Optional customized coach data — if null uses defaults
   final CoachData? coachData;
 
   const CoachDetailsScreen({
@@ -23,24 +22,22 @@ class CoachDetailsScreen extends StatefulWidget {
 
 class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
   bool _bioExpanded = false;
-
-  // ✅ ALWAYS resolve from allCoachesData by name — same data everywhere in app
   late final CoachData _data;
 
   @override
   void initState() {
     super.initState();
-    // Look up by exact name, then by first name, then fall back to first coach
-    _data = allCoachesData.firstWhere(
-          (c) => c.name == widget.session.coachName,
-      orElse: () => allCoachesData.firstWhere(
-            (c) => c.name.startsWith(widget.session.coachName.split(' ').first),
-        orElse: () => allCoachesData.first,
-      ),
-    );
+
+    _data = widget.coachData ??
+        allCoachesData.firstWhere(
+              (c) => c.name == widget.session.coachName,
+          orElse: () => allCoachesData.firstWhere(
+                (c) => c.name.startsWith(widget.session.coachName.split(' ').first),
+            orElse: () => allCoachesData.first,
+          ),
+        );
   }
 
-  // All data comes from _data — guaranteed consistent everywhere
   String get _bio => _data.bio;
   int get _totalStudents => _data.totalStudents;
   int get _totalSessions => _data.totalSessions;
@@ -48,10 +45,19 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
   double get _rating => _data.rating;
   int get _reviewCount => _data.reviewCount;
   int get _price => _data.price;
-  String get _image => _data.image;
-  String get _location => '${_data.location}'; // from coach_data_model
+
+  String get _image {
+    if (widget.image.isNotEmpty) return widget.image;
+    return _data.image;
+  }
+
+  String get _location => _data.location;
   List<CoachAchievement> get _achievements => _data.achievements;
   List<CoachReview> get _reviews => _data.reviews;
+
+  bool get _isNetworkImage {
+    return _image.startsWith('http://') || _image.startsWith('https://');
+  }
 
   void _openBooking() {
     showModalBottomSheet(
@@ -64,7 +70,7 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
         coachName: widget.session.coachName,
         coachSport: '${widget.session.sport} Coach',
         coachImage: _image,
-        coachPrice: _price, // ✅ uses bulletproof _price getter
+        coachPrice: _price,
       ),
     );
   }
@@ -95,8 +101,6 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
               ),
             ),
           ),
-
-          // Book Session button
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             color: Colors.white,
@@ -108,13 +112,17 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBlue,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                child: const Text('Book Session',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white)),
+                child: const Text(
+                  'Book Session',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ),
@@ -138,8 +146,11 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
         children: [
           GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: const Icon(Icons.arrow_back_ios_new,
-                color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -148,9 +159,21 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: _image.isNotEmpty
-                    ? Image.asset(_image,
-                    width: 80, height: 80, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _avatarBox())
+                    ? _isNetworkImage
+                    ? Image.network(
+                  _image,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _avatarBox(),
+                )
+                    : Image.asset(
+                  _image,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _avatarBox(),
+                )
                     : _avatarBox(),
               ),
               const SizedBox(width: 14),
@@ -158,46 +181,75 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.session.coachName,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)),
+                    Text(
+                      widget.session.coachName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text('${widget.session.sport} Coach',
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13)),
+                    Text(
+                      '${widget.session.sport} Coach',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    Row(children: [
-                      const Icon(Icons.location_on,
-                          color: Colors.white70, size: 14),
-                      const SizedBox(width: 4),
-                      Text(_location,
-                          style: const TextStyle(
-                              color: Colors.white70, fontSize: 12)),
-                    ]),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.white70,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            _location,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 6),
-                    Row(children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 14),
-                      const SizedBox(width: 4),
-                      Text('$_rating ($_reviewCount reviewers)',
+                    Row(
+                      children: [
+                        const Icon(Icons.star, color: Colors.amber, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$_rating ($_reviewCount reviewers)',
                           style: const TextStyle(
-                              color: Colors.white70, fontSize: 12)),
-                    ]),
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // ✅ FIX: use _price (from coachData) in LE, not hardcoded $25
-                  Text('$_price LE/hr',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15)),
-                  const Text('per session',
-                      style: TextStyle(color: Colors.white70, fontSize: 11)),
+                  Text(
+                    '$_price LE/hr',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const Text(
+                    'per session',
+                    style: TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
                 ],
               ),
             ],
@@ -209,7 +261,8 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
 
   Widget _avatarBox() {
     return Container(
-      width: 80, height: 80,
+      width: 80,
+      height: 80,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(12),
@@ -220,7 +273,10 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
               ? widget.session.coachName[0].toUpperCase()
               : '?',
           style: const TextStyle(
-              color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -231,38 +287,72 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _StatCard(icon: Icons.people, iconColor: Colors.purple,
-              value: '$_totalStudents', label: 'Total Students'),
+          _StatCard(
+            icon: Icons.people,
+            iconColor: Colors.purple,
+            value: '$_totalStudents',
+            label: 'Total Students',
+          ),
           const SizedBox(width: 12),
-          _StatCard(icon: Icons.gps_fixed, iconColor: Colors.red,
-              value: '$_totalSessions', label: 'Total Sessions'),
+          _StatCard(
+            icon: Icons.gps_fixed,
+            iconColor: Colors.red,
+            value: '$_totalSessions',
+            label: 'Total Sessions',
+          ),
           const SizedBox(width: 12),
-          _StatCard(icon: Icons.timer, iconColor: Colors.blue,
-              value: '$_hoursTaught', label: 'Hours Taught'),
+          _StatCard(
+            icon: Icons.timer,
+            iconColor: Colors.blue,
+            value: '$_hoursTaught',
+            label: 'Hours Taught',
+          ),
         ],
       ),
     );
   }
 
   Widget _buildBio() {
+    if (_bio.trim().isEmpty) {
+      return const Text(
+        'No bio yet',
+        style: TextStyle(fontSize: 13, color: Colors.grey),
+      );
+    }
+
     final truncated = _bio.length > 120 ? '${_bio.substring(0, 120)}...' : _bio;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_bioExpanded ? _bio : truncated,
-            style: const TextStyle(fontSize: 14, color: Colors.black54)),
-        const SizedBox(height: 6),
-        GestureDetector(
-          onTap: () => setState(() => _bioExpanded = !_bioExpanded),
-          child: Text(_bioExpanded ? 'Read Less' : 'Read More',
-              style: const TextStyle(
-                  color: AppColors.primaryBlue, fontWeight: FontWeight.w600)),
+        Text(
+          _bioExpanded ? _bio : truncated,
+          style: const TextStyle(fontSize: 14, color: Colors.black54),
         ),
+        const SizedBox(height: 6),
+        if (_bio.length > 120)
+          GestureDetector(
+            onTap: () => setState(() => _bioExpanded = !_bioExpanded),
+            child: Text(
+              _bioExpanded ? 'Read Less' : 'Read More',
+              style: const TextStyle(
+                color: AppColors.primaryBlue,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
       ],
     );
   }
 
   Widget _buildAchievements() {
+    if (_achievements.isEmpty) {
+      return const Text(
+        'No achievements yet',
+        style: TextStyle(fontSize: 13, color: Colors.grey),
+      );
+    }
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -270,76 +360,127 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
       childAspectRatio: 1.4,
-      children: _achievements.map((a) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(a.emoji, style: const TextStyle(fontSize: 26)),
-            const SizedBox(height: 4),
-            Text(a.title, textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            Text(a.subtitle, textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, color: Colors.grey)),
-          ],
-        ),
-      )).toList(),
+      children: _achievements.map((a) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 6,
+              )
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(a.emoji, style: const TextStyle(fontSize: 26)),
+              const SizedBox(height: 4),
+              Text(
+                a.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                a.subtitle,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildReviews() {
+    if (_reviews.isEmpty) {
+      return const Text(
+        'No reviews yet',
+        style: TextStyle(fontSize: 13, color: Colors.grey),
+      );
+    }
+
     return Column(
-      children: _reviews.map((r) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                const CircleAvatar(radius: 20, child: Icon(Icons.person, size: 20)),
-                const SizedBox(width: 10),
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      children: _reviews.map((r) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 6,
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(r.name, style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14)),
-                    Row(children: List.generate(5, (i) => Icon(Icons.star,
-                        size: 14,
-                        color: i < r.rating ? Colors.orange : Colors.grey.shade300))),
+                    const CircleAvatar(
+                      radius: 20,
+                      child: Icon(Icons.person, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Row(
+                            children: List.generate(
+                              5,
+                                  (i) => Icon(
+                                Icons.star,
+                                size: 14,
+                                color: i < r.rating
+                                    ? Colors.orange
+                                    : Colors.grey.shade300,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      r.date,
+                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
                   ],
-                )),
-                Text(r.date, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              ]),
-              const SizedBox(height: 8),
-              Text(r.comment,
-                  style: const TextStyle(fontSize: 13, color: Colors.black54)),
-            ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  r.comment,
+                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+              ],
+            ),
           ),
-        ),
-      )).toList(),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildCertifications() {
-    return Row(
-      children: [
-        Expanded(child: _CertCard('assets/images/coach2.jpeg', 'Sports Management Degree')),
-        const SizedBox(width: 12),
-        Expanded(child: _CertCard('assets/images/coach2.jpeg', 'Fitness Training Certificate')),
-      ],
+    return const Text(
+      'No certifications yet',
+      style: TextStyle(fontSize: 13, color: Colors.grey),
     );
   }
 
@@ -349,7 +490,10 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
           child,
         ],
@@ -363,8 +507,13 @@ class _StatCard extends StatelessWidget {
   final Color iconColor;
   final String value;
   final String label;
-  const _StatCard({required this.icon, required this.iconColor,
-    required this.value, required this.label});
+
+  const _StatCard({
+    required this.icon,
+    required this.iconColor,
+    required this.value,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -374,55 +523,30 @@ class _StatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(
+          boxShadow: [
+            BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 8, offset: const Offset(0, 3))],
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            )
+          ],
         ),
-        child: Column(children: [
-          Icon(icon, color: iconColor, size: 22),
-          const SizedBox(height: 6),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 4),
-          Text(label, textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: Colors.grey)),
-        ]),
-      ),
-    );
-  }
-}
-
-class _CertCard extends StatelessWidget {
-  final String imagePath;
-  final String title;
-  const _CertCard(this.imagePath, this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06), blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.asset(imagePath,
-                width: double.infinity, height: 100, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                    height: 100, color: Colors.grey.shade200,
-                    child: const Center(child: Icon(Icons.workspace_premium,
-                        size: 40, color: Colors.grey)))),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Text(title,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-          ),
-        ],
+        child: Column(
+          children: [
+            Icon(icon, color: iconColor, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
       ),
     );
   }

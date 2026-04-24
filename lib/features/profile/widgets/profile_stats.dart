@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 
 class ProfileStats extends StatelessWidget {
-  const ProfileStats({super.key});
+  final String totalBooked;
+  final String totalSessions;
+  final String hoursTrained;
+
+  const ProfileStats({
+    super.key,
+    this.totalBooked = '0',
+    this.totalSessions = '0',
+    this.hoursTrained = '0',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -9,24 +18,21 @@ class ProfileStats extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-
+        children: [
           _StatCard(
             icon: Icons.people,
-            value: "3",
-            label: "Total Booked",
+            value: totalBooked,
+            label: 'Total Booked',
           ),
-
           _StatCard(
             icon: Icons.track_changes,
-            value: "18",
-            label: "Total Sessions",
+            value: totalSessions,
+            label: 'Total Sessions',
           ),
-
           _StatCard(
             icon: Icons.timer,
-            value: "28.5",
-            label: "Hours Trained",
+            value: hoursTrained,
+            label: 'Hours Trained',
           ),
         ],
       ),
@@ -55,18 +61,15 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
           )
         ],
       ),
       child: Column(
         children: [
-
           Icon(icon, color: Colors.blue),
-
           const SizedBox(height: 6),
-
           Text(
             value,
             style: const TextStyle(
@@ -74,9 +77,7 @@ class _StatCard extends StatelessWidget {
               fontSize: 18,
             ),
           ),
-
           const SizedBox(height: 4),
-
           Text(
             label,
             textAlign: TextAlign.center,

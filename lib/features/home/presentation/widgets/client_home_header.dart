@@ -7,7 +7,13 @@ import '../screens/client_search_screen.dart';
 
 class HomeHeaderTwo extends StatelessWidget {
   final VoidCallback? onMenuTap;
-  const HomeHeaderTwo({super.key, this.onMenuTap});
+  final String userName;
+
+  const HomeHeaderTwo({
+    super.key,
+    this.onMenuTap,
+    required this.userName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +29,11 @@ class HomeHeaderTwo extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _WelcomeRow(onMenuTap: onMenuTap),
+          _WelcomeRow(
+            onMenuTap: onMenuTap,
+            userName: userName,
+          ),
           const SizedBox(height: 20),
-          // ✅ Wrap existing HomeSearchBar with GestureDetector → opens SearchScreen
           GestureDetector(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ClientSearchScreen()),
@@ -44,10 +52,19 @@ class HomeHeaderTwo extends StatelessWidget {
 
 class _WelcomeRow extends StatelessWidget {
   final VoidCallback? onMenuTap;
-  const _WelcomeRow({this.onMenuTap});
+  final String userName;
+
+  const _WelcomeRow({
+    this.onMenuTap,
+    required this.userName,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final firstName = userName.trim().isEmpty
+        ? 'there'
+        : userName.trim().split(' ').first;
+
     return Row(
       children: [
         GestureDetector(
@@ -63,29 +80,30 @@ class _WelcomeRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'welcome back, Ahmed!',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
+              'welcome back, $firstName!',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            SizedBox(height: 4),
-            Text(
+            const SizedBox(height: 4),
+            const Text(
               'you have 2 sessions scheduled this week',
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
         ),
         const Spacer(),
-        // ✅ Notification bell → opens ClientNotificationsScreen
         GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-                builder: (_) => const ClientNotificationsScreen()),
+              builder: (_) => const ClientNotificationsScreen(),
+            ),
           ),
           child: Stack(
             clipBehavior: Clip.none,
@@ -99,7 +117,9 @@ class _WelcomeRow extends StatelessWidget {
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                      color: Colors.red, shape: BoxShape.circle),
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
             ],

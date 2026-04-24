@@ -18,11 +18,11 @@ class CoachesForYouSection extends StatelessWidget {
             const Text("Coaches for you",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const Spacer(),
-            // ✅ Same color as "view more" + navigates to search screen
             GestureDetector(
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(
-                      builder: (_) => const ClientSearchScreen())),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ClientSearchScreen()),
+              ),
               child: Text("see more →",
                   style: TextStyle(
                       color: AppColors.primaryBlue,
@@ -36,15 +36,30 @@ class CoachesForYouSection extends StatelessWidget {
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: const [
-              CoachCard(name: 'Ahmed Mohamed', sport: 'Football',
-                  rating: 4.9, reviews: 80, price: 500,
-                  image: "assets/images/coach_ahmed_mohamed.png"),
-              CoachCard(name: 'Sara Ahmed', sport: 'Swimming',
-                  rating: 4.7, reviews: 77, price: 400,
-                  image: "assets/images/coach_sarah_Ahmed.jpeg"),
-              CoachCard(name: 'Ziad Marwan', sport: 'Padel',
-                  rating: 4.7, reviews: 16, price: 600,
-                  image: "assets/images/ZiadMarwanPADEL.jpeg"),
+              CoachCard(
+                name: 'Ahmed Mohamed',
+                sport: 'Football',
+                rating: 4.9,
+                reviews: 80,
+                price: 500,
+                image: "assets/images/coach_ahmed_mohamed.png",
+              ),
+              CoachCard(
+                name: 'Sara Ahmed',
+                sport: 'Swimming',
+                rating: 4.7,
+                reviews: 77,
+                price: 400,
+                image: "assets/images/coach_sarah_Ahmed.jpeg",
+              ),
+              CoachCard(
+                name: 'Ziad Marwan',
+                sport: 'Padel',
+                rating: 4.7,
+                reviews: 16,
+                price: 600,
+                image: "assets/images/ZiadMarwanPADEL.jpeg",
+              ),
             ],
           ),
         ),
@@ -71,23 +86,43 @@ class CoachCard extends StatelessWidget {
     required this.image,
   });
 
+  int _coachUserIdByName(String coachName) {
+    switch (coachName) {
+      case 'Ahmed Mohamed':
+        return 2;
+      case 'Sara Ahmed':
+      case 'Sarah Ahmed':
+        return 3;
+      case 'Nancy Ali':
+        return 4;
+      case 'Ziad Marwan':
+        return 5;
+      case 'Omar Khaled':
+        return 6;
+      default:
+        return 2;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         final session = BookingSessionModel(
           id: DateTime.now().toString(),
+          coachUserId: _coachUserIdByName(name),
           coachName: name,
           sport: sport,
           location: 'Cairo, Egypt',
           date: DateTime.now(),
           isPast: false,
         );
-        // ✅ Find matching CoachData for customized profile
+
         final coachData = allCoachesData.firstWhere(
               (c) => c.name == name || c.name.contains(name.split(' ')[0]),
           orElse: () => allCoachesData.first,
         );
+
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -127,7 +162,8 @@ class CoachCard extends StatelessWidget {
                           fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: 4),
                   Text(sport,
-                      style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                      style:
+                      const TextStyle(color: Colors.grey, fontSize: 13)),
                   const SizedBox(height: 8),
                   Row(children: [
                     const Icon(Icons.star, color: Colors.amber, size: 16),
@@ -138,7 +174,8 @@ class CoachCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text('$price LE/hr',
                       style: const TextStyle(
-                          color: Colors.redAccent, fontWeight: FontWeight.w600)),
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -158,8 +195,12 @@ class CoachCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-        child: Image.asset(image,
-            height: 120, width: double.infinity, fit: BoxFit.cover),
+        child: Image.asset(
+          image,
+          height: 120,
+          width: double.infinity,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }

@@ -1,11 +1,13 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../utils/coach_profile_manager.dart';
+import '../../../auth/data/models/user_model.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
+import '../../data/models/profile_models.dart';
+import '../../data/repositories/profile_repository.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -15,28 +17,46 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  final AuthRepository _authRepository = AuthRepository();
+  final ProfileRepository _profileRepository = ProfileRepository();
+
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _locationController = TextEditingController();
   final _phoneController = TextEditingController();
   final _bioController = TextEditingController();
-  final _priceController = TextEditingController();
 
   String? _profileImagePath;
-  int _yearsOfExperience = 3;
-  final List<Map<String, String>> _pendingCertificates = [];
+  String? _profileImageUrl;
+
+  bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = CoachProfileManager.fullName;
-    _emailController.text = CoachProfileManager.email;
-    _locationController.text = CoachProfileManager.location;
-    _phoneController.text = CoachProfileManager.phone;
-    _bioController.text = CoachProfileManager.bio;
-    _priceController.text = CoachProfileManager.sessionPrice;
-    _profileImagePath = CoachProfileManager.profileImagePath;
-    _yearsOfExperience = CoachProfileManager.yearsOfExperience;
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final UserModel user = await _authRepository.getCurrentUser();
+
+      if (!mounted) return;
+
+      _nameController.text = user.fullName;
+      _emailController.text = user.email;
+      _profileImageUrl = user.profilePicture;
+
+      setState(() => _isLoading = false);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load profile')),
+      );
+    }
   }
 
   @override
@@ -46,59 +66,81 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _locationController.dispose();
     _phoneController.dispose();
     _bioController.dispose();
-    _priceController.dispose();
     super.dispose();
   }
 
   Future<void> _pickProfileImage() async {
     final picker = ImagePicker();
     final xFile = await picker.pickImage(source: ImageSource.gallery);
+
     if (xFile != null) {
       setState(() => _profileImagePath = xFile.path);
     }
   }
 
-  Future<void> _pickCertificate() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      allowMultiple: true,
-    );
-    if (result != null && result.files.isNotEmpty) {
-      setState(() {
-        for (final f in result.files) {
-          if (f.path != null && f.name.isNotEmpty) {
-            _pendingCertificates.add({'path': f.path!, 'name': f.name});
-          }
-        }
-      });
-    }
-  }
+  Future<void> _saveEdit() async {
+    if (_isSaving) return;
 
-  void _saveEdit() {
-    CoachProfileManager.saveProfile(
-      imagePath: _profileImagePath,
-      name: _nameController.text.trim(),
-      emailVal: _emailController.text.trim(),
-      locationVal: _locationController.text.trim(),
-      phoneVal: _phoneController.text.trim(),
-      bioVal: _bioController.text.trim(),
-      years: _yearsOfExperience,
-      price: _priceController.text.trim().isNotEmpty
-          ? _priceController.text.trim()
-          : null,
-    );
-    for (final c in _pendingCertificates) {
-      CoachProfileManager.addCertificate(c['path']!, c['name']!);
+    setState(() => _isSaving = true);
+
+    try {
+      String? uploadedImageUrl = _profileImageUrl;
+
+      if (_profileImagePath != null && _profileImagePath!.isNotEmpty) {
+        uploadedImageUrl = await _profileRepository.uploadProfilePicture(
+          File(_profileImagePath!),
+        );
+      }
+
+      final fullName = _nameController.text.trim();
+      final parts = fullName.split(' ').where((e) => e.trim().isNotEmpty).toList();
+
+      final firstName = parts.isNotEmpty ? parts.first : fullName;
+      final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+      await _profileRepository.updateProfile(
+        UpdateProfileRequest(
+          firstName: firstName,
+          lastName: lastName,
+          phoneNumber: _phoneController.text.trim().isEmpty
+              ? null
+              : _phoneController.text.trim(),
+          city: _locationController.text.trim().isEmpty
+              ? null
+              : _locationController.text.trim(),
+          bio: _bioController.text.trim().isEmpty
+              ? null
+              : _bioController.text.trim(),
+        ),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile saved')),
+      );
+
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save profile: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile saved')),
-    );
-    Navigator.of(context).pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -116,42 +158,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _buildSectionTitle('Personal Information'),
                     _buildTextField(_nameController, 'Full Name'),
                     const SizedBox(height: 12),
-                    _buildTextField(_emailController, 'Email'),
+                    _buildTextField(_emailController, 'Email', enabled: false),
                     const SizedBox(height: 12),
                     _buildTextField(_locationController, 'Location / City'),
                     const SizedBox(height: 12),
                     _buildTextField(_phoneController, 'Phone Number'),
                     const SizedBox(height: 12),
                     _buildBioField(),
-                    const SizedBox(height: 20),
-                    _buildSectionTitle('Professional Information'),
-                    _buildYearsDropdown(),
-                    const SizedBox(height: 12),
-                    _buildTextField(_priceController, 'Session Price (\$)'),
-                    const SizedBox(height: 20),
-                    _buildSectionTitle('Upload More Certification'),
-                    _buildCertificationUpload(),
-                    if (_pendingCertificates.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      ..._pendingCertificates.map(
-                            (c) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.picture_as_pdf,
-                                  color: Colors.red, size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  c['name'] ?? '',
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 32),
                     _buildSaveButton(),
                     const SizedBox(height: 24),
@@ -173,8 +186,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         children: [
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_ios_new,
-                color: Colors.white, size: 22),
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
           const Expanded(
             child: Text(
@@ -212,17 +228,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   fit: BoxFit.cover,
                 ),
               )
-                  : CoachProfileManager.profileImagePath != null
+                  : _profileImageUrl != null &&
+                  _profileImageUrl!.startsWith('http')
                   ? ClipOval(
-                child: Image.file(
-                  File(CoachProfileManager.profileImagePath!),
+                child: Image.network(
+                  _profileImageUrl!,
                   width: 112,
                   height: 112,
                   fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.person,
+                    size: 56,
+                    color: AppColors.primaryBlue,
+                  ),
                 ),
               )
-                  : const Icon(Icons.person,
-                  size: 56, color: AppColors.primaryBlue),
+                  : const Icon(
+                Icons.person,
+                size: 56,
+                color: AppColors.primaryBlue,
+              ),
             ),
             Positioned(
               bottom: 0,
@@ -233,8 +258,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   color: AppColors.primaryBlue,
                   shape: BoxShape.circle,
                 ),
-                child:
-                const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.camera_alt,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ],
@@ -257,27 +285,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label) {
+  Widget _buildTextField(
+      TextEditingController controller,
+      String label, {
+        bool enabled = true,
+      }) {
     return TextField(
       controller: controller,
+      enabled: enabled,
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: Colors.white,
+        fillColor: enabled ? Colors.white : Colors.grey.shade100,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-          BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
+          borderSide: BorderSide(
+            color: AppColors.primaryBlue.withValues(alpha: 0.5),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-          BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
+          borderSide: BorderSide(
+            color: AppColors.primaryBlue.withValues(alpha: 0.5),
+          ),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.grey.withValues(alpha: 0.4),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-          const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.primaryBlue,
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -294,81 +337,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-          BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
+          borderSide: BorderSide(
+            color: AppColors.primaryBlue.withValues(alpha: 0.5),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-          BorderSide(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
+          borderSide: BorderSide(
+            color: AppColors.primaryBlue.withValues(alpha: 0.5),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-          const BorderSide(color: AppColors.primaryBlue, width: 1.5),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildYearsDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: AppColors.primaryBlue.withValues(alpha: 0.5)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          value: _yearsOfExperience,
-          isExpanded: true,
-          items: List.generate(20, (i) => i + 1)
-              .map((v) =>
-              DropdownMenuItem(value: v, child: Text('$v years experience')))
-              .toList(),
-          onChanged: (v) => setState(() => _yearsOfExperience = v ?? 3),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCertificationUpload() {
-    return GestureDetector(
-      onTap: _pickCertificate,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: AppColors.primaryBlue, style: BorderStyle.solid),
-        ),
-        child: Column(
-          children: [
-            Icon(Icons.upload_file, size: 48, color: AppColors.primaryBlue),
-            const SizedBox(height: 12),
-            const Text('Upload certifications',
-                style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
-            Text('PDF Files up to 10MB',
-                style:
-                TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            const SizedBox(height: 12),
-            Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text('Choose File',
-                  style: TextStyle(
-                      color: AppColors.primaryBlue,
-                      fontWeight: FontWeight.w600)),
-            ),
-          ],
+          borderSide: const BorderSide(
+            color: AppColors.primaryBlue,
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -378,15 +362,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return SizedBox(
       height: 52,
       child: ElevatedButton(
-        onPressed: _saveEdit,
+        onPressed: _isSaving ? null : _saveEdit,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryBlue,
           foregroundColor: Colors.white,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
-        child: const Text('Save Edit',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        child: _isSaving
+            ? const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white,
+          ),
+        )
+            : const Text(
+          'Save Edit',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

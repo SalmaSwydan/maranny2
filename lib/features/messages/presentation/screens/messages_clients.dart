@@ -1,78 +1,68 @@
 import 'package:flutter/material.dart';
+import '../../data/models/messages_models.dart';
+import '../../data/repositories/messages_repository.dart';
 import '../widgets/message_item.dart';
-// ✅ FIX: import the COACH chat screen, not the client one
 import 'CoachChatScreen.dart';
 
-class MessagesClientsScreen extends StatelessWidget {
+class MessagesClientsScreen extends StatefulWidget {
   const MessagesClientsScreen({super.key});
 
-  final List<Map<String, dynamic>> _messages = const [
-    {
-      'name': 'Ahmed Mohamed',
-      'message': "Can we reschedule tomorrow's session?",
-      'time': '2:30 PM',
-      'unreadCount': 1,
-      'isOnline': true,
-      'sessions': 8,
-    },
-    {
-      'name': 'Fatima Ali',
-      'message': "Thanks for the feedback! I'll work on it",
-      'time': '1:15 PM',
-      'unreadCount': null,
-      'isOnline': true,
-      'sessions': 12,
-    },
-    {
-      'name': 'Mohammed Hassan',
-      'message': 'When should I increase my training intensity?',
-      'time': '11:45 AM',
-      'unreadCount': 2,
-      'isOnline': false,
-      'sessions': 5,
-    },
-    {
-      'name': 'Sarah Omar',
-      'message': 'You: Great session today!',
-      'time': 'Yesterday',
-      'unreadCount': null,
-      'isOnline': false,
-      'sessions': 15,
-    },
-  ];
+  @override
+  State<MessagesClientsScreen> createState() => _MessagesClientsScreenState();
+}
 
-  List<Map<String, dynamic>> _getChatMessages(String name) {
-    switch (name) {
-      case 'Ahmed Mohamed':
-        return [
-          {'text': "Hi! How's your training going?", 'isSent': true, 'time': '10:30 AM'},
-          {'text': "It's going great! Really enjoying it.", 'isSent': false, 'time': '10:35 AM'},
-          {'text': "Can we reschedule tomorrow's session?", 'isSent': false, 'time': '2:30 PM'},
-        ];
-      case 'Fatima Ali':
-        return [
-          {'text': "How did the practice go today?", 'isSent': true, 'time': '9:15 AM'},
-          {'text': "It was good! But I'm still struggling with my serve.", 'isSent': false, 'time': '9:20 AM'},
-          {'text': "Let's focus on that in the next session. Keep practicing!", 'isSent': true, 'time': '9:25 AM'},
-          {'text': "Thanks for the feedback! I'll work on it", 'isSent': false, 'time': '1:15 PM'},
-        ];
-      case 'Mohammed Hassan':
-        return [
-          {'text': "When should I increase my training intensity?", 'isSent': false, 'time': '11:45 AM'},
-          {'text': "Let's discuss that in person. You're making great progress!", 'isSent': true, 'time': '11:50 AM'},
-        ];
-      case 'Sarah Omar':
-        return [
-          {'text': "Great session today!", 'isSent': true, 'time': 'Yesterday'},
-          {'text': "Thank you! I felt really good today.", 'isSent': false, 'time': 'Yesterday'},
-          {'text': "Keep up the excellent work! See you next week.", 'isSent': true, 'time': 'Yesterday'},
-        ];
-      default:
-        return [
-          {'text': "Hi! How's your training going?", 'isSent': true, 'time': '10:30 AM'},
-          {'text': "It's going great!", 'isSent': false, 'time': '10:35 AM'},
-        ];
+class _MessagesClientsScreenState extends State<MessagesClientsScreen> {
+  final MessagesRepository _repo = MessagesRepository();
+
+  bool _isLoading = true;
+  String? _error;
+  List<ConversationModel> _conversations = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConversations();
+  }
+
+  Future<void> _loadConversations() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final data = await _repo.getConversations();
+
+      if (!mounted) return;
+      setState(() {
+        _conversations = data;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Failed to load messages';
+        _isLoading = false;
+      });
     }
+  }
+
+  String _formatTime(String value) {
+    final date = DateTime.tryParse(value);
+    if (date == null) return value;
+
+    final now = DateTime.now();
+
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
+      final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+      final minute = date.minute.toString().padLeft(2, '0');
+      final period = date.hour >= 12 ? 'PM' : 'AM';
+      return '$hour:$minute $period';
+    }
+
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   @override
@@ -81,7 +71,7 @@ class MessagesClientsScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF5F5F5),
       body: Column(
         children: [
-          // Header
+          // Header — نفس الديزاين
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -94,50 +84,82 @@ class MessagesClientsScreen extends StatelessWidget {
               bottom: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Messages',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Poppins',
-                      color: Colors.white,
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Messages',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
+                    IconButton(
+                      onPressed: _loadConversations,
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          // Messages list
+
+          // Messages list — نفس الشكل باستخدام MessageItem
           Expanded(
             child: Container(
               color: Colors.white,
-              child: ListView.builder(
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final message = _messages[index];
-                  return MessageItem(
-                    name: message['name'],
-                    message: message['message'],
-                    time: message['time'],
-                    unreadCount: message['unreadCount'],
-                    isOnline: message['isOnline'],
-                    onTap: () {
-                      final chatMessages = _getChatMessages(message['name']);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => CoachChatScreen(
-                            name: message['name'],
-                            isOnline: message['isOnline'],
-                            sessions: message['sessions'],
-                            initialMessages: chatMessages,
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? Center(
+                child: TextButton(
+                  onPressed: _loadConversations,
+                  child: Text(_error!),
+                ),
+              )
+                  : _conversations.isEmpty
+                  ? const Center(child: Text('No messages yet'))
+                  : RefreshIndicator(
+                onRefresh: _loadConversations,
+                child: ListView.builder(
+                  itemCount: _conversations.length,
+                  itemBuilder: (context, index) {
+                    final conversation = _conversations[index];
+
+                    return MessageItem(
+                      name: conversation.name,
+                      message: conversation.lastMessage,
+                      time: _formatTime(
+                        conversation.lastMessageTime,
+                      ),
+                      unreadCount:
+                      conversation.unreadCount > 0
+                          ? conversation.unreadCount
+                          : null,
+                      isOnline: conversation.isOnline,
+                      onTap: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                CoachChatScreen(
+                                  otherUserId:
+                                  conversation.userId,
+                                  name: conversation.name,
+                                  isOnline:
+                                  conversation.isOnline,
+                                  sessions: 0,
+                                ),
                           ),
-                        ),
-                      );
-                    },
-                  );
-                },
+                        );
+
+                        _loadConversations();
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ),

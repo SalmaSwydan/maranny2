@@ -1,5 +1,6 @@
 class BookingSessionModel {
   final String id;
+  final int coachUserId; // ✅ ADD THIS
   final String coachName;
   final String sport;
   final String location;
@@ -9,6 +10,7 @@ class BookingSessionModel {
 
   BookingSessionModel({
     required this.id,
+    required this.coachUserId,
     required this.coachName,
     required this.sport,
     required this.location,

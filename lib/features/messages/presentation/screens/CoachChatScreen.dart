@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../data/models/messages_models.dart';
+import '../../data/repositories/messages_repository.dart';
 
-// ✅ FIX: renamed from ChatScreen to CoachChatScreen to avoid
-// conflict with the client ChatScreen in chat_screen.dart
 class CoachChatScreen extends StatefulWidget {
+  final int otherUserId;
   final String name;
   final bool isOnline;
   final int sessions;
-  final List<Map<String, dynamic>> initialMessages;
 
   const CoachChatScreen({
     super.key,
+    required this.otherUserId,
     required this.name,
     required this.isOnline,
-    required this.sessions,
-    required this.initialMessages,
+    this.sessions = 0,
   });
 
   @override
@@ -22,39 +22,99 @@ class CoachChatScreen extends StatefulWidget {
 }
 
 class _CoachChatScreenState extends State<CoachChatScreen> {
+  final MessagesRepository _repo = MessagesRepository();
   final TextEditingController _messageController = TextEditingController();
-  late List<Map<String, dynamic>> _messages;
+  final ScrollController _scrollController = ScrollController();
+
+  bool _isLoading = true;
+  bool _isSending = false;
+  String? _error;
+  List<MessageModel> _messages = [];
 
   @override
   void initState() {
     super.initState();
-    _messages = List.from(widget.initialMessages);
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final data = await _repo.getConversation(widget.otherUserId);
+      await _repo.markAsRead(widget.otherUserId);
+
+      if (!mounted) return;
+      setState(() {
+        _messages = data;
+        _isLoading = false;
+      });
+
+      _scrollToBottom();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Failed to load messages';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty || _isSending) return;
+
+    setState(() => _isSending = true);
+    _messageController.clear();
+
+    try {
+      await _repo.sendMessage(
+        SendMessageRequest(
+          receiverId: widget.otherUserId,
+          content: text,
+        ),
+      );
+
+      await _loadMessages();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to send message')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  String _formatTime(String value) {
+    final date = DateTime.tryParse(value);
+    if (date == null) return '';
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 
   @override
   void dispose() {
     _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
-    setState(() {
-      _messages.add({
-        'text': _messageController.text.trim(),
-        'isSent': true,
-        'time': _getCurrentTime(),
-      });
-    });
-    _messageController.clear();
-  }
-
-  String _getCurrentTime() {
-    final now = DateTime.now();
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
-    final minute = now.minute.toString().padLeft(2, '0');
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    return '$hour:$minute $period';
   }
 
   @override
@@ -78,26 +138,11 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
         ),
         title: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF304CE9), Color(0xFF1B2B83)],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  widget.name.isNotEmpty ? widget.name[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+            CircleAvatar(
+              backgroundColor: const Color(0xFF1B2B83),
+              child: Text(
+                widget.name.isNotEmpty ? widget.name[0].toUpperCase() : '?',
+                style: const TextStyle(color: Colors.white),
               ),
             ),
             const SizedBox(width: 12),
@@ -115,8 +160,7 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                   ),
                   Text(
                     widget.isOnline ? 'Online' : 'Offline',
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.white70),
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ],
               ),
@@ -125,101 +169,53 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onPressed: () {},
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _loadMessages,
           ),
         ],
       ),
       body: Column(
         children: [
-          // Sessions info bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: Colors.white,
             child: Row(
               children: [
-                const Icon(Icons.access_time,
-                    size: 16, color: Color(0xFF1B2B83)),
+                const Icon(Icons.access_time, size: 16, color: Color(0xFF1B2B83)),
                 const SizedBox(width: 6),
                 Text(
                   '${widget.sessions} sessions',
-                  style: const TextStyle(
-                      fontSize: 14, color: Color(0xFF1B2B83)),
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF1B2B83)),
                 ),
               ],
             ),
           ),
           const Divider(height: 1),
 
-          // Messages list
           Expanded(
-            child: ListView.builder(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? Center(child: Text(_error!))
+                : _messages.isEmpty
+                ? const Center(child: Text('No messages yet'))
+                : ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: _messages.length,
               itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isSent = message['isSent'] as bool;
-                return Align(
-                  alignment: isSent
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: isSent
-                          ? CrossAxisAlignment.end
-                          : CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            gradient: isSent
-                                ? const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF304CE9),
-                                Color(0xFF1B2B83),
-                              ],
-                            )
-                                : null,
-                            color: isSent ? null : const Color(0xFFE5E5E5),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Text(
-                            message['text'],
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isSent
-                                  ? Colors.white
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          message['time'],
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                final msg = _messages[index];
+                return _MessageBubble(
+                  text: msg.content,
+                  time: _formatTime(msg.sentAt),
+                  isMine: msg.isMine,
                 );
               },
             ),
           ),
 
-          // Message input
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
@@ -236,6 +232,8 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: _messageController,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _sendMessage(),
                       decoration: InputDecoration(
                         hintText: 'Type a message...',
                         hintStyle: const TextStyle(
@@ -253,7 +251,6 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                           vertical: 12,
                         ),
                       ),
-                      onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -269,9 +266,17 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.send,
-                          color: Colors.white, size: 20),
-                      onPressed: _sendMessage,
+                      icon: _isSending
+                          ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                          : const Icon(Icons.send, color: Colors.white, size: 20),
+                      onPressed: _isSending ? null : _sendMessage,
                     ),
                   ),
                 ],
@@ -279,6 +284,66 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  final String text;
+  final String time;
+  final bool isMine;
+
+  const _MessageBubble({
+    required this.text,
+    required this.time,
+    required this.isMine,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        child: Column(
+          crossAxisAlignment:
+          isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: isMine
+                    ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF304CE9), Color(0xFF1B2B83)],
+                )
+                    : null,
+                color: isMine ? null : const Color(0xFFE5E5E5),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isMine ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              time,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

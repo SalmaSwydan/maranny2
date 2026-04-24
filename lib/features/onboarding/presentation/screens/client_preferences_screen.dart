@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/user_preferences_storage.dart';
 import '../../../../layout/main_layout.dart';
 import '../../../profile/data/models/profile_models.dart';
-import '../../../profile/data/repository/profile_repository.dart';
+import '../../../profile/data/repositories/profile_repository.dart';
 
 const Map<String, List<String>> _egyptLocations = {
   'Cairo': [

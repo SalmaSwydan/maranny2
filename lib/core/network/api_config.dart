@@ -6,8 +6,7 @@ class ApiConfig {
   ApiConfig._();
 
   // ✅ Dev tunnel URL — works for everyone on any device
-  static const String baseUrl = 'https://2x403980-7112.uks1.devtunnels.ms/api';
-
+  static const String baseUrl = 'https://x4d1zblh-7112.uks1.devtunnels.ms/api';
   // ── Auth endpoints ────────────────────────────────────────
   static const String register = '/auth/register';
   static const String completeCoachOnboarding =
@@ -51,8 +50,11 @@ class ApiConfig {
   static const String unreadCount = '/notifications/unread-count';
 
   // ── Chat endpoints ────────────────────────────────────────
+  // ── Chat endpoints ────────────────────────────────────────
   static const String sendMessage = '/chat/send';
   static const String conversations = '/chat/conversations';
+  static const String conversation = '/chat/conversation';
+  static const String markConversationRead = '/chat/conversation';
   static const String chatUnreadCount = '/chat/unread-count';
 
   // ── Marketplace endpoints ─────────────────────────────────

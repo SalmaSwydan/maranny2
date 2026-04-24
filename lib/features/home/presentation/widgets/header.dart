@@ -4,11 +4,20 @@ import '../../../notifications/presentation/screens/notifications_screen.dart';
 
 class CoachHomeHeader extends StatelessWidget {
   final VoidCallback? onMenuTap;
-  const CoachHomeHeader({super.key, this.onMenuTap});
+  final String userName;
+
+  const CoachHomeHeader({
+    super.key,
+    this.onMenuTap,
+    required this.userName,
+  });
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final firstName =
+    userName.trim().isEmpty ? 'Coach' : userName.trim().split(' ').first;
+
     return Container(
       padding: EdgeInsets.fromLTRB(16, topPadding + 16, 16, 20),
       decoration: const BoxDecoration(
@@ -27,7 +36,8 @@ class CoachHomeHeader extends StatelessWidget {
               GestureDetector(
                 onTap: onMenuTap,
                 child: Container(
-                  width: 40, height: 40,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
@@ -36,19 +46,26 @@ class CoachHomeHeader extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => const NotificationsScreen(),
-                )),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen(),
+                  ),
+                ),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                    const Icon(Icons.notifications_none,
+                        color: Colors.white, size: 28),
                     Positioned(
-                      right: -2, top: -2,
+                      right: -2,
+                      top: -2,
                       child: Container(
-                        width: 8, height: 8,
+                        width: 8,
+                        height: 8,
                         decoration: const BoxDecoration(
-                            color: Colors.red, shape: BoxShape.circle),
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                     ),
                   ],
@@ -57,21 +74,29 @@ class CoachHomeHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const Text('welcome back, Ahmed!',
-              style: TextStyle(
-                  fontFamily: 'Poppins', fontSize: 24,
-                  fontWeight: FontWeight.bold, color: Colors.white)),
+          Text(
+            'welcome back, $firstName!',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text('you have 2 sessions scheduled today',
-              style: TextStyle(
-                  fontFamily: 'Inter', fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.9))),
+          Text(
+            'you have 2 sessions scheduled today',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
           const SizedBox(height: 20),
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               StatCard(icon: Icons.calendar_today, value: '2', label: 'Today'),
-              // ✅ calendar icon instead of dollar sign
               StatCard(icon: Icons.bar_chart, value: '450 LE', label: 'This week'),
               StatCard(icon: Icons.people, value: '28', label: 'Clients'),
               StatCard(icon: Icons.star, value: '4.9', label: 'Rating'),

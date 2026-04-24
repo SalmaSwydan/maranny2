@@ -18,7 +18,8 @@ class ClientHomeScreen extends StatefulWidget {
 
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  String _userName = 'Ahmed';
+
+  String _userName = 'User';
 
   @override
   void initState() {
@@ -28,9 +29,14 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
   Future<void> _loadUserName() async {
     final displayName = await TokenStorage.getDisplayName();
-    if (!mounted || displayName == null || displayName.trim().isEmpty) return;
+
+    if (!mounted) return;
+
     setState(() {
-      _userName = displayName;
+      _userName =
+      displayName != null && displayName.trim().isNotEmpty
+          ? displayName.trim()
+          : 'User';
     });
   }
 
@@ -40,12 +46,12 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       key: _scaffoldKey,
       drawer: AppSideMenu(
         userName: _userName,
-        userType: 'client', // ✅ FIX: required param added
+        userType: 'client',
         onLogout: () {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-            (route) => false,
+                (route) => false,
           );
         },
       ),
@@ -53,19 +59,19 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         child: Column(
           children: [
             HomeHeaderTwo(
+              userName: _userName,
               onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
             ),
-
             Padding(
               padding: const EdgeInsets.all(16),
-              child: UpcomingSessionsSection(onViewMore: widget.onGoToBookings),
+              child: UpcomingSessionsSection(
+                onViewMore: widget.onGoToBookings,
+              ),
             ),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
               child: CoachesForYouSection(),
             ),
-
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: NearbySportsFacilitiesSection(),

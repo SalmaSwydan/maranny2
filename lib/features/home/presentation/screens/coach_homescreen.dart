@@ -25,12 +25,14 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
   late List<Map<String, dynamic>> _pendingRequests;
   late List<Map<String, dynamic>> _todaysSchedule;
+
   String _userName = 'Coach';
 
   @override
   void initState() {
     super.initState();
     _loadUserName();
+
     if (SharedBookingsManager.getConfirmedBookings().isEmpty) {
       SharedBookingsManager.addAcceptedBooking({
         'name': 'Ahmed Mohamed',
@@ -41,6 +43,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
         'price': '250 LE/hr',
         'status': 'Confirmed',
       });
+
       SharedBookingsManager.addAcceptedBooking({
         'name': 'Sarah Johnson',
         'activity': 'Football',
@@ -50,6 +53,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
         'price': '250 LE/hr',
         'status': 'Confirmed',
       });
+
       SharedBookingsManager.addAcceptedBooking({
         'name': 'Mike Chen',
         'activity': 'Football',
@@ -60,14 +64,19 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
         'status': 'Pending',
       });
     }
+
     _refresh();
   }
 
   Future<void> _loadUserName() async {
     final displayName = await TokenStorage.getDisplayName();
-    if (!mounted || displayName == null || displayName.trim().isEmpty) return;
+
+    if (!mounted) return;
+
     setState(() {
-      _userName = displayName;
+      _userName = displayName != null && displayName.trim().isNotEmpty
+          ? displayName.trim()
+          : 'Coach';
     });
   }
 
@@ -91,6 +100,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       if (timeStr.contains('PM')) {
         final timePart = timeStr.replaceAll(' PM', '').trim();
         final parts = timePart.split(':');
+
         if (parts.length >= 2) {
           final hour = int.tryParse(parts[0]) ?? 1;
           final minute = parts[1];
@@ -100,6 +110,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       } else if (timeStr.contains('AM')) {
         final timePart = timeStr.replaceAll(' AM', '').trim();
         final parts = timePart.split(':');
+
         if (parts.length >= 2) {
           final hour = int.tryParse(parts[0]) ?? 1;
           final minute = parts[1];
@@ -107,9 +118,10 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           return '$newHour:$minute AM';
         }
       }
-    } catch (e) {
+    } catch (_) {
       return '4:00 PM';
     }
+
     return '4:00 PM';
   }
 
@@ -138,6 +150,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
     final dateStr = request['date'] as String;
     final timeStr = _extractTimeFromDate(dateStr);
+
     String parsedDate;
     if (dateStr.contains(' at ')) {
       final parts = dateStr.split(' at ');
@@ -147,6 +160,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     }
 
     final endTime = _addHourToTime(timeStr);
+
     final newBooking = {
       'name': request['name'],
       'activity': request['activity'],
@@ -162,6 +176,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       request['name'] as String,
       request['date'] as String,
     );
+
     _refresh();
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -174,6 +189,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
   void _handleDeclineRequest(int index) {
     final request = _pendingRequests[index];
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -237,12 +253,16 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).pop();
+
                           final r = _pendingRequests[index];
+
                           SharedPendingRequestsManager.removePendingRequest(
                             r['name'] as String,
                             r['date'] as String,
                           );
+
                           _refresh();
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Booking request declined'),
@@ -281,13 +301,12 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       backgroundColor: const Color(0xFFF5F5F5),
       drawer: AppSideMenu(
         userName: _userName,
-        userType:
-            'coach', // ✅ FIX: was missing — caused coach to see client screens
+        userType: 'coach',
         onLogout: () {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-            (route) => false,
+                (route) => false,
           );
         },
       ),
@@ -296,6 +315,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CoachHomeHeader(
+              userName: _userName,
               onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
             ),
 
@@ -313,17 +333,15 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
             if (_todaysSchedule.isEmpty)
               _emptyCard('No sessions scheduled today')
             else
-              ..._todaysSchedule
-                  .take(3)
-                  .map(
+              ..._todaysSchedule.take(3).map(
                     (s) => SessionCard(
-                      name: s['name'] ?? '',
-                      sport: s['activity'] ?? '',
-                      time: s['time'] ?? '',
-                      location: s['location'] ?? '',
-                      status: s['status'] ?? 'Confirmed',
-                    ),
-                  ),
+                  name: s['name'] ?? '',
+                  sport: s['activity'] ?? '',
+                  time: s['time'] ?? '',
+                  location: s['location'] ?? '',
+                  status: s['status'] ?? 'Confirmed',
+                ),
+              ),
 
             _SectionTitleWithViewAll(
               title: 'Pending Requests',
@@ -384,6 +402,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
             else
               ..._pendingRequests.asMap().entries.map((entry) {
                 final request = entry.value;
+
                 return PendingRequestCard(
                   name: request['name'],
                   sport: request['activity'],
@@ -396,18 +415,19 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
             _SectionTitleWithViewAll(
               title: 'Recent Reviews',
-              onViewAll:
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AllReviewsScreen()),
-                  ),
+              onViewAll: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AllReviewsScreen()),
+              ),
             ),
+
             const ReviewCard(
               name: "Ahmed Yasser",
               review: "Excellent coaching! Really improved My skills",
               timestamp: "2 days ago",
               rating: 5,
             ),
+
             const ReviewCard(
               name: "Maria K.",
               review: "Very patient and professional.",
