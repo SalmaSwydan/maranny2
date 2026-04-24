@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../data/models/bookings_models.dart';
+import '../../data/repositories/bookings_repository.dart';
 import '../screens/payment_screen.dart';
 
 class BookSessionSheet extends StatefulWidget {
-  // ✅ Accept coach info to pass to PaymentScreen
   final String coachName;
   final String coachSport;
   final String coachImage;
@@ -21,170 +22,255 @@ class BookSessionSheet extends StatefulWidget {
 }
 
 class _BookSessionSheetState extends State<BookSessionSheet> {
-  final Set<String> _selectedSlots = {};
+  final BookingsRepository _repo = BookingsRepository();
 
-  static const Map<String, int> _priceMap = {
-    'Ahmed Mohamed': 500,
-    'Sarah Ahmed': 400,
-    'Sara Ahmed': 400,
-    'Nancy Ali': 350,
-    'Ziad Marwan': 600,
-    'Omar Khaled': 300,
-  };
+  bool _isLoading = true;
+  String? _error;
+  List<SessionModel> _sessions = [];
+  SessionModel? _selectedSession;
 
-  int get _resolvedPrice {
-    if (widget.coachPrice > 25) return widget.coachPrice;
-    return _priceMap[widget.coachName] ?? widget.coachPrice;
+  @override
+  void initState() {
+    super.initState();
+    _loadSessions();
   }
 
-  final Map<String, List<String>> _schedule = {
-    'Saturday':  ['9:00 AM', '11:00 AM'],
-    'Sunday':    ['10:00 AM'],
-    'Monday':    ['10:00 AM', '2:00 PM', '5:00 PM'],
-    'Tuesday':   ['10:00 AM', '3:00 PM', '6:00 PM'],
-    'Wednesday': ['4:00 PM', '7:00 PM'],
-    'Thursday':  ['2:00 PM', '10:00 PM'],
-  };
+  int? _sportIdFromText(String sport) {
+    final s = sport.toLowerCase();
+    if (s.contains('football')) return 1;
+    if (s.contains('swimming')) return 2;
+    if (s.contains('yoga')) return 3;
+    if (s.contains('fitness')) return 4;
+    if (s.contains('tennis')) return 5;
+    if (s.contains('basketball')) return 6;
+    if (s.contains('horse')) return 7;
+    return null;
+  }
 
-  String _slotKey(String day, String time) => '$day|$time';
-  bool _isSelected(String day, String time) =>
-      _selectedSlots.contains(_slotKey(day, time));
-
-  void _toggleSlot(String day, String time) {
+  Future<void> _loadSessions() async {
     setState(() {
-      final key = _slotKey(day, time);
-      if (_selectedSlots.contains(key)) {
-        _selectedSlots.remove(key);
-      } else {
-        _selectedSlots.add(key);
-      }
+      _isLoading = true;
+      _error = null;
     });
+
+    try {
+      final result = await _repo.browseSessions(
+        sportId: _sportIdFromText(widget.coachSport),
+        page: 1,
+        pageSize: 50,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _sessions = result.sessions.where((s) {
+          final available = s.availableSlots ?? 1;
+          return s.status.toLowerCase() != 'cancelled' && available > 0;
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Failed to load available sessions';
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _formatDate(String raw) {
+    try {
+      final d = DateTime.parse(raw);
+      return '${d.day}/${d.month}/${d.year}';
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  String _formatTime(String raw) {
+    if (raw.length >= 5) return raw.substring(0, 5);
+    return raw;
+  }
+
+  int get _price {
+    if (widget.coachPrice > 0) return widget.coachPrice;
+    return 500;
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40, height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          const Text('Available days',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-
-          const SizedBox(height: 20),
-
-          ..._schedule.entries.map((e) => _dayRow(e.key, e.value)),
-
-          const SizedBox(height: 16),
-
-          if (_selectedSlots.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                '${_selectedSlots.length} slot${_selectedSlots.length > 1 ? 's' : ''} selected',
-                style: const TextStyle(
-                    color: Color(0xFF303F9F), fontWeight: FontWeight.w600),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
+            const Text(
+              'Available sessions',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? Center(
+                child: TextButton(
+                  onPressed: _loadSessions,
+                  child: Text(_error!),
+                ),
+              )
+                  : _sessions.isEmpty
+                  ? const Center(
+                child: Text(
+                  'No available sessions yet',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
+                  : ListView.builder(
+                itemCount: _sessions.length,
+                itemBuilder: (context, index) {
+                  final session = _sessions[index];
+                  final selected =
+                      _selectedSession?.sessionID ==
+                          session.sessionID;
 
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _selectedSlots.isEmpty
-                  ? null
-                  : () {
-                final firstSlot = _selectedSlots.first.split('|');
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PaymentScreen(
-                      day: firstSlot[0],
-                      time: firstSlot[1],
-                      coachName: widget.coachName,
-                      coachSport: widget.coachSport,
-                      coachImage: widget.coachImage,
-                      coachPrice: _resolvedPrice,
+                  return GestureDetector(
+                    onTap: () => setState(
+                          () => _selectedSession = session,
                     ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF303F9F),
-                disabledBackgroundColor: Colors.grey.shade300,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? const Color(0xFF303F9F)
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selected
+                              ? const Color(0xFF303F9F)
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 18,
+                            color: selected
+                                ? Colors.white
+                                : Colors.black54,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _formatDate(
+                                      session.sessionDate),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: selected
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${_formatTime(session.startTime)} - ${_formatTime(session.endTime)}',
+                                  style: TextStyle(
+                                    color: selected
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  session.location,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '${session.availableSlots ?? 0} slots',
+                            style: TextStyle(
+                              color: selected
+                                  ? Colors.white
+                                  : Colors.green,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-              child: Text(
-                _selectedSlots.isEmpty
-                    ? 'Book Now'
-                    : 'Book Now (${_selectedSlots.length})',
-                style: const TextStyle(
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _selectedSession == null
+                    ? null
+                    : () {
+                  final s = _selectedSession!;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PaymentScreen(
+                        sessionID: s.sessionID,
+                        day: _formatDate(s.sessionDate),
+                        time:
+                        '${_formatTime(s.startTime)} - ${_formatTime(s.endTime)}',
+                        coachName: widget.coachName,
+                        coachSport: widget.coachSport,
+                        coachImage: widget.coachImage,
+                        coachPrice: _price,
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF303F9F),
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Book Now',
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white),
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-
-  Widget _dayRow(String day, List<String> times) {
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 95,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(day,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-            Expanded(
-              child: Wrap(
-                children: times.map((t) => _timeButton(day, t)).toList(),
-              ),
-            ),
+            const SizedBox(height: 8),
           ],
-        ),
-        const Divider(height: 24),
-      ],
-    );
-  }
-
-  Widget _timeButton(String day, String time) {
-    final selected = _isSelected(day, time);
-    return GestureDetector(
-      onTap: () => _toggleSlot(day, time),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        margin: const EdgeInsets.only(right: 8, bottom: 8),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF303F9F) : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(10),
-          border: selected ? null : Border.all(color: Colors.grey.shade300),
-        ),
-        child: Text(
-          time,
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.black87,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-          ),
         ),
       ),
     );
