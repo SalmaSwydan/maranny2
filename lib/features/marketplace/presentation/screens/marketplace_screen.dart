@@ -171,6 +171,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                     MaterialPageRoute(
                                       builder: (_) => ProductDetailsScreen(
                                         product: product,
+                                        onDeleted: _loadProducts,
                                       ),
                                     ),
                                   );

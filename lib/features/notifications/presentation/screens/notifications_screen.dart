@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
-import '../utils/notifications_manager.dart';
+import '../../data/models/notifications_models.dart';
+import '../../data/repository/notifications_repository.dart';
 import '../widgets/notification_item.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -11,71 +13,179 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  late List<Map<String, dynamic>> _newNotifications;
-  late List<Map<String, dynamic>> _earlierNotifications;
+  final NotificationsRepository _repository = NotificationsRepository();
+
+  bool _isLoading = true;
+  bool _isClearing = false;
+  String? _error;
+  List<NotificationModel> _notifications = const <NotificationModel>[];
 
   @override
   void initState() {
     super.initState();
-    _loadFromManager();
+    _loadNotifications();
   }
 
-  void _loadFromManager() {
-    _newNotifications = NotificationsManager.getNewNotifications();
-    _earlierNotifications = NotificationsManager.getEarlierNotifications();
+  Future<void> _loadNotifications() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final notifications = await _repository.getNotifications();
+      if (!mounted) return;
+      setState(() {
+        _notifications = notifications;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Could not load notifications right now.';
+        _isLoading = false;
+      });
+    }
   }
 
-  void _clearAllNotifications() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Clear All Notifications'),
-          content: const Text('Are you sure you want to clear all notifications?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Cancel'),
+  Future<void> _markAsRead(NotificationModel notification) async {
+    if (notification.isRead) return;
+
+    try {
+      await _repository.markAsRead(notification.notificationID);
+      if (!mounted) return;
+      setState(() {
+        _notifications = _notifications
+            .map(
+              (item) => item.notificationID == notification.notificationID
+                  ? NotificationModel(
+                      notificationID: item.notificationID,
+                      title: item.title,
+                      message: item.message,
+                      type: item.type,
+                      isRead: true,
+                      createdAt: item.createdAt,
+                    )
+                  : item,
+            )
+            .toList(growable: false);
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _markAllAsRead() async {
+    final unread = _notifications.where((item) => !item.isRead).toList();
+    if (unread.isEmpty) return;
+
+    setState(() {
+      _isClearing = true;
+    });
+
+    for (final notification in unread) {
+      try {
+        await _repository.markAsRead(notification.notificationID);
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _notifications = _notifications
+          .map(
+            (item) => NotificationModel(
+              notificationID: item.notificationID,
+              title: item.title,
+              message: item.message,
+              type: item.type,
+              isRead: true,
+              createdAt: item.createdAt,
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                NotificationsManager.clearAll();
-                setState(() {
-                  _loadFromManager();
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('All notifications cleared'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              child: const Text('Clear All', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
-    );
+          )
+          .toList(growable: false);
+      _isClearing = false;
+    });
+  }
+
+  IconData _iconFor(NotificationModel notification) {
+    final type = notification.type.toLowerCase();
+    final text =
+        '${notification.title} ${notification.message}'.toLowerCase();
+
+    if (type.contains('booking') || text.contains('booking')) {
+      return Icons.calendar_today;
+    }
+    if (type.contains('message') || text.contains('message')) {
+      return Icons.chat_bubble_outline;
+    }
+    if (type.contains('review') || text.contains('review')) {
+      return Icons.star;
+    }
+    if (type.contains('cancel') || text.contains('cancel')) {
+      return Icons.cancel;
+    }
+    if (type.contains('reminder') || text.contains('reminder')) {
+      return Icons.access_time;
+    }
+    if (type.contains('approve') || text.contains('approve')) {
+      return Icons.check_circle;
+    }
+    return Icons.notifications_outlined;
+  }
+
+  Color _iconColorFor(NotificationModel notification) {
+    final type = notification.type.toLowerCase();
+    final text =
+        '${notification.title} ${notification.message}'.toLowerCase();
+
+    if (type.contains('cancel') || text.contains('cancel')) {
+      return Colors.red;
+    }
+    if (type.contains('review') || text.contains('review')) {
+      return Colors.amber;
+    }
+    if (type.contains('approve') ||
+        text.contains('approve') ||
+        text.contains('confirmed')) {
+      return Colors.green;
+    }
+    return AppColors.primaryBlue;
+  }
+
+  String _formatTimestamp(String raw) {
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+
+    final local = parsed.isUtc ? parsed.toLocal() : parsed;
+    final difference = DateTime.now().difference(local);
+
+    if (difference.inDays >= 1) {
+      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+    }
+    if (difference.inHours >= 1) {
+      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+    }
+    if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
+    }
+    return 'Just now';
   }
 
   @override
   Widget build(BuildContext context) {
+    final newNotifications = _notifications.where((item) => !item.isRead).toList();
+    final earlierNotifications = _notifications.where((item) => item.isRead).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: Column(
         children: [
-          // Header with gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topRight,
                 end: Alignment.bottomLeft,
                 colors: [
-                  Color(0xFF6FD3F5), // light blue
-                  Color(0xFF1F3A93), // deep blue
+                  Color(0xFF6FD3F5),
+                  Color(0xFF1F3A93),
                 ],
               ),
             ),
@@ -89,9 +199,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
+                          onPressed: () => Navigator.of(context).pop(),
                           icon: const Icon(
                             Icons.arrow_back_ios,
                             color: Colors.white,
@@ -112,12 +220,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ),
                       ],
                     ),
-                    if (_newNotifications.isNotEmpty || _earlierNotifications.isNotEmpty)
+                    if (!_isLoading && _notifications.isNotEmpty)
                       TextButton(
-                        onPressed: _clearAllNotifications,
-                        child: const Text(
-                          'Clear All',
-                          style: TextStyle(
+                        onPressed: _isClearing ? null : _markAllAsRead,
+                        child: Text(
+                          _isClearing ? 'Updating...' : 'Mark All Read',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
                             fontFamily: 'Inter',
@@ -130,102 +238,116 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             ),
           ),
-          // Notifications list
           Expanded(
-            child: _newNotifications.isEmpty && _earlierNotifications.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.notifications_none,
-                          size: 64,
-                          color: Colors.grey[400],
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(
+                        child: TextButton(
+                          onPressed: _loadNotifications,
+                          child: Text(_error!),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No notifications',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Poppins',
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'You\'re all caught up!',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontFamily: 'Inter',
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // New notifications section
-                        if (_newNotifications.isNotEmpty) ...[
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(16, 20, 16, 8),
-                            child: Text(
-                              'New',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Poppins',
-                                color: AppColors.textPrimary,
+                      )
+                    : _notifications.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.notifications_none,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No notifications',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Poppins',
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'You\'re all caught up!',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontFamily: 'Inter',
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadNotifications,
+                            child: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (newNotifications.isNotEmpty) ...[
+                                    const Padding(
+                                      padding: EdgeInsets.fromLTRB(16, 20, 16, 8),
+                                      child: Text(
+                                        'New',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'Poppins',
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    ...newNotifications.map(
+                                      (notification) => NotificationItem(
+                                        icon: _iconFor(notification),
+                                        iconColor: _iconColorFor(notification),
+                                        title: notification.title,
+                                        description: notification.message,
+                                        timestamp: _formatTimestamp(
+                                          notification.createdAt,
+                                        ),
+                                        isNew: true,
+                                        onTap: () => _markAsRead(notification),
+                                      ),
+                                    ),
+                                  ],
+                                  if (earlierNotifications.isNotEmpty) ...[
+                                    const Padding(
+                                      padding: EdgeInsets.fromLTRB(16, 20, 16, 8),
+                                      child: Text(
+                                        'Earlier',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'Poppins',
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    ...earlierNotifications.map(
+                                      (notification) => NotificationItem(
+                                        icon: _iconFor(notification),
+                                        iconColor: _iconColorFor(notification),
+                                        title: notification.title,
+                                        description: notification.message,
+                                        timestamp: _formatTimestamp(
+                                          notification.createdAt,
+                                        ),
+                                        isNew: false,
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 24),
+                                ],
                               ),
                             ),
                           ),
-                          ..._newNotifications.map((notification) {
-                            return NotificationItem(
-                              icon: notification['icon'] as IconData,
-                              iconColor: notification['iconColor'] as Color,
-                              title: notification['title'] as String,
-                              description: notification['description'] as String,
-                              timestamp: notification['timestamp'] as String,
-                              isNew: true,
-                            );
-                          }),
-                        ],
-                        // Earlier notifications section
-                        if (_earlierNotifications.isNotEmpty) ...[
-                          const Padding(
-                            padding: EdgeInsets.fromLTRB(16, 20, 16, 8),
-                            child: Text(
-                              'Earlier',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Poppins',
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                          ..._earlierNotifications.map((notification) {
-                            return NotificationItem(
-                              icon: notification['icon'] as IconData,
-                              iconColor: notification['iconColor'] as Color,
-                              title: notification['title'] as String,
-                              description: notification['description'] as String,
-                              timestamp: notification['timestamp'] as String,
-                              isNew: false,
-                            );
-                          }),
-                        ],
-                        const SizedBox(height: 24),
-                      ],
-                    ),
-                  ),
           ),
         ],
       ),
     );
   }
 }
-

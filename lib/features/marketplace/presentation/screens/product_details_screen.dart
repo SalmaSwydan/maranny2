@@ -10,8 +10,13 @@ import '../utils/marketplace_product.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final MarketplaceProduct product;
+  final Future<void> Function()? onDeleted;
 
-  const ProductDetailsScreen({super.key, required this.product});
+  const ProductDetailsScreen({
+    super.key,
+    required this.product,
+    this.onDeleted,
+  });
 
   @override
   State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
@@ -22,6 +27,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
   late MarketplaceProduct _product;
   bool _isLoading = true;
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -63,9 +69,79 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     }
   }
 
+  Future<void> _deleteProduct() async {
+    final productId = int.tryParse(_product.id);
+    if (productId == null || _isDeleting) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete item'),
+        content: const Text(
+          'If you no longer want this item, you can delete it now.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isDeleting = true;
+    });
+
+    try {
+      await _repository.deleteProduct(productId);
+      if (widget.onDeleted != null) {
+        await widget.onDeleted!.call();
+      }
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Item deleted successfully.')),
+      );
+      Navigator.of(context).pop(true);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not delete this item right now. Please try again.'),
+        ),
+      );
+      setState(() {
+        _isDeleting = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = _product;
+    final displayCategory = _normalizeText(product.category, fallback: 'Uncategorized');
+    final displayDescription = _normalizeText(
+      product.description,
+      fallback: 'No description available.',
+    );
+    final displayLocation = _normalizeText(product.location, fallback: 'Unknown');
+    final displayPhone = _displayPhone(product.whatsapp);
+    final hasCallablePhone = _extractCallablePhone(product.whatsapp).isNotEmpty;
+    final displayCondition = _normalizeText(product.condition, fallback: 'Unknown');
 
     return Scaffold(
       body: SafeArea(
@@ -98,7 +174,28 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 48),
+                  SizedBox(
+                    width: 48,
+                    child: IconButton(
+                      onPressed: _isDeleting ? null : _deleteProduct,
+                      icon: _isDeleting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.delete_outline,
+                              color: Color(0xFFFFD6D6),
+                              size: 22,
+                            ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -121,38 +218,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: _buildProductImage(product),
-                                      ),
-                                      if (product.condition == 'New')
-                                        Positioned(
-                                          top: -4,
-                                          left: -4,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.confirmed,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: const Text(
-                                              'New',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: _buildProductImage(product),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -170,10 +238,19 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          product.category,
+                                          displayCategory,
                                           style: TextStyle(
                                             fontSize: 14,
                                             color: Colors.grey.shade600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Condition: $displayCondition',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade500,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                         const SizedBox(height: 6),
@@ -224,7 +301,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            product.description,
+                            displayDescription,
                             style: const TextStyle(
                               fontSize: 14,
                               color: AppColors.textPrimary,
@@ -328,7 +405,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                             ),
                                           ),
                                           Text(
-                                            product.location,
+                                            displayLocation,
                                             style: const TextStyle(
                                               fontSize: 14,
                                               color: AppColors.textPrimary,
@@ -338,7 +415,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                       ),
                                       const SizedBox(width: 24),
                                       Icon(
-                                        Icons.chat,
+                                        Icons.phone_outlined,
                                         size: 20,
                                         color: Colors.green.shade700,
                                       ),
@@ -349,16 +426,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             const Text(
-                                              'WhatsApp',
+                                              'Phone',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: AppColors.textSecondary,
                                               ),
                                             ),
                                             Text(
-                                              product.whatsapp.isNotEmpty
-                                                  ? product.whatsapp
-                                                  : 'Not available',
+                                              displayPhone,
                                               style: const TextStyle(
                                                 fontSize: 14,
                                                 color: AppColors.textPrimary,
@@ -414,6 +489,18 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               ),
                             ),
                           ),
+                          if (!hasCallablePhone) ...[
+                            const SizedBox(height: 10),
+                            const Center(
+                              child: Text(
+                                'Seller phone number is not available yet.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -425,14 +512,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Future<void> _callSeller(BuildContext context, String phone) async {
-    if (phone.trim().isEmpty) {
+    final cleaned = _extractCallablePhone(phone);
+    if (cleaned.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Seller phone number is not available.')),
       );
       return;
     }
 
-    final cleaned = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
     final uri = Uri(scheme: 'tel', path: cleaned);
     try {
       if (await canLaunchUrl(uri)) {
@@ -489,5 +576,41 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => placeholder(),
     );
+  }
+
+  String _normalizeText(String value, {required String fallback}) {
+    final cleaned = value
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'^\{.*\}$'), '')
+        .trim();
+    if (cleaned.isEmpty || cleaned.toLowerCase() == 'null') {
+      return fallback;
+    }
+    return cleaned;
+  }
+
+  String _extractCallablePhone(String value) {
+    final cleaned = value.replaceAll(RegExp(r'[^\d+]'), '');
+    final normalized = cleaned.startsWith('+')
+        ? '+${cleaned.substring(1).replaceAll('+', '')}'
+        : cleaned;
+    if (normalized.replaceAll('+', '').length < 7) {
+      return '';
+    }
+    return normalized;
+  }
+
+  String _displayPhone(String value) {
+    final normalized = _extractCallablePhone(value);
+    if (normalized.isEmpty) {
+      return 'Not available';
+    }
+    if (normalized.startsWith('+') && normalized.length > 4) {
+      return '${normalized.substring(0, 4)} ${normalized.substring(4)}';
+    }
+    if (normalized.length == 11) {
+      return '${normalized.substring(0, 4)} ${normalized.substring(4, 7)} ${normalized.substring(7)}';
+    }
+    return normalized;
   }
 }

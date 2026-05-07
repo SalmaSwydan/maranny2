@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../data/repositories/profile_repository.dart';
 
 class ClientEditProfileScreen extends StatefulWidget {
   final String name;
@@ -25,6 +26,7 @@ class ClientEditProfileScreen extends StatefulWidget {
 }
 
 class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
+  final ProfileRepository _profileRepository = ProfileRepository();
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
   late final TextEditingController _cityController;
@@ -32,7 +34,9 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
   late final TextEditingController _bioController;
 
   String? _profileImagePath;
+  String? _profileImageUrl;
   int _yearsOfExperience = 1;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -62,7 +66,11 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
     }
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_isSaving) {
+      return;
+    }
+
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
 
@@ -83,18 +91,43 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile saved')),
-    );
+    setState(() => _isSaving = true);
 
-    Navigator.of(context).pop({
-      'name': name,
-      'email': email,
-      'city': _cityController.text.trim(),
-      'phone': _phoneController.text.trim(),
-      'bio': _bioController.text.trim(),
-      'imagePath': _profileImagePath ?? '',
-    });
+    try {
+      if (_profileImagePath != null && _profileImagePath!.isNotEmpty) {
+        _profileImageUrl = await _profileRepository.uploadProfilePicture(
+          File(_profileImagePath!),
+        );
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile saved')),
+      );
+
+      Navigator.of(context).pop({
+        'name': name,
+        'email': email,
+        'city': _cityController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'bio': _bioController.text.trim(),
+        'imagePath': _profileImagePath ?? '',
+        'imageUrl': _profileImageUrl ?? '',
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not upload profile image right now. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   @override
@@ -181,7 +214,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
   Widget _buildProfilePicture() {
     return Center(
       child: GestureDetector(
-        onTap: _pickProfileImage,
+        onTap: _isSaving ? null : _pickProfileImage,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -330,7 +363,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
           ],
         ),
         child: ElevatedButton(
-          onPressed: _save,
+          onPressed: _isSaving ? null : _save,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
@@ -338,9 +371,18 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)),
           ),
-          child: const Text('Save Edit',
-              style:
-              TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          child: _isSaving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Save Edit',
+                  style:
+                  TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       ),
     );

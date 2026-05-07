@@ -60,25 +60,59 @@ class MarketplaceRepository {
     return getProducts(query: query, category: category);
   }
 
+  Future<void> deleteProduct(int productId) async {
+    final requestUrl = _buildLogUrl('${ApiConfig.products}/$productId');
+    developer.log(
+      'Delete product request -> url=$requestUrl method=DELETE',
+      name: 'MarketplaceRepository',
+    );
+    print(
+      '[MarketplaceRepository] Delete product request -> '
+      'url=$requestUrl method=DELETE',
+    );
+
+    try {
+      final response = await _dio.delete('${ApiConfig.products}/$productId');
+      developer.log(
+        'Delete product response -> status=${response.statusCode} data=${jsonEncode(response.data)}',
+        name: 'MarketplaceRepository',
+      );
+      print(
+        '[MarketplaceRepository] Delete product response -> '
+        'status=${response.statusCode} data=${jsonEncode(response.data)}',
+      );
+    } on DioException catch (error) {
+      developer.log(
+        'Delete product error -> status=${error.response?.statusCode} data=${jsonEncode(error.response?.data)}',
+        name: 'MarketplaceRepository',
+        error: error,
+        stackTrace: error.stackTrace,
+      );
+      print(
+        '[MarketplaceRepository] Delete product error -> '
+        'status=${error.response?.statusCode} data=${jsonEncode(error.response?.data)}',
+      );
+      rethrow;
+    }
+  }
+
   Future<int> createProduct(CreateProductRequest request) async {
     final imageUrl = _resolveImageUrlForApi(request);
     final resolvedCategoryId = await _resolveCategoryId(request);
 
-    if (request.hasImage) {
-      try {
-        return await _createProductWithMultipart(
-          request: request,
-          imageUrl: imageUrl,
-          resolvedCategoryId: resolvedCategoryId,
-        );
-      } on DioException catch (error) {
-        developer.log(
-          'Multipart marketplace create failed, falling back to JSON create -> status=${error.response?.statusCode} data=${jsonEncode(error.response?.data)}',
-          name: 'MarketplaceRepository',
-          error: error,
-          stackTrace: error.stackTrace,
-        );
-      }
+    try {
+      return await _createProductWithMultipart(
+        request: request,
+        imageUrl: imageUrl,
+        resolvedCategoryId: resolvedCategoryId,
+      );
+    } on DioException catch (error) {
+      developer.log(
+        'Multipart marketplace create failed, falling back to JSON create -> status=${error.response?.statusCode} data=${jsonEncode(error.response?.data)}',
+        name: 'MarketplaceRepository',
+        error: error,
+        stackTrace: error.stackTrace,
+      );
     }
 
     return _createProductJson(
@@ -172,8 +206,8 @@ class MarketplaceRepository {
     required int? resolvedCategoryId,
   }) async {
     final requestUrl = _buildLogUrl(ApiConfig.products);
-    final imagePath = request.imageFile!.path;
-    final imageName = imagePath.split(RegExp(r'[\/]')).last;
+    final imagePath = request.imageFile?.path ?? '';
+    final imageName = imagePath.isEmpty ? '' : imagePath.split(RegExp(r'[\/]')).last;
     final imageExists = request.imageFile?.existsSync() ?? false;
     final imageLength = imageExists ? await request.imageFile!.length() : 0;
     final payload = <String, dynamic>{
@@ -186,14 +220,27 @@ class MarketplaceRepository {
       'imageUrl': imageUrl?.trim() ?? '',
       'categoryName': request.category,
       'category': request.category,
-      'image': await MultipartFile.fromFile(imagePath, filename: imageName),
+      'sellerName': request.sellerName,
+      'storeName': request.sellerName,
+      'sellerPhone': request.sellerPhone,
+      'phoneNumber': request.sellerPhone,
+      'contactPhone': request.sellerPhone,
+      'location': request.location,
+      'sellerLocation': request.location,
+      'city': request.location,
     };
+
+    if (request.imageFile != null && imageExists) {
+      payload['image'] = await MultipartFile.fromFile(imagePath, filename: imageName);
+    }
+
+    final fileFieldNames = payload.keys.where((key) => key == 'image').toList(growable: false);
 
     developer.log(
       'Create product multipart request prepared -> '
       'url=$requestUrl method=POST contentType=${Headers.multipartFormDataContentType} '
       'formDataFields=${jsonEncode(payload.keys.toList())} '
-      'formDataFileFields=${jsonEncode(<String>['image'])} '
+      'formDataFileFields=${jsonEncode(fileFieldNames)} '
       'imageField=image imagePath=$imagePath imageName=$imageName imageExists=$imageExists imageLength=$imageLength bodyFields=${jsonEncode(payload.keys.where((key) => key != 'image').toList())}',
       name: 'MarketplaceRepository',
     );
@@ -201,7 +248,7 @@ class MarketplaceRepository {
       '[MarketplaceRepository] Create product multipart request prepared -> '
       'url=$requestUrl method=POST contentType=${Headers.multipartFormDataContentType} '
       'formDataFields=${jsonEncode(payload.keys.toList())} '
-      'formDataFileFields=${jsonEncode(<String>['image'])} '
+      'formDataFileFields=${jsonEncode(fileFieldNames)} '
       'imageField=image imagePath=$imagePath imageName=$imageName imageExists=$imageExists imageLength=$imageLength bodyFields=${jsonEncode(payload.keys.where((key) => key != 'image').toList())}',
     );
 

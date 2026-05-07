@@ -144,7 +144,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
   }
 
   int _coachUserId(BookingModel booking) {
-    return booking.coach.coachID;
+    return booking.coach.userID ?? booking.coach.coachID;
   }
 
   CoachData _coachDataFromBooking(BookingModel booking) {

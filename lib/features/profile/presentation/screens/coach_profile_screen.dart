@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
+
+import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
@@ -30,6 +32,14 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   String location = 'Not added yet';
   String bio = 'No bio yet';
   String price = '0 LE';
+  String sportsLabel = 'Coach';
+  String verificationStatus = 'Pending';
+  String experienceLabel = 'Not added yet';
+  String availabilityLabel = 'Not added yet';
+  String certificationLabel = 'No certifications yet';
+  String totalReviewsValue = '0';
+  String yearsExperienceValue = '0';
+  String availableDaysValue = '0';
   String? imageUrl;
   List<ReviewModel> _reviews = const <ReviewModel>[];
   double _averageRating = 0;
@@ -44,20 +54,46 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   Future<void> _loadCoach() async {
     try {
       final UserModel user = await _authRepository.getCurrentUser();
-      final coachProfile = await _profileRepository.getCoachProfile(user.id);
-      final reviewsPage = await _loadCoachReviewsFallback(user.id);
+      final coachSetup = await _profileRepository.getMyCoachSetup();
+      final coachProfile = await _profileRepository.getCoachProfile(
+        coachSetup.coachId > 0 ? coachSetup.coachId : user.id,
+      );
+      final reviewsPage = await _loadCoachReviewsFallback(coachSetup.coachId);
 
-      final resolvedBio = coachProfile.resolvedBio?.trim() ?? '';
-      final resolvedLocation = coachProfile.resolvedLocation?.trim() ?? '';
-      final resolvedPrice = _formatPrice(coachProfile.resolvedPrice);
+      final resolvedBio = coachSetup.bio?.trim().isNotEmpty == true
+          ? coachSetup.bio!.trim()
+          : (coachProfile.resolvedBio?.trim() ?? '');
+      final resolvedLocation =
+          coachSetup.resolvedLocation?.trim().isNotEmpty == true
+              ? coachSetup.resolvedLocation!.trim()
+              : (coachProfile.resolvedLocation?.trim() ?? '');
+      final resolvedPrice = _formatPrice(
+        coachSetup.sessionPrice ?? coachProfile.resolvedPrice,
+      );
       final averageRating = reviewsPage?.averageRating ?? coachProfile.avgRating;
       final totalReviews = reviewsPage?.totalCount ?? coachProfile.totalReviews;
+      final joinedSports = coachSetup.sportsLabel;
+      final experienceYears = coachSetup.experienceYears ?? 0;
+      final availabilityDays = coachSetup.availableDays
+          .map((day) => day.trim())
+          .where((day) => day.isNotEmpty)
+          .toList(growable: false);
+      final availabilityText = availabilityDays.isEmpty
+          ? 'Not added yet'
+          : availabilityDays.join(', ');
+      final certificationText =
+          (coachSetup.certificateUrl?.trim().isNotEmpty ?? false)
+              ? 'Certificate uploaded'
+              : 'No certifications yet';
 
       developer.log(
         'CoachProfileScreen parsed fields -> '
+        'name=${coachSetup.fullName}, '
+        'sports=$joinedSports, '
         'bio=$resolvedBio, '
         'price=$resolvedPrice, '
         'location=$resolvedLocation, '
+        'availability=$availabilityText, '
         'reviewsCount=$totalReviews, '
         'averageRating=$averageRating',
         name: 'CoachProfileScreen',
@@ -66,9 +102,11 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
       if (!mounted) return;
 
       setState(() {
-        name = coachProfile.name.trim().isNotEmpty
-            ? coachProfile.name
-            : (user.fullName.trim().isNotEmpty ? user.fullName : 'Coach');
+        name = coachSetup.fullName.trim().isNotEmpty
+            ? coachSetup.fullName
+            : coachProfile.name.trim().isNotEmpty
+                ? coachProfile.name
+                : (user.fullName.trim().isNotEmpty ? user.fullName : 'Coach');
         email = (coachProfile.email?.trim().isNotEmpty ?? false)
             ? coachProfile.email!
             : user.email;
@@ -80,6 +118,16 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             : 'Not added yet';
         bio = resolvedBio.isNotEmpty ? resolvedBio : 'No bio yet';
         price = resolvedPrice;
+        sportsLabel = joinedSports;
+        verificationStatus = coachSetup.verificationStatus;
+        experienceLabel = experienceYears > 0
+            ? '$experienceYears year${experienceYears == 1 ? '' : 's'} experience'
+            : 'Not added yet';
+        availabilityLabel = availabilityText;
+        certificationLabel = certificationText;
+        totalReviewsValue = totalReviews.toString();
+        yearsExperienceValue = experienceYears.toString();
+        availableDaysValue = availabilityDays.length.toString();
         imageUrl = (coachProfile.profilePictureUrl?.trim().isNotEmpty ?? false)
             ? coachProfile.profilePictureUrl
             : user.profilePicture;
@@ -98,6 +146,9 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     try {
       return await _reviewsRepository.getMyCoachReviews();
     } catch (_) {
+      if (coachId <= 0) {
+        return null;
+      }
       try {
         return await _reviewsRepository.getCoachReviews(coachId);
       } catch (_) {
@@ -160,8 +211,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             _buildSectionTitle('Contact Information'),
             _buildContactCard(),
             const SizedBox(height: 24),
-            _buildSectionTitle('Achievements'),
-            _buildAchievements(),
+            _buildSectionTitle('Coaching Details'),
+            _buildCoachingDetails(),
             const SizedBox(height: 24),
             _buildSectionTitle('Reviews'),
             if (_reviews.isEmpty)
@@ -186,7 +237,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             _buildSectionTitle('Coach Certifications'),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _emptyText('No certifications yet'),
+              child: _emptyText(certificationLabel),
             ),
             const SizedBox(height: 24),
           ],
@@ -262,9 +313,11 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Coach',
-                      style: TextStyle(
+                    Text(
+                      sportsLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: 14,
                         fontFamily: 'Inter',
                         color: Colors.white70,
@@ -323,22 +376,22 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           _buildStatCard(
             icon: Icons.people,
             iconColor: Colors.purple,
-            value: '0',
-            label: 'Total Students',
+            value: totalReviewsValue,
+            label: 'Total Reviews',
           ),
           const SizedBox(width: 12),
           _buildStatCard(
             icon: Icons.gps_fixed,
             iconColor: Colors.red,
-            value: '0',
-            label: 'Total Sessions',
+            value: yearsExperienceValue,
+            label: 'Years Exp.',
           ),
           const SizedBox(width: 12),
           _buildStatCard(
             icon: Icons.timer,
             iconColor: Colors.blue,
-            value: '0.0',
-            label: 'Hours Taught',
+            value: availableDaysValue,
+            label: 'Available Days',
           ),
         ],
       ),
@@ -350,8 +403,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     final displayText = _isBioExpanded
         ? shownBio
         : (shownBio.length > 150
-              ? '${shownBio.substring(0, 150)}...'
-              : shownBio);
+            ? '${shownBio.substring(0, 150)}...'
+            : shownBio);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -408,10 +461,21 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     );
   }
 
-  Widget _buildAchievements() {
+  Widget _buildCoachingDetails() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: _emptyText('No achievements yet'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _achievementText('Sports: $sportsLabel'),
+          const SizedBox(height: 6),
+          _achievementText('Verification: $verificationStatus'),
+          const SizedBox(height: 6),
+          _achievementText('Experience: $experienceLabel'),
+          const SizedBox(height: 6),
+          _achievementText('Availability: $availabilityLabel'),
+        ],
+      ),
     );
   }
 
@@ -531,6 +595,17 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
       style: const TextStyle(
         fontSize: 13,
         color: Colors.grey,
+        fontFamily: 'Inter',
+      ),
+    );
+  }
+
+  Widget _achievementText(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        color: AppColors.textPrimary,
         fontFamily: 'Inter',
       ),
     );

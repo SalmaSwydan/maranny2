@@ -1,18 +1,21 @@
-import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
+
+import 'package:flutter/material.dart';
+
 import '../../../../../core/network/token_storage.dart';
+import '../../../../../core/widgets/app_side_menu.dart';
+import '../../../auth/presentation/screens/welcome_screen.dart';
+import '../../../bookings/data/models/bookings_models.dart';
+import '../../../bookings/data/models/reviews_payments_models.dart';
+import '../../../bookings/data/repositories/bookings_repository.dart';
+import '../../../bookings/data/repositories/reviews_payments_repository.dart';
+import '../../../bookings/presentation/screens/upcoming_pending.dart';
+import '../../../bookings/presentation/utils/bookings_refresh_notifier.dart';
+import '../../../reviews/presentation/screens/all_reviews_screen.dart';
 import '../widgets/SessionCard.dart';
 import '../widgets/header.dart';
 import '../widgets/pending_request_card.dart';
 import '../widgets/review_card.dart';
-import '../../../bookings/presentation/utils/shared_bookings_manager.dart';
-import '../../../bookings/presentation/screens/upcoming_pending.dart';
-import '../../../bookings/data/models/reviews_payments_models.dart';
-import '../../../bookings/data/repositories/reviews_payments_repository.dart';
-import '../../../reviews/presentation/screens/all_reviews_screen.dart';
-import '../../../bookings/presentation/utils/shared_pending_requests_manager.dart';
-import '../../../../../core/widgets/app_side_menu.dart';
-import '../../../auth/presentation/screens/welcome_screen.dart';
 
 class CoachHomeScreen extends StatefulWidget {
   final VoidCallback onAuthRequired;
@@ -26,52 +29,32 @@ class CoachHomeScreen extends StatefulWidget {
 class _CoachHomeScreenState extends State<CoachHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ReviewsRepository _reviewsRepository = ReviewsRepository();
-
-  late List<Map<String, dynamic>> _pendingRequests;
-  late List<Map<String, dynamic>> _todaysSchedule;
+  final BookingsRepository _bookingsRepository = BookingsRepository();
 
   String _userName = 'Coach';
+  bool _isLoadingBookings = true;
+  List<BookingModel> _coachBookings = const <BookingModel>[];
   List<ReviewModel> _recentReviews = const <ReviewModel>[];
 
   @override
   void initState() {
     super.initState();
+    BookingsRefreshNotifier.changes.addListener(_handleBookingsRefresh);
     _loadUserName();
-
-    if (SharedBookingsManager.getConfirmedBookings().isEmpty) {
-      SharedBookingsManager.addAcceptedBooking({
-        'name': 'Ahmed Mohamed',
-        'activity': 'Football',
-        'date': 'Dec 17, 2025',
-        'time': '10:00 AM - 11:00 AM',
-        'location': 'Court 3',
-        'price': '250 LE/hr',
-        'status': 'Confirmed',
-      });
-
-      SharedBookingsManager.addAcceptedBooking({
-        'name': 'Sarah Johnson',
-        'activity': 'Football',
-        'date': 'Dec 17, 2025',
-        'time': '2:00 PM - 3:00 PM',
-        'location': 'Court 1',
-        'price': '250 LE/hr',
-        'status': 'Confirmed',
-      });
-
-      SharedBookingsManager.addAcceptedBooking({
-        'name': 'Mike Chen',
-        'activity': 'Football',
-        'date': 'Dec 17, 2025',
-        'time': '4:00 PM - 5:00 PM',
-        'location': 'Court 2',
-        'price': '250 LE/hr',
-        'status': 'Pending',
-      });
-    }
-
-    _refresh();
+    _loadBookings();
     _loadRecentReviews();
+  }
+
+  @override
+  void dispose() {
+    BookingsRefreshNotifier.changes.removeListener(_handleBookingsRefresh);
+    super.dispose();
+  }
+
+  void _handleBookingsRefresh() {
+    if (mounted) {
+      _loadBookings();
+    }
   }
 
   Future<void> _loadUserName() async {
@@ -80,17 +63,37 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     if (!mounted) return;
 
     setState(() {
-      _userName = displayName != null && displayName.trim().isNotEmpty
-          ? displayName.trim()
-          : 'Coach';
+      _userName =
+          displayName != null && displayName.trim().isNotEmpty
+              ? displayName.trim()
+              : 'Coach';
     });
   }
 
-  void _refresh() {
+  Future<void> _loadBookings() async {
     setState(() {
-      _todaysSchedule = SharedBookingsManager.getConfirmedBookings();
-      _pendingRequests = SharedPendingRequestsManager.getNextPendingRequests(2);
+      _isLoadingBookings = true;
     });
+
+    try {
+      final bookings = await _bookingsRepository.getCoachBookings();
+      developer.log(
+        'CoachHomeScreen bookings -> total=${bookings.length}',
+        name: 'CoachHomeScreen',
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _coachBookings = bookings;
+        _isLoadingBookings = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _coachBookings = const <BookingModel>[];
+        _isLoadingBookings = false;
+      });
+    }
   }
 
   Future<void> _loadRecentReviews() async {
@@ -116,6 +119,46 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     }
   }
 
+  bool _isPending(BookingModel booking) => isPendingBookingStatus(booking.status);
+
+  bool _isConfirmed(BookingModel booking) =>
+      isConfirmedBookingStatus(booking.status) ||
+      isCompletedBookingStatus(booking.status);
+
+  bool _isPast(BookingModel booking) {
+    final scheduledAt = booking.scheduledDateTime;
+    if (scheduledAt == null) return false;
+    return scheduledAt.isBefore(DateTime.now());
+  }
+
+  bool _isToday(BookingModel booking) {
+    final scheduledAt = booking.scheduledDateTime;
+    if (scheduledAt == null) return false;
+    final local = scheduledAt.isUtc ? scheduledAt.toLocal() : scheduledAt;
+    final now = DateTime.now();
+    return local.year == now.year &&
+        local.month == now.month &&
+        local.day == now.day;
+  }
+
+  List<BookingModel> get _todaysSchedule => _coachBookings
+      .where((booking) => _isConfirmed(booking) && _isToday(booking))
+      .toList()
+    ..sort((a, b) {
+      final first = a.scheduledDateTime ?? DateTime.now();
+      final second = b.scheduledDateTime ?? DateTime.now();
+      return first.compareTo(second);
+    });
+
+  List<BookingModel> get _pendingRequests => _coachBookings
+      .where((booking) => _isPending(booking) && !_isPast(booking))
+      .toList()
+    ..sort((a, b) {
+      final first = a.scheduledDateTime ?? DateTime.now();
+      final second = b.scheduledDateTime ?? DateTime.now();
+      return first.compareTo(second);
+    });
+
   String _formatReviewTime(String raw) {
     final parsed = DateTime.tryParse(raw);
     if (parsed == null) {
@@ -135,210 +178,95 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     return 'Just now';
   }
 
-  String _extractTimeFromDate(String dateStr) {
-    if (dateStr.contains(' at ')) {
-      final parts = dateStr.split(' at ');
-      if (parts.length > 1) return parts[1];
+  String _formatDate(BookingModel booking) {
+    final scheduledAt =
+        booking.scheduledDateTime ??
+        DateTime.tryParse(booking.session.sessionDate);
+    if (scheduledAt == null) {
+      return booking.session.sessionDate;
     }
-    return 'TBD';
+    return '${scheduledAt.day}/${scheduledAt.month}/${scheduledAt.year}';
   }
 
-  String _addHourToTime(String timeStr) {
+  String _formatTimeRange(BookingModel booking) {
+    return '${booking.session.startTime} - ${booking.session.endTime}';
+  }
+
+  String _scheduleStatus(BookingModel booking) {
+    final normalized = normalizeBookingStatus(booking.status);
+    if (normalized == 'confirmed' || normalized == 'completed') {
+      return 'Confirmed';
+    }
+    if (normalized == 'pending') {
+      return 'Pending';
+    }
+    return booking.status;
+  }
+
+  String _clientName(BookingModel booking) {
+    final name = booking.client?.name.trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+    return 'Client';
+  }
+
+  Future<void> _approveBooking(BookingModel booking) async {
     try {
-      if (timeStr.contains('PM')) {
-        final timePart = timeStr.replaceAll(' PM', '').trim();
-        final parts = timePart.split(':');
+      await _bookingsRepository.approveBooking(booking.bookingID);
+      BookingsRefreshNotifier.notifyUpdated();
+      await _loadBookings();
 
-        if (parts.length >= 2) {
-          final hour = int.tryParse(parts[0]) ?? 1;
-          final minute = parts[1];
-          final newHour = hour == 12 ? 1 : (hour + 1);
-          return '$newHour:$minute PM';
-        }
-      } else if (timeStr.contains('AM')) {
-        final timePart = timeStr.replaceAll(' AM', '').trim();
-        final parts = timePart.split(':');
-
-        if (parts.length >= 2) {
-          final hour = int.tryParse(parts[0]) ?? 1;
-          final minute = parts[1];
-          final newHour = hour == 12 ? 1 : (hour + 1);
-          return '$newHour:$minute AM';
-        }
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Booking approved')));
     } catch (_) {
-      return '4:00 PM';
-    }
-
-    return '4:00 PM';
-  }
-
-  void _handleAcceptRequest(int index) {
-    final request = _pendingRequests[index];
-    final status = request['status'] as String?;
-
-    if (status == "You're busy") {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Conflict'),
-            content: const Text("You're busy at this time."),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to approve booking')),
       );
-      return;
     }
-
-    final dateStr = request['date'] as String;
-    final timeStr = _extractTimeFromDate(dateStr);
-
-    String parsedDate;
-    if (dateStr.contains(' at ')) {
-      final parts = dateStr.split(' at ');
-      parsedDate = '${parts[0]}, 2025';
-    } else {
-      parsedDate = dateStr;
-    }
-
-    final endTime = _addHourToTime(timeStr);
-
-    final newBooking = {
-      'name': request['name'],
-      'activity': request['activity'],
-      'date': parsedDate,
-      'time': '$timeStr - $endTime',
-      'location': 'Court TBD',
-      'price': '250 LE/hr',
-      'status': 'Confirmed',
-    };
-
-    SharedBookingsManager.addAcceptedBooking(newBooking);
-    SharedPendingRequestsManager.removePendingRequest(
-      request['name'] as String,
-      request['date'] as String,
-    );
-
-    _refresh();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${request['name']} booking accepted successfully.'),
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
-  void _handleDeclineRequest(int index) {
-    final request = _pendingRequests[index];
+  Future<void> _declineBooking(BookingModel booking) async {
+    try {
+      await _bookingsRepository.declineBooking(booking.bookingID);
+      BookingsRefreshNotifier.notifyUpdated();
+      await _loadBookings();
 
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Booking declined')));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to decline booking')),
+      );
+    }
+  }
+
+  void _confirmDecline(BookingModel booking) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+      builder: (_) => AlertDialog(
+        title: const Text('Decline Request'),
+        content: const Text('Are you sure you want to decline this request?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1F3A93).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.person_off_outlined,
-                    color: Color(0xFF1F3A93),
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Decline Request',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Decline ${request['name']}\'s booking request?',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF1F3A93)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: Color(0xFF1F3A93),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-
-                          final r = _pendingRequests[index];
-
-                          SharedPendingRequestsManager.removePendingRequest(
-                            r['name'] as String,
-                            r['date'] as String,
-                          );
-
-                          _refresh();
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Booking request declined'),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1F3A93),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Decline',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _declineBooking(booking);
+            },
+            child: const Text('Decline'),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -354,136 +282,148 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                (route) => false,
+            (route) => false,
           );
         },
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CoachHomeHeader(
-              userName: _userName,
-              onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
-            ),
-
-            _SectionTitleWithViewAll(
-              title: "Today's Schedule",
-              onViewAll: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const UpcomingScreen()),
-                );
-                _refresh();
-              },
-            ),
-
-            if (_todaysSchedule.isEmpty)
-              _emptyCard('No sessions scheduled today')
-            else
-              ..._todaysSchedule.take(3).map(
-                    (s) => SessionCard(
-                  name: s['name'] ?? '',
-                  sport: s['activity'] ?? '',
-                  time: s['time'] ?? '',
-                  location: s['location'] ?? '',
-                  status: s['status'] ?? 'Confirmed',
-                ),
+      body: RefreshIndicator(
+        onRefresh: _loadBookings,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CoachHomeHeader(
+                userName: _userName,
+                onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
               ),
-
-            _SectionTitleWithViewAll(
-              title: 'Pending Requests',
-              onViewAll: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const UpcomingScreen(initialTabIndex: 1),
+              _SectionTitleWithViewAll(
+                title: "Today's Schedule",
+                onViewAll: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const UpcomingScreen()),
+                  );
+                  _loadBookings();
+                },
+              ),
+              if (_isLoadingBookings)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_todaysSchedule.isEmpty)
+                _emptyCard('No sessions scheduled today')
+              else
+                ..._todaysSchedule.take(3).map(
+                  (booking) => SessionCard(
+                    name: _clientName(booking),
+                    sport: booking.session.sportName,
+                    time: _formatTimeRange(booking),
+                    location: booking.session.location.trim().isEmpty
+                        ? 'Location TBD'
+                        : booking.session.location,
+                    status: _scheduleStatus(booking),
                   ),
-                );
-                _refresh();
-              },
-            ),
-
-            if (_pendingRequests.isEmpty)
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
                 ),
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+              _SectionTitleWithViewAll(
+                title: 'Pending Requests',
+                onViewAll: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const UpcomingScreen(initialTabIndex: 1),
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.check_circle_outline,
-                      size: 64,
-                      color: Colors.grey[400],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'All caught up!',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[700],
+                  );
+                  _loadBookings();
+                },
+              ),
+              if (_isLoadingBookings)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_pendingRequests.isEmpty)
+                Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'You have no pending requests at the moment.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'All caught up!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'You have no pending requests at the moment.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ..._pendingRequests.take(2).map(
+                  (booking) => PendingRequestCard(
+                    name: _clientName(booking),
+                    sport: booking.session.sportName,
+                    date:
+                        '${_formatDate(booking)} at ${booking.session.startTime}',
+                    status: 'Pending',
+                    onAccept: () => _approveBooking(booking),
+                    onDecline: () => _confirmDecline(booking),
+                  ),
                 ),
-              )
-            else
-              ..._pendingRequests.asMap().entries.map((entry) {
-                final request = entry.value;
-
-                return PendingRequestCard(
-                  name: request['name'],
-                  sport: request['activity'],
-                  date: request['date'],
-                  status: request['status'],
-                  onAccept: () => _handleAcceptRequest(entry.key),
-                  onDecline: () => _handleDeclineRequest(entry.key),
-                );
-              }),
-
-            _SectionTitleWithViewAll(
-              title: 'Recent Reviews',
-              onViewAll: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AllReviewsScreen()),
-              ),
-            ),
-            if (_recentReviews.isEmpty)
-              _emptyCard('No reviews yet')
-            else
-              ..._recentReviews.map(
-                (review) => ReviewCard(
-                  name: review.clientName,
-                  review: review.comment.isNotEmpty
-                      ? review.comment
-                      : 'No written comment provided.',
-                  timestamp: _formatReviewTime(review.createdAt),
-                  rating: review.rating.round().clamp(0, 5),
+              _SectionTitleWithViewAll(
+                title: 'Recent Reviews',
+                onViewAll: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AllReviewsScreen()),
                 ),
               ),
-
-            const SizedBox(height: 24),
-          ],
+              if (_recentReviews.isEmpty)
+                _emptyCard('No reviews yet')
+              else
+                ..._recentReviews.map(
+                  (review) => ReviewCard(
+                    name: review.clientName,
+                    review: review.comment.isNotEmpty
+                        ? review.comment
+                        : 'No written comment provided.',
+                    timestamp: _formatReviewTime(review.createdAt),
+                    rating: review.rating.round().clamp(0, 5),
+                  ),
+                ),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );

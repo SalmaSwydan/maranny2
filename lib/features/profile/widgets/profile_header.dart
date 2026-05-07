@@ -5,12 +5,16 @@ class ProfileHeader extends StatelessWidget {
   final String name;
   final String sports;
   final String? imageUrl;
+  final VoidCallback? onImageTap;
+  final bool isUploadingImage;
 
   const ProfileHeader({
     super.key,
     required this.name,
     required this.sports,
     this.imageUrl,
+    this.onImageTap,
+    this.isUploadingImage = false,
   });
 
   bool get _isNetworkImage {
@@ -62,30 +66,68 @@ class ProfileHeader extends StatelessWidget {
         Positioned(
           bottom: -50,
           left: 20,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white, width: 4),
-            ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.all(Radius.circular(16)),
-              child: imageUrl != null && imageUrl!.isNotEmpty
-                  ? _isNetworkImage
-                  ? Image.network(
-                imageUrl!,
-                width: 100,
-                height: 100,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _avatarBox(),
-              )
-                  : Image.asset(
-                imageUrl!,
-                width: 100,
-                height: 100,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _avatarBox(),
-              )
-                  : _avatarBox(),
+          child: GestureDetector(
+            onTap: isUploadingImage ? null : onImageTap,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white, width: 4),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.all(Radius.circular(16)),
+                    child: imageUrl != null && imageUrl!.isNotEmpty
+                        ? _isNetworkImage
+                            ? Image.network(
+                                imageUrl!,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _avatarBox(),
+                              )
+                            : Image.asset(
+                                imageUrl!,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _avatarBox(),
+                              )
+                        : _avatarBox(),
+                  ),
+                ),
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: isUploadingImage
+                          ? Colors.white
+                          : AppColors.primaryBlue,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: isUploadingImage
+                        ? const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primaryBlue,
+                              ),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 15,
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

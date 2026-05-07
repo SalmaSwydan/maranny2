@@ -1,3 +1,5 @@
+import '../../../../core/network/api_config.dart';
+
 class UpdateProfileRequest {
   final String? firstName;
   final String? lastName;
@@ -159,8 +161,13 @@ class CoachProfileModel {
       experienceYears: _asInt(payload['experienceYears']),
       avgRating: _asDouble(payload['avgRating']),
       gender: _asNullableString(payload['gender']),
-      profilePictureUrl: _asNullableString(
-        payload['url'] ?? payload['profilePictureUrl'],
+      profilePictureUrl: ApiConfig.resolveMediaUrl(
+        _asNullableString(
+          payload['url'] ??
+              payload['profilePictureUrl'] ??
+              payload['profilePicture'] ??
+              payload['imageUrl'],
+        ),
       ),
       certificateUrl: _asNullableString(payload['certificateUrl']),
       verificationStatus: _asString(
@@ -211,6 +218,72 @@ class CoachProfileModel {
     location,
     address,
   ]);
+}
+
+class CoachSetupProfileModel {
+  final int coachId;
+  final String fullName;
+  final String? city;
+  final double? sessionPrice;
+  final String? bio;
+  final int? experienceYears;
+  final String? certificateUrl;
+  final String verificationStatus;
+  final List<String> availableDays;
+  final List<String> locations;
+  final List<CoachSportModel> sports;
+
+  const CoachSetupProfileModel({
+    required this.coachId,
+    required this.fullName,
+    required this.verificationStatus,
+    required this.availableDays,
+    required this.locations,
+    required this.sports,
+    this.city,
+    this.sessionPrice,
+    this.bio,
+    this.experienceYears,
+    this.certificateUrl,
+  });
+
+  factory CoachSetupProfileModel.fromJson(Map<String, dynamic> json) {
+    return CoachSetupProfileModel(
+      coachId: _asInt(json['coachID'] ?? json['coachId'] ?? json['id']),
+      fullName: _asString(json['fullName']),
+      city: _asNullableString(json['city']),
+      sessionPrice: _asNullableDouble(json['sessionPrice']),
+      bio: _asNullableString(json['bio']),
+      experienceYears: _asNullableInt(json['experienceYears']),
+      certificateUrl: _asNullableString(json['certificateUrl']),
+      verificationStatus: _asString(
+        json['verificationStatus'],
+        fallback: 'Pending',
+      ),
+      availableDays: List<String>.from(json['availableDays'] ?? const []),
+      locations: List<String>.from(json['locations'] ?? const []),
+      sports: (json['sports'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map((e) => CoachSportModel.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
+    );
+  }
+
+  String? get resolvedLocation => _firstNonEmptyString([
+        if (locations.isNotEmpty) locations.first,
+        city,
+      ]);
+
+  String get sportsLabel {
+    final names = sports
+        .map((sport) => sport.name.trim())
+        .where((name) => name.isNotEmpty)
+        .toList(growable: false);
+    if (names.isEmpty) {
+      return 'Coach';
+    }
+    return names.join(' | ');
+  }
 }
 
 class CoachSportModel {
@@ -316,3 +389,4 @@ double? _firstNonNullDouble(List<double?> values) {
   }
   return null;
 }
+

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import '../../../../core/network/api_config.dart';
 import '../../../bookings/presentation/screens/coach_details_screen.dart';
 import '../../../bookings/domain/models/booking_session_model.dart';
 import '../../../bookings/domain/models/coach_data_model.dart';
@@ -361,11 +362,20 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   }
 
   String _coachImage(Map<String, dynamic> coach) {
-    return (coach['profilePictureUrl'] ??
-            coach['imageUrl'] ??
-            coach['url'] ??
-            '')
-        .toString();
+    final nestedUser = coach['user'];
+    final raw = coach['profilePictureUrl'] ??
+        coach['profilePicture'] ??
+        coach['imageUrl'] ??
+        coach['image'] ??
+        coach['photoUrl'] ??
+        coach['url'] ??
+        (nestedUser is Map<String, dynamic>
+            ? nestedUser['profilePicture'] ??
+                nestedUser['profilePictureUrl'] ??
+                nestedUser['imageUrl']
+            : null) ??
+        '';
+    return ApiConfig.resolveMediaUrl(raw.toString());
   }
 
   Color _coachColor(Map<String, dynamic> coach) {

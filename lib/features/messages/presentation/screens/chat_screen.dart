@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../../data/models/messages_models.dart';
 import '../../data/repositories/messages_repository.dart';
 
@@ -76,6 +77,19 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       await _loadMessages();
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final errorText = data is Map<String, dynamic>
+          ? (data['error'] ?? data['message'] ?? '').toString().trim()
+          : '';
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            errorText.isNotEmpty ? errorText : 'Failed to send message',
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

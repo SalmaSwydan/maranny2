@@ -75,6 +75,16 @@ class ProfileRepository {
     return profile;
   }
 
+  Future<CoachSetupProfileModel> getMyCoachSetup() async {
+    final response = await _dio.get(ApiConfig.coachSetup);
+    final responseData = response.data as Map<String, dynamic>;
+    developer.log(
+      'Coach setup response -> ${jsonEncode(responseData)}',
+      name: 'ProfileRepository',
+    );
+    return CoachSetupProfileModel.fromJson(responseData);
+  }
+
   Future<String> changePassword(ChangePasswordRequest request) async {
     final response = await _dio.put(
       ApiConfig.changePassword,

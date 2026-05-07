@@ -11,7 +11,7 @@ class CategoryChips extends StatelessWidget {
     required this.onSelected,
   });
 
-  static const tabs = ['All', 'Equipment', 'Clothing', 'Accessories', 'Used'];
+  static const tabs = ['All', 'Equipment', 'Clothing', 'Accessories'];
 
   @override
   Widget build(BuildContext context) {

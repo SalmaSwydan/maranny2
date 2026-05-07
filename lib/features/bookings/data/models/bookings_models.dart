@@ -69,12 +69,14 @@ class SessionModel {
 
 class CoachSummary {
   final int coachID;
+  final int? userID;
   final String name;
   final double avgRating;
   final int? experienceYears;
 
   const CoachSummary({
     required this.coachID,
+    this.userID,
     required this.name,
     required this.avgRating,
     this.experienceYears,
@@ -82,6 +84,7 @@ class CoachSummary {
 
   factory CoachSummary.fromJson(Map<String, dynamic> json) => CoachSummary(
     coachID: _asInt(json['coachID'] ?? json['coachId'] ?? json['id']),
+    userID: _asNullableInt(json['userID'] ?? json['userId']),
     name: _asString(
       json['name'] ?? json['fullName'] ?? json['coachName'],
       fallback: 'Coach',

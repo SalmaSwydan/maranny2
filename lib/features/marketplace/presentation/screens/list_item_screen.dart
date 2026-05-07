@@ -34,6 +34,8 @@ class _ListItemScreenState extends State<ListItemScreen> {
   bool _isSubmitting = false;
 
   static const _categories = ['Equipment', 'Clothing', 'Accessories'];
+  static final RegExp _phoneRegex = RegExp(r'^(?:\+?\d[\d\s\-]{6,}\d)$');
+  static final RegExp _locationRegex = RegExp(r'^[A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF0-9\s,\-]{1,}$');
 
   @override
   void dispose() {
@@ -62,6 +64,7 @@ class _ListItemScreenState extends State<ListItemScreen> {
     final title = _titleController.text.trim();
     final priceText = _priceController.text.trim();
     final description = _descriptionController.text.trim();
+    final sellerName = _sellerNameController.text.trim();
     final sellerPhone = _sellerPhoneController.text.trim();
     final sellerLocation = _sellerLocationController.text.trim();
 
@@ -78,12 +81,28 @@ class _ListItemScreenState extends State<ListItemScreen> {
       _showMessage('Please describe your product');
       return;
     }
+    if (description.length < 10) {
+      _showMessage('Please write a more detailed description');
+      return;
+    }
+    if (sellerName.isEmpty) {
+      _showMessage('Please enter the seller or store name');
+      return;
+    }
     if (sellerPhone.isEmpty) {
       _showMessage('Please enter your contact number');
       return;
     }
+    if (!_phoneRegex.hasMatch(sellerPhone)) {
+      _showMessage('Please enter a valid phone number');
+      return;
+    }
     if (sellerLocation.isEmpty) {
       _showMessage('Please enter your location');
+      return;
+    }
+    if (!_locationRegex.hasMatch(sellerLocation) || sellerLocation.length < 2) {
+      _showMessage('Please enter a valid location');
       return;
     }
 
@@ -93,10 +112,8 @@ class _ListItemScreenState extends State<ListItemScreen> {
       category: _category,
       condition: _condition,
       description: description,
-      sellerName: _sellerNameController.text.trim().isNotEmpty
-          ? _sellerNameController.text.trim()
-          : 'My Store',
-      sellerPhone: sellerPhone,
+      sellerName: sellerName,
+      sellerPhone: _normalizePhone(sellerPhone),
       location: sellerLocation,
       imageFile: _imagePath != null && _imagePath!.isNotEmpty
           ? File(_imagePath!)
@@ -278,6 +295,13 @@ class _ListItemScreenState extends State<ListItemScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  String _normalizePhone(String input) {
+    final trimmed = input.trim();
+    final hasPlus = trimmed.startsWith('+');
+    final digits = trimmed.replaceAll(RegExp(r'\D'), '');
+    return hasPlus ? '+$digits' : digits;
   }
 
   @override

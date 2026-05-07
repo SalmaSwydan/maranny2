@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'dart:developer' as developer;
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_config.dart';
 import '../models/messages_models.dart';
@@ -9,11 +10,21 @@ class MessagesRepository {
   // ── Send Message ─────────────────────────────
   Future<Map<String, dynamic>> sendMessage(
       SendMessageRequest request) async {
-    final response = await _dio.post(
-      ApiConfig.sendMessage,
-      data: request.toJson(),
-    );
-    return response.data as Map<String, dynamic>;
+    try {
+      final response = await _dio.post(
+        ApiConfig.sendMessage,
+        data: request.toJson(),
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (error) {
+      developer.log(
+        'Send message failed -> status=${error.response?.statusCode} data=${error.response?.data}',
+        name: 'MessagesRepository',
+        error: error,
+        stackTrace: error.stackTrace,
+      );
+      rethrow;
+    }
   }
 
   // ── Get Conversation ────────────────────────
@@ -23,7 +34,7 @@ class MessagesRepository {
         int pageSize = 50,
       }) async {
     final response = await _dio.get(
-      '${ApiConfig.conversation}/$otherUserId',
+      ApiConfig.conversation(otherUserId),
       queryParameters: {
         'page': page,
         'pageSize': pageSize,
@@ -51,7 +62,7 @@ class MessagesRepository {
   // ── Mark As Read ───────────────────────────
   Future<void> markAsRead(int otherUserId) async {
     await _dio.put(
-      '${ApiConfig.markConversationRead}/$otherUserId/read',
+      ApiConfig.markConversationRead(otherUserId),
     );
   }
 

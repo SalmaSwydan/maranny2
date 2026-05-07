@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../widgets/profile_header.dart';
 import '../../widgets/profile_input_field.dart';
 import '../../widgets/profile_stats.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../auth/data/models/user_model.dart';
+import '../../data/repositories/profile_repository.dart';
 import 'client_edit_profile_screen.dart';
+import 'dart:io';
 
 class ClientProfileScreen extends StatefulWidget {
   const ClientProfileScreen({super.key});
@@ -16,8 +19,10 @@ class ClientProfileScreen extends StatefulWidget {
 
 class _ClientProfileScreenState extends State<ClientProfileScreen> {
   final AuthRepository _authRepository = AuthRepository();
+  final ProfileRepository _profileRepository = ProfileRepository();
 
   bool _isLoading = true;
+  bool _isUploadingImage = false;
   String? _error;
 
   String name = 'User';
@@ -65,6 +70,44 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
     }
   }
 
+  Future<void> _pickAndUploadProfileImage() async {
+    if (_isUploadingImage) return;
+
+    final picker = ImagePicker();
+    final xFile = await picker.pickImage(source: ImageSource.gallery);
+    if (xFile == null) return;
+
+    setState(() {
+      _isUploadingImage = true;
+    });
+
+    try {
+      final imageUrl = await _profileRepository.uploadProfilePicture(
+        File(xFile.path),
+      );
+      if (!mounted) return;
+      setState(() {
+        profilePicture = imageUrl;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile image updated successfully.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not upload profile image right now. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingImage = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -95,6 +138,8 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
               name: name,
               sports: sports,
               imageUrl: profilePicture,
+              onImageTap: _pickAndUploadProfileImage,
+              isUploadingImage: _isUploadingImage,
             ),
             const SizedBox(height: 70),
             const ProfileStats(),
@@ -157,6 +202,7 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
                         city = result['city'] ?? city;
                         phone = result['phone'] ?? phone;
                         bio = result['bio'] ?? bio;
+                        profilePicture = result['imageUrl'] ?? profilePicture;
                       });
                     }
                   },

@@ -12,7 +12,16 @@ class NotificationsRepository {
       ApiConfig.notifications,
       queryParameters: {'unreadOnly': unreadOnly},
     );
-    final list = response.data as List<dynamic>;
+
+    final data = response.data;
+    final list = switch (data) {
+      final List<dynamic> values => values,
+      {'notifications': final List<dynamic> values} => values,
+      {'items': final List<dynamic> values} => values,
+      {'data': final List<dynamic> values} => values,
+      _ => const <dynamic>[],
+    };
+
     return list
         .map((e) =>
         NotificationModel.fromJson(e as Map<String, dynamic>))
@@ -21,7 +30,14 @@ class NotificationsRepository {
 
   Future<int> getUnreadCount() async {
     final response = await _dio.get(ApiConfig.unreadCount);
-    return response.data['unreadCount'] as int;
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      final count = data['unreadCount'] ?? data['count'] ?? data['total'];
+      if (count is int) return count;
+      if (count is num) return count.toInt();
+      if (count is String) return int.tryParse(count) ?? 0;
+    }
+    return 0;
   }
 
   Future<void> markAsRead(int notificationId) async {

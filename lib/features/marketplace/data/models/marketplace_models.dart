@@ -210,6 +210,14 @@ class CreateProductRequest {
     'imageUrl': imageUrl?.trim() ?? '',
     'categoryName': category,
     'category': category,
+    'sellerName': sellerName,
+    'storeName': sellerName,
+    'sellerPhone': sellerPhone,
+    'phoneNumber': sellerPhone,
+    'contactPhone': sellerPhone,
+    'location': location,
+    'sellerLocation': location,
+    'city': location,
   };
 }
 
