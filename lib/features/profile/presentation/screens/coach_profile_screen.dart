@@ -65,14 +65,25 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           : (coachProfile.resolvedBio?.trim() ?? '');
       final resolvedLocation =
           coachSetup.resolvedLocation?.trim().isNotEmpty == true
-              ? coachSetup.resolvedLocation!.trim()
-              : (coachProfile.resolvedLocation?.trim() ?? '');
+          ? coachSetup.resolvedLocation!.trim()
+          : (coachProfile.resolvedLocation?.trim() ?? '');
       final resolvedPrice = _formatPrice(
         coachSetup.sessionPrice ?? coachProfile.resolvedPrice,
       );
-      final averageRating = reviewsPage?.averageRating ?? coachProfile.avgRating;
+      final averageRating =
+          reviewsPage?.averageRating ?? coachProfile.avgRating;
       final totalReviews = reviewsPage?.totalCount ?? coachProfile.totalReviews;
-      final joinedSports = coachSetup.sportsLabel;
+      final profileSports = coachProfile.sports
+          .map((sport) => sport.name.trim())
+          .where((sport) => sport.isNotEmpty)
+          .toList(growable: false);
+      final setupSports = coachSetup.sportsLabel == 'Coach'
+          ? <String>[]
+          : coachSetup.sportsLabel.split(' | ');
+      final joinedSports = [...setupSports, ...profileSports]
+          .where((sport) => sport.trim().isNotEmpty && sport != 'Coach')
+          .toSet()
+          .join(' | ');
       final experienceYears = coachSetup.experienceYears ?? 0;
       final availabilityDays = coachSetup.availableDays
           .map((day) => day.trim())
@@ -83,8 +94,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           : availabilityDays.join(', ');
       final certificationText =
           (coachSetup.certificateUrl?.trim().isNotEmpty ?? false)
-              ? 'Certificate uploaded'
-              : 'No certifications yet';
+          ? 'Certificate uploaded'
+          : 'No certifications yet';
 
       developer.log(
         'CoachProfileScreen parsed fields -> '
@@ -105,8 +116,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         name = coachSetup.fullName.trim().isNotEmpty
             ? coachSetup.fullName
             : coachProfile.name.trim().isNotEmpty
-                ? coachProfile.name
-                : (user.fullName.trim().isNotEmpty ? user.fullName : 'Coach');
+            ? coachProfile.name
+            : (user.fullName.trim().isNotEmpty ? user.fullName : 'Coach');
         email = (coachProfile.email?.trim().isNotEmpty ?? false)
             ? coachProfile.email!
             : user.email;
@@ -118,7 +129,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             : 'Not added yet';
         bio = resolvedBio.isNotEmpty ? resolvedBio : 'No bio yet';
         price = resolvedPrice;
-        sportsLabel = joinedSports;
+        sportsLabel = joinedSports.isNotEmpty ? joinedSports : 'No sports yet';
         verificationStatus = coachSetup.verificationStatus;
         experienceLabel = experienceYears > 0
             ? '$experienceYears year${experienceYears == 1 ? '' : 's'} experience'
@@ -312,15 +323,28 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      sportsLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontFamily: 'Inter',
-                        color: Colors.white70,
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        sportsLabel == 'No sports yet'
+                            ? 'Training not selected yet'
+                            : 'Training: $sportsLabel',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -403,8 +427,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     final displayText = _isBioExpanded
         ? shownBio
         : (shownBio.length > 150
-            ? '${shownBio.substring(0, 150)}...'
-            : shownBio);
+              ? '${shownBio.substring(0, 150)}...'
+              : shownBio);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),

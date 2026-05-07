@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/egypt_locations.dart';
+import '../../../../core/utils/profile_validators.dart';
 import '../../data/models/marketplace_models.dart';
 import '../../data/repositories/marketplace_repository.dart';
 import '../utils/marketplace_product.dart';
@@ -34,8 +36,6 @@ class _ListItemScreenState extends State<ListItemScreen> {
   bool _isSubmitting = false;
 
   static const _categories = ['Equipment', 'Clothing', 'Accessories'];
-  static final RegExp _phoneRegex = RegExp(r'^(?:\+?\d[\d\s\-]{6,}\d)$');
-  static final RegExp _locationRegex = RegExp(r'^[A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF0-9\s,\-]{1,}$');
 
   @override
   void dispose() {
@@ -93,16 +93,16 @@ class _ListItemScreenState extends State<ListItemScreen> {
       _showMessage('Please enter your contact number');
       return;
     }
-    if (!_phoneRegex.hasMatch(sellerPhone)) {
-      _showMessage('Please enter a valid phone number');
+    if (!ProfileValidators.isValidEgyptPhone(sellerPhone)) {
+      _showMessage('Please enter a valid Egyptian phone number');
       return;
     }
     if (sellerLocation.isEmpty) {
       _showMessage('Please enter your location');
       return;
     }
-    if (!_locationRegex.hasMatch(sellerLocation) || sellerLocation.length < 2) {
-      _showMessage('Please enter a valid location');
+    if (!ProfileValidators.isValidLocation(sellerLocation)) {
+      _showMessage('Please choose a valid Cairo/Giza area');
       return;
     }
 
@@ -113,7 +113,7 @@ class _ListItemScreenState extends State<ListItemScreen> {
       condition: _condition,
       description: description,
       sellerName: sellerName,
-      sellerPhone: _normalizePhone(sellerPhone),
+      sellerPhone: ProfileValidators.normalizeEgyptPhone(sellerPhone),
       location: sellerLocation,
       imageFile: _imagePath != null && _imagePath!.isNotEmpty
           ? File(_imagePath!)
@@ -292,16 +292,9 @@ class _ListItemScreenState extends State<ListItemScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  String _normalizePhone(String input) {
-    final trimmed = input.trim();
-    final hasPlus = trimmed.startsWith('+');
-    final digits = trimmed.replaceAll(RegExp(r'\D'), '');
-    return hasPlus ? '+$digits' : digits;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -421,7 +414,8 @@ class _ListItemScreenState extends State<ListItemScreen> {
                               .toList(growable: false),
                           onChanged: _isSubmitting
                               ? null
-                              : (v) => setState(() => _category = v ?? _category),
+                              : (v) =>
+                                    setState(() => _category = v ?? _category),
                         ),
                       ),
                     ),
@@ -453,8 +447,9 @@ class _ListItemScreenState extends State<ListItemScreen> {
                           ],
                           onChanged: _isSubmitting
                               ? null
-                              : (v) =>
-                                  setState(() => _condition = v ?? _condition),
+                              : (v) => setState(
+                                  () => _condition = v ?? _condition,
+                                ),
                         ),
                       ),
                     ),
@@ -494,10 +489,7 @@ class _ListItemScreenState extends State<ListItemScreen> {
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 12),
-                    _buildTextField(
-                      controller: _sellerLocationController,
-                      hint: 'Your location (e.g. Cairo, Egypt)',
-                    ),
+                    _buildLocationDropdown(),
                     const SizedBox(height: 20),
                     Container(
                       padding: const EdgeInsets.all(14),
@@ -527,7 +519,9 @@ class _ListItemScreenState extends State<ListItemScreen> {
                           gradient: AppColors.primaryGradient,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primaryBlue.withValues(alpha: 0.3),
+                              color: AppColors.primaryBlue.withValues(
+                                alpha: 0.3,
+                              ),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -574,43 +568,74 @@ class _ListItemScreenState extends State<ListItemScreen> {
   }
 
   Widget _buildLabel(String text) => Text(
-        text,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
-      );
+    text,
+    style: const TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: AppColors.textPrimary,
+    ),
+  );
 
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
     TextInputType? keyboardType,
-  }) =>
-      TextField(
-        controller: controller,
-        enabled: !_isSubmitting,
-        keyboardType: keyboardType,
-        decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: AppColors.primaryBlue.withValues(alpha: 0.6),
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: AppColors.primaryBlue.withValues(alpha: 0.6),
-            ),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
+  }) => TextField(
+    controller: controller,
+    enabled: !_isSubmitting,
+    keyboardType: keyboardType,
+    decoration: InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: AppColors.primaryBlue.withValues(alpha: 0.6),
         ),
-      );
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: AppColors.primaryBlue.withValues(alpha: 0.6),
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    ),
+  );
+
+  Widget _buildLocationDropdown() {
+    final areas = EgyptLocations.allAreas;
+    final value = areas.contains(_sellerLocationController.text.trim())
+        ? _sellerLocationController.text.trim()
+        : null;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.6)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          hint: const Text('Your location (e.g. Nasr City)'),
+          isExpanded: true,
+          items: areas
+              .map(
+                (area) =>
+                    DropdownMenuItem<String>(value: area, child: Text(area)),
+              )
+              .toList(growable: false),
+          onChanged: _isSubmitting
+              ? null
+              : (v) {
+                  if (v == null) return;
+                  setState(() => _sellerLocationController.text = v);
+                },
+        ),
+      ),
+    );
+  }
 }

@@ -8,8 +8,7 @@ class MessagesRepository {
   final Dio _dio = ApiClient.dio;
 
   // ── Send Message ─────────────────────────────
-  Future<Map<String, dynamic>> sendMessage(
-      SendMessageRequest request) async {
+  Future<Map<String, dynamic>> sendMessage(SendMessageRequest request) async {
     try {
       final response = await _dio.post(
         ApiConfig.sendMessage,
@@ -29,16 +28,13 @@ class MessagesRepository {
 
   // ── Get Conversation ────────────────────────
   Future<List<MessageModel>> getConversation(
-      int otherUserId, {
-        int page = 1,
-        int pageSize = 50,
-      }) async {
+    int otherUserId, {
+    int page = 1,
+    int pageSize = 50,
+  }) async {
     final response = await _dio.get(
       ApiConfig.conversation(otherUserId),
-      queryParameters: {
-        'page': page,
-        'pageSize': pageSize,
-      },
+      queryParameters: {'page': page, 'pageSize': pageSize},
     );
 
     final list = response.data as List<dynamic>;
@@ -61,20 +57,25 @@ class MessagesRepository {
 
   // ── Mark As Read ───────────────────────────
   Future<void> markAsRead(int otherUserId) async {
-    await _dio.put(
-      ApiConfig.markConversationRead(otherUserId),
-    );
+    await _dio.put(ApiConfig.markConversationRead(otherUserId));
   }
 
   // ── Unread Count ───────────────────────────
   Future<int> getUnreadCount({int? fromUserId}) async {
     final response = await _dio.get(
       ApiConfig.chatUnreadCount,
-      queryParameters: {
-        if (fromUserId != null) 'fromUserId': fromUserId,
-      },
+      queryParameters: {if (fromUserId != null) 'fromUserId': fromUserId},
     );
 
-    return response.data['unreadCount'] as int;
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      final value = data['unreadCount'] ?? data['count'] ?? data['total'];
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+    }
+    if (data is int) return data;
+    if (data is num) return data.toInt();
+    return 0;
   }
 }

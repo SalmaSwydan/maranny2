@@ -31,6 +31,7 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
   bool _isSending = false;
   String? _error;
   List<MessageModel> _messages = [];
+  final Map<int, String> _reactions = <int, String>{};
 
   @override
   void initState() {
@@ -73,10 +74,7 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
 
     try {
       await _repo.sendMessage(
-        SendMessageRequest(
-          receiverId: widget.otherUserId,
-          content: text,
-        ),
+        SendMessageRequest(receiverId: widget.otherUserId, content: text),
       );
 
       await _loadMessages();
@@ -95,9 +93,9 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send message')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to send message')));
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -173,7 +171,7 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                     ),
                   ),
                   Text(
-                    widget.isOnline ? 'Online' : 'Offline',
+                    widget.isOnline ? 'Online now' : 'Last seen recently',
                     style: const TextStyle(fontSize: 12, color: Colors.white70),
                   ),
                 ],
@@ -195,11 +193,18 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
             color: Colors.white,
             child: Row(
               children: [
-                const Icon(Icons.access_time, size: 16, color: Color(0xFF1B2B83)),
+                const Icon(
+                  Icons.access_time,
+                  size: 16,
+                  color: Color(0xFF1B2B83),
+                ),
                 const SizedBox(width: 6),
                 Text(
                   '${widget.sessions} sessions',
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF1B2B83)),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF1B2B83),
+                  ),
                 ),
               ],
             ),
@@ -214,18 +219,22 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                 : _messages.isEmpty
                 ? const Center(child: Text('No messages yet'))
                 : ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return _MessageBubble(
-                  text: msg.content,
-                  time: _formatTime(msg.sentAt),
-                  isMine: msg.isMine,
-                );
-              },
-            ),
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _messages[index];
+                      return _MessageBubble(
+                        messageId: msg.messageID,
+                        text: msg.content,
+                        time: _formatTime(msg.sentAt),
+                        isMine: msg.isMine,
+                        isRead: msg.isRead || msg.readAt != null,
+                        reaction: _reactions[msg.messageID],
+                        onReact: _showReactionPicker,
+                      );
+                    },
+                  ),
           ),
 
           Container(
@@ -268,6 +277,11 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    color: const Color(0xFF1B2B83),
+                    onPressed: _showAttachmentOptions,
+                  ),
                   Container(
                     width: 48,
                     height: 48,
@@ -282,14 +296,18 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
                     child: IconButton(
                       icon: _isSending
                           ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                          : const Icon(Icons.send, color: Colors.white, size: 20),
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.send,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                       onPressed: _isSending ? null : _sendMessage,
                     ),
                   ),
@@ -301,62 +319,195 @@ class _CoachChatScreenState extends State<CoachChatScreen> {
       ),
     );
   }
+
+  void _showAttachmentOptions() {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              _AttachmentOption(
+                icon: Icons.photo_outlined,
+                label: 'Photo',
+                onTap: () => _attachmentTapped(context, 'Photo attachment'),
+              ),
+              const SizedBox(width: 14),
+              _AttachmentOption(
+                icon: Icons.location_on_outlined,
+                label: 'Location',
+                onTap: () => _attachmentTapped(context, 'Location sharing'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _attachmentTapped(BuildContext sheetContext, String label) {
+    Navigator.of(sheetContext).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label needs backend upload support first.')),
+    );
+  }
+
+  void _showReactionPicker(int messageId) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 12,
+            children: ['❤️', '👍', '😂', '🔥', '👏'].map((emoji) {
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _reactions[messageId] = emoji);
+                  Navigator.of(context).pop();
+                },
+                child: Text(emoji, style: const TextStyle(fontSize: 30)),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _MessageBubble extends StatelessWidget {
+  final int messageId;
   final String text;
   final String time;
   final bool isMine;
+  final bool isRead;
+  final String? reaction;
+  final ValueChanged<int> onReact;
 
   const _MessageBubble({
+    required this.messageId,
     required this.text,
     required this.time,
     required this.isMine,
+    required this.isRead,
+    required this.reaction,
+    required this.onReact,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        child: Column(
-          crossAxisAlignment:
-          isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: isMine
-                    ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF304CE9), Color(0xFF1B2B83)],
-                )
-                    : null,
-                color: isMine ? null : const Color(0xFFE5E5E5),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Text(
-                text,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isMine ? Colors.white : AppColors.textPrimary,
+    return GestureDetector(
+      onLongPress: () => onReact(messageId),
+      child: Align(
+        alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75,
+          ),
+          child: Column(
+            crossAxisAlignment: isMine
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  gradient: isMine
+                      ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF304CE9), Color(0xFF1B2B83)],
+                        )
+                      : null,
+                  color: isMine ? null : const Color(0xFFE5E5E5),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isMine ? Colors.white : AppColors.textPrimary,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              time,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.textSecondary,
+              if (reaction != null) ...[
+                const SizedBox(height: 4),
+                Text(reaction!, style: const TextStyle(fontSize: 16)),
+              ],
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    time,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  if (isMine) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.done_all,
+                      size: 14,
+                      color: isRead
+                          ? AppColors.lightBlue
+                          : AppColors.textSecondary,
+                    ),
+                  ],
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachmentOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _AttachmentOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F6FA),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: const Color(0xFF1B2B83)),
+              const SizedBox(height: 8),
+              Text(label),
+            ],
+          ),
         ),
       ),
     );

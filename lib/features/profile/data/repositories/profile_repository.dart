@@ -14,7 +14,12 @@ class ProfileRepository {
       ApiConfig.updateProfile,
       data: request.toJson(),
     );
-    return response.data['message'] as String;
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      return (data['message'] ?? data['title'] ?? 'Profile updated.')
+          .toString();
+    }
+    return 'Profile updated.';
   }
 
   Future<String> uploadProfilePicture(File imageFile) async {
@@ -44,7 +49,17 @@ class ProfileRepository {
       name: 'ProfileRepository',
     );
 
-    return response.data['imageUrl'] as String;
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      return ApiConfig.resolveMediaUrl(
+        (data['imageUrl'] ??
+                data['profilePicture'] ??
+                data['profilePictureUrl'] ??
+                data['url'])
+            ?.toString(),
+      );
+    }
+    return '';
   }
 
   Future<String> updatePreferences(UpdatePreferencesRequest request) async {

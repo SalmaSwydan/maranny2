@@ -121,7 +121,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Could not delete this item right now. Please try again.'),
+          content: Text(
+            'Could not delete this item right now. Please try again.',
+          ),
         ),
       );
       setState(() {
@@ -133,15 +135,24 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final product = _product;
-    final displayCategory = _normalizeText(product.category, fallback: 'Uncategorized');
+    final displayCategory = _normalizeText(
+      product.category,
+      fallback: 'Uncategorized',
+    );
     final displayDescription = _normalizeText(
       product.description,
       fallback: 'No description available.',
     );
-    final displayLocation = _normalizeText(product.location, fallback: 'Unknown');
+    final displayLocation = _normalizeText(
+      product.location,
+      fallback: 'Unknown',
+    );
     final displayPhone = _displayPhone(product.whatsapp);
     final hasCallablePhone = _extractCallablePhone(product.whatsapp).isNotEmpty;
-    final displayCondition = _normalizeText(product.condition, fallback: 'Unknown');
+    final displayCondition = _normalizeText(
+      product.condition,
+      fallback: 'Unknown',
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -385,7 +396,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   const Divider(height: 1),
                                   const SizedBox(height: 12),
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Icon(
                                         Icons.location_on_outlined,
@@ -414,10 +426,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                         ],
                                       ),
                                       const SizedBox(width: 24),
-                                      Icon(
-                                        Icons.phone_outlined,
+                                      const Icon(
+                                        Icons.message,
                                         size: 20,
-                                        color: Colors.green.shade700,
+                                        color: Color(0xFF25D366),
                                       ),
                                       const SizedBox(width: 6),
                                       Flexible(
@@ -426,7 +438,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             const Text(
-                                              'Phone',
+                                              'WhatsApp / Phone',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: AppColors.textSecondary,
@@ -525,15 +537,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
       } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cannot call $phone')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Cannot call $phone')));
       }
     } catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cannot call $phone')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Cannot call $phone')));
       }
     }
   }
@@ -551,7 +563,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final isNetworkImage =
         product.imageAsset.startsWith('http://') ||
         product.imageAsset.startsWith('https://');
-    final isFilePath = product.imageAsset.startsWith('file:') ||
+    final isFilePath =
+        product.imageAsset.startsWith('file:') ||
         RegExp(r'^[A-Za-z]:[\\/]').hasMatch(product.imageAsset);
     if (isNetworkImage) {
       return Image.network(

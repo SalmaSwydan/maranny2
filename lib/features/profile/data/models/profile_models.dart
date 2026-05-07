@@ -269,10 +269,8 @@ class CoachSetupProfileModel {
     );
   }
 
-  String? get resolvedLocation => _firstNonEmptyString([
-        if (locations.isNotEmpty) locations.first,
-        city,
-      ]);
+  String? get resolvedLocation =>
+      _firstNonEmptyString([if (locations.isNotEmpty) locations.first, city]);
 
   String get sportsLabel {
     final names = sports
@@ -303,8 +301,10 @@ class CoachSportModel {
 
   factory CoachSportModel.fromJson(Map<String, dynamic> json) {
     return CoachSportModel(
-      id: _asInt(json['id']),
-      name: _asString(json['name']),
+      id: _asInt(json['id'] ?? json['sportID'] ?? json['sportId']),
+      name: _asString(
+        json['name'] ?? json['sportName'] ?? json['sport']?['name'],
+      ),
       description: _asNullableString(json['description']),
       pricePerSession: _asNullableDouble(json['pricePerSession']),
       experienceYears: _asNullableInt(json['experienceYears']),
@@ -389,4 +389,3 @@ double? _firstNonNullDouble(List<double?> values) {
   }
   return null;
 }
-

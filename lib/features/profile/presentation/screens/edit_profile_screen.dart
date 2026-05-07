@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/egypt_locations.dart';
+import '../../../../core/utils/profile_validators.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
 import '../../data/models/profile_models.dart';
@@ -28,6 +30,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   String? _profileImagePath;
   String? _profileImageUrl;
+  final Set<String> _selectedLocations = <String>{};
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -46,16 +49,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       _nameController.text = user.fullName;
       _emailController.text = user.email;
+      _phoneController.text = user.phoneNumber ?? '';
+      _bioController.text = user.bio ?? '';
       _profileImageUrl = user.profilePicture;
+      try {
+        final setup = await _profileRepository.getMyCoachSetup();
+        final locations = setup.locations.isNotEmpty
+            ? setup.locations
+            : (setup.city ?? '').split(',');
+        _selectedLocations
+          ..clear()
+          ..addAll(
+            locations
+                .map((location) => location.trim())
+                .where(EgyptLocations.isKnownPlace),
+          );
+        _locationController.text = _selectedLocations.join(', ');
+      } catch (_) {
+        final userCity = user.city ?? '';
+        if (EgyptLocations.isKnownPlace(userCity)) {
+          _selectedLocations.add(userCity);
+          _locationController.text = userCity;
+        }
+      }
 
       setState(() => _isLoading = false);
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load profile')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to load profile')));
     }
   }
 
@@ -91,7 +116,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       final fullName = _nameController.text.trim();
-      final parts = fullName.split(' ').where((e) => e.trim().isNotEmpty).toList();
+      final phone = _phoneController.text.trim();
+      final bio = _bioController.text.trim();
+      if (!ProfileValidators.isValidName(fullName)) {
+        _showError('Enter your real full name using letters only');
+        return;
+      }
+      if (phone.isNotEmpty && !ProfileValidators.isValidEgyptPhone(phone)) {
+        _showError('Enter a valid Egyptian mobile number');
+        return;
+      }
+      if (bio.isNotEmpty && !ProfileValidators.hasFiftyWordBio(bio)) {
+        _showError(
+          'Bio is optional, but if you add it please write at least 50 words',
+        );
+        return;
+      }
+      if (_selectedLocations.length < 3) {
+        _showError('Please choose at least 3 coaching areas');
+        return;
+      }
+      final parts = fullName
+          .split(' ')
+          .where((e) => e.trim().isNotEmpty)
+          .toList();
 
       final firstName = parts.isNotEmpty ? parts.first : fullName;
       final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
@@ -100,34 +148,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         UpdateProfileRequest(
           firstName: firstName,
           lastName: lastName,
-          phoneNumber: _phoneController.text.trim().isEmpty
+          phoneNumber: phone.isEmpty
               ? null
-              : _phoneController.text.trim(),
-          city: _locationController.text.trim().isEmpty
+              : ProfileValidators.normalizeEgyptPhone(phone),
+          city: _selectedLocations.isEmpty
               ? null
-              : _locationController.text.trim(),
-          bio: _bioController.text.trim().isEmpty
-              ? null
-              : _bioController.text.trim(),
+              : _selectedLocations.join(', '),
+          bio: bio.isEmpty ? null : bio,
         ),
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile saved')));
 
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save profile: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save profile: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -158,7 +210,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     const SizedBox(height: 12),
                     _buildTextField(_emailController, 'Email', enabled: false),
                     const SizedBox(height: 12),
-                    _buildTextField(_locationController, 'Location / City'),
+                    _buildLocationSelector(),
                     const SizedBox(height: 12),
                     _buildTextField(_phoneController, 'Phone Number'),
                     const SizedBox(height: 12),
@@ -219,33 +271,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               backgroundColor: Colors.grey.shade200,
               child: _profileImagePath != null
                   ? ClipOval(
-                child: Image.file(
-                  File(_profileImagePath!),
-                  width: 112,
-                  height: 112,
-                  fit: BoxFit.cover,
-                ),
-              )
+                      child: Image.file(
+                        File(_profileImagePath!),
+                        width: 112,
+                        height: 112,
+                        fit: BoxFit.cover,
+                      ),
+                    )
                   : _profileImageUrl != null &&
-                  _profileImageUrl!.startsWith('http')
+                        _profileImageUrl!.startsWith('http')
                   ? ClipOval(
-                child: Image.network(
-                  _profileImageUrl!,
-                  width: 112,
-                  height: 112,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Icons.person,
-                    size: 56,
-                    color: AppColors.primaryBlue,
-                  ),
-                ),
-              )
+                      child: Image.network(
+                        _profileImageUrl!,
+                        width: 112,
+                        height: 112,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.person,
+                          size: 56,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
+                    )
                   : const Icon(
-                Icons.person,
-                size: 56,
-                color: AppColors.primaryBlue,
-              ),
+                      Icons.person,
+                      size: 56,
+                      color: AppColors.primaryBlue,
+                    ),
             ),
             Positioned(
               bottom: 0,
@@ -284,10 +336,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildTextField(
-      TextEditingController controller,
-      String label, {
-        bool enabled = true,
-      }) {
+    TextEditingController controller,
+    String label, {
+    bool enabled = true,
+  }) {
     return TextField(
       controller: controller,
       enabled: enabled,
@@ -309,9 +361,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.withValues(alpha: 0.4),
-          ),
+          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.4)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -320,6 +370,82 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             width: 1.5,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLocationSelector() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Coaching Areas',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: EgyptLocations.allAreas.map((area) {
+              final selected = _selectedLocations.contains(area);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (selected) {
+                      _selectedLocations.remove(area);
+                    } else {
+                      _selectedLocations.add(area);
+                    }
+                    _locationController.text = _selectedLocations.join(', ');
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.primaryBlue : Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: selected
+                          ? AppColors.primaryBlue
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Text(
+                    area,
+                    style: TextStyle(
+                      color: selected ? Colors.white : AppColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${_selectedLocations.length} selected. Minimum 3 areas.',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -370,17 +496,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         child: _isSaving
             ? const SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Colors.white,
-          ),
-        )
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
             : const Text(
-          'Save Edit',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+                'Save Edit',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
       ),
     );
   }

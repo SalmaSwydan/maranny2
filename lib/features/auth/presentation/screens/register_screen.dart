@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../auth/data/models/auth_models.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../become_coach/presentation/screens/coach_info_screen.dart';
+import '../../../../core/utils/profile_validators.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -45,8 +46,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (fullName.isEmpty) {
-      _showSnackBar('Please enter your full name');
+    if (!ProfileValidators.isValidName(fullName)) {
+      _showSnackBar('Enter your real full name using letters only');
       return;
     }
 
@@ -70,8 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         .where((part) => part.trim().isNotEmpty)
         .toList(growable: false);
     final firstName = parts.isNotEmpty ? parts.first : fullName;
-    final lastName =
-        parts.length > 1 ? parts.sublist(1).join(' ') : firstName;
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : firstName;
 
     setState(() {
       _isSubmitting = true;
@@ -96,12 +96,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder:
-                (_) => CoachInfoScreen(
-                  email: email,
-                  password: password,
-                  initialFullName: fullName,
-                ),
+            builder: (_) => CoachInfoScreen(
+              email: email,
+              password: password,
+              initialFullName: fullName,
+            ),
           ),
           (route) => false,
         );
@@ -277,12 +276,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: Colors.grey[400],
                                     size: 20,
                                   ),
-                                  onPressed:
-                                      () => setState(
-                                        () =>
-                                            _obscurePassword =
-                                                !_obscurePassword,
-                                      ),
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
                                 ),
                               ),
                             ),
@@ -290,25 +286,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             TextField(
                               controller: _confirmPasswordController,
                               obscureText: _obscureConfirmPassword,
-                              decoration: _inputDeco(
-                                'Confirm Password',
-                              ).copyWith(
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureConfirmPassword
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    color: Colors.grey[400],
-                                    size: 20,
-                                  ),
-                                  onPressed:
-                                      () => setState(
-                                        () =>
-                                            _obscureConfirmPassword =
-                                                !_obscureConfirmPassword,
+                              decoration: _inputDeco('Confirm Password')
+                                  .copyWith(
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscureConfirmPassword
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        color: Colors.grey[400],
+                                        size: 20,
                                       ),
-                                ),
-                              ),
+                                      onPressed: () => setState(
+                                        () => _obscureConfirmPassword =
+                                            !_obscureConfirmPassword,
+                                      ),
+                                    ),
+                                  ),
                             ),
                             const SizedBox(height: 16),
                             Row(
@@ -318,10 +311,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   height: 20,
                                   child: Checkbox(
                                     value: _agreeToTerms,
-                                    onChanged:
-                                        (value) => setState(
-                                          () => _agreeToTerms = value ?? false,
-                                        ),
+                                    onChanged: (value) => setState(
+                                      () => _agreeToTerms = value ?? false,
+                                    ),
                                     activeColor: const Color(0xFF303F9F),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(4),
@@ -344,10 +336,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed:
-                                    _agreeToTerms && !_isSubmitting
-                                        ? _register
-                                        : null,
+                                onPressed: _agreeToTerms && !_isSubmitting
+                                    ? _register
+                                    : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF303F9F),
                                   foregroundColor: Colors.white,
@@ -361,29 +352,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                   elevation: 0,
                                 ),
-                                child:
-                                    _isSubmitting
-                                        ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  Colors.white,
-                                                ),
-                                          ),
-                                        )
-                                        : Text(
-                                          _isCoach
-                                              ? 'REGISTER & CONTINUE'
-                                              : 'REGISTER',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 1,
-                                          ),
+                                child: _isSubmitting
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
                                         ),
+                                      )
+                                    : Text(
+                                        _isCoach
+                                            ? 'REGISTER & CONTINUE'
+                                            : 'REGISTER',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
                               ),
                             ),
                           ],

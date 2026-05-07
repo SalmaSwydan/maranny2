@@ -28,6 +28,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isSending = false;
   String? _error;
   List<MessageModel> _messages = [];
+  final Map<int, String> _reactions = <int, String>{};
 
   @override
   void initState() {
@@ -70,10 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       await _repo.sendMessage(
-        SendMessageRequest(
-          receiverId: widget.otherUserId,
-          content: text,
-        ),
+        SendMessageRequest(receiverId: widget.otherUserId, content: text),
       );
 
       await _loadMessages();
@@ -92,9 +90,9 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send message')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to send message')));
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -178,7 +176,9 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                           ),
                           Text(
-                            widget.isOnline ? 'Online' : 'Offline',
+                            widget.isOnline
+                                ? 'Online now'
+                                : 'Last seen recently',
                             style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
@@ -205,18 +205,22 @@ class _ChatScreenState extends State<ChatScreen> {
                 : _messages.isEmpty
                 ? const Center(child: Text('No messages yet'))
                 : ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                return _MessageBubble(
-                  text: msg.content,
-                  time: _formatTime(msg.sentAt),
-                  isMine: msg.isMine,
-                );
-              },
-            ),
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = _messages[index];
+                      return _MessageBubble(
+                        messageId: msg.messageID,
+                        text: msg.content,
+                        time: _formatTime(msg.sentAt),
+                        isMine: msg.isMine,
+                        isRead: msg.isRead || msg.readAt != null,
+                        reaction: _reactions[msg.messageID],
+                        onReact: _showReactionPicker,
+                      );
+                    },
+                  ),
           ),
 
           Container(
@@ -254,19 +258,24 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _showAttachmentOptions,
+                    icon: const Icon(Icons.add_circle_outline),
+                    color: const Color(0xFF1F3A93),
+                  ),
                   GestureDetector(
                     onTap: _isSending ? null : _sendMessage,
                     child: CircleAvatar(
                       backgroundColor: const Color(0xFF1F3A93),
                       child: _isSending
                           ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
                           : const Icon(Icons.send, color: Colors.white),
                     ),
                   ),
@@ -278,58 +287,186 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
+
+  void _showAttachmentOptions() {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              _AttachmentOption(
+                icon: Icons.photo_outlined,
+                label: 'Photo',
+                onTap: () => _attachmentTapped(context, 'Photo attachment'),
+              ),
+              const SizedBox(width: 14),
+              _AttachmentOption(
+                icon: Icons.location_on_outlined,
+                label: 'Location',
+                onTap: () => _attachmentTapped(context, 'Location sharing'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _attachmentTapped(BuildContext sheetContext, String label) {
+    Navigator.of(sheetContext).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label needs backend upload support first.')),
+    );
+  }
+
+  void _showReactionPicker(int messageId) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 12,
+            children: ['❤️', '👍', '😂', '🔥', '👏'].map((emoji) {
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _reactions[messageId] = emoji);
+                  Navigator.of(context).pop();
+                },
+                child: Text(emoji, style: const TextStyle(fontSize: 30)),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _MessageBubble extends StatelessWidget {
+  final int messageId;
   final String text;
   final String time;
   final bool isMine;
+  final bool isRead;
+  final String? reaction;
+  final ValueChanged<int> onReact;
 
   const _MessageBubble({
+    required this.messageId,
     required this.text,
     required this.time,
     required this.isMine,
+    required this.isRead,
+    required this.reaction,
+    required this.onReact,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.72,
-        ),
-        decoration: BoxDecoration(
-          color: isMine ? const Color(0xFF1F3A93) : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMine ? 16 : 4),
-            bottomRight: Radius.circular(isMine ? 4 : 16),
+    return GestureDetector(
+      onLongPress: () => onReact(messageId),
+      child: Align(
+        alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.72,
+          ),
+          decoration: BoxDecoration(
+            color: isMine ? const Color(0xFF1F3A93) : Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16),
+              topRight: const Radius.circular(16),
+              bottomLeft: Radius.circular(isMine ? 16 : 4),
+              bottomRight: Radius.circular(isMine ? 4 : 16),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: isMine
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              Text(
+                text,
+                style: TextStyle(
+                  color: isMine ? Colors.white : Colors.black87,
+                  fontSize: 14,
+                ),
+              ),
+              if (reaction != null) ...[
+                const SizedBox(height: 4),
+                Text(reaction!, style: const TextStyle(fontSize: 16)),
+              ],
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    time,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isMine ? Colors.white60 : Colors.grey,
+                    ),
+                  ),
+                  if (isMine) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.done_all,
+                      size: 14,
+                      color: isRead ? const Color(0xFF6FD3F5) : Colors.white60,
+                    ),
+                  ],
+                ],
+              ),
+            ],
           ),
         ),
-        child: Column(
-          crossAxisAlignment:
-          isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Text(
-              text,
-              style: TextStyle(
-                color: isMine ? Colors.white : Colors.black87,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              time,
-              style: TextStyle(
-                fontSize: 10,
-                color: isMine ? Colors.white60 : Colors.grey,
-              ),
-            ),
-          ],
+      ),
+    );
+  }
+}
+
+class _AttachmentOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _AttachmentOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F6FA),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: const Color(0xFF1F3A93)),
+              const SizedBox(height: 8),
+              Text(label),
+            ],
+          ),
         ),
       ),
     );

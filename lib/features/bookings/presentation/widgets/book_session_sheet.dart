@@ -4,6 +4,10 @@ import 'dart:developer' as developer;
 import '../../data/models/bookings_models.dart';
 import '../../data/repositories/bookings_repository.dart';
 import '../screens/payment_screen.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
+import '../../../../core/utils/client_profile_storage.dart';
+import '../../../../core/utils/profile_validators.dart';
+import '../../../../core/utils/user_preferences_storage.dart';
 
 class BookSessionSheet extends StatefulWidget {
   final int? coachId;
@@ -31,8 +35,10 @@ class BookSessionSheet extends StatefulWidget {
 
 class _BookSessionSheetState extends State<BookSessionSheet> {
   final BookingsRepository _repo = BookingsRepository();
+  final AuthRepository _authRepository = AuthRepository();
 
   bool _isLoading = true;
+  bool _isCheckingProfile = false;
   String? _error;
   CoachAvailabilityModel? _availability;
   List<String> _visibleAvailableDays = [];
@@ -203,7 +209,8 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       return slot.session!.sportID;
     }
 
-    final availabilitySportIds = _availability?.sessions
+    final availabilitySportIds =
+        _availability?.sessions
             .map((session) => session.sportID)
             .where((sportId) => sportId > 0)
             .toSet()
@@ -515,7 +522,8 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     if (slotState == _AvailabilityVisualState.reserved) {
       _showSlotMessage(
         title: 'Already reserved',
-        message: 'This period is already confirmed by the coach and cannot be reserved.',
+        message:
+            'This period is already confirmed by the coach and cannot be reserved.',
       );
       return;
     }
@@ -523,7 +531,8 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     if (slotState == _AvailabilityVisualState.pending) {
       _showSlotMessage(
         title: 'Pending confirmation',
-        message: 'This period is still pending coach confirmation. Please choose another available time.',
+        message:
+            'This period is still pending coach confirmation. Please choose another available time.',
       );
       return;
     }
@@ -570,6 +579,61 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
         ],
       ),
     );
+  }
+
+  Future<bool> _ensureClientProfileComplete() async {
+    setState(() => _isCheckingProfile = true);
+    try {
+      final user = await _authRepository.getCurrentUser();
+      final prefs = await UserPreferencesStorage.load();
+      final cache = await ClientProfileStorage.load();
+      final missing = ProfileValidators.missingClientProfileFields(
+        profilePicture: (user.profilePicture?.trim().isNotEmpty ?? false)
+            ? user.profilePicture
+            : cache.imageUrl,
+        phone: (user.phoneNumber?.trim().isNotEmpty ?? false)
+            ? user.phoneNumber
+            : cache.phone,
+        location: _firstNonEmpty([user.city, user.street, cache.location]),
+        sports: prefs.sports,
+      );
+      if (missing.isEmpty) {
+        return true;
+      }
+      if (!mounted) {
+        return false;
+      }
+      await showDialog<void>(
+        context: context,
+        builder: (context) => _ProfileRequiredDialog(missing: missing),
+      );
+      return false;
+    } catch (_) {
+      if (!mounted) {
+        return false;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not check your profile right now. Please try again.',
+          ),
+        ),
+      );
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingProfile = false);
+      }
+    }
+  }
+
+  String? _firstNonEmpty(List<String?> values) {
+    for (final value in values) {
+      if (value != null && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    return null;
   }
 
   _AvailabilityVisualState _slotVisualState(_AvailabilitySlotData slot) {
@@ -645,7 +709,9 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     }
 
     final raw = session.status.trim().toLowerCase();
-    if (raw.contains('free') || raw.contains('open') || raw.contains('available')) {
+    if (raw.contains('free') ||
+        raw.contains('open') ||
+        raw.contains('available')) {
       return _AvailabilityVisualState.free;
     }
 
@@ -905,9 +971,13 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: !_canContinueBooking
+                onPressed: !_canContinueBooking || _isCheckingProfile
                     ? null
-                    : () {
+                    : () async {
+                        final canBook = await _ensureClientProfileComplete();
+                        if (!canBook || !mounted) {
+                          return;
+                        }
                         final slot = _selectedSlot!;
                         final resolvedCoachId = _resolvedCoachId();
                         final resolvedSportId = _resolvedSportIdForSlot(slot);
@@ -965,14 +1035,23 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                   ),
                   elevation: 4,
                 ),
-                child: const Text(
-                  'Book Now',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
+                child: _isCheckingProfile
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Book Now',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 8),
@@ -1072,4 +1151,121 @@ class _AvailabilityLegendChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProfileRequiredDialog extends StatelessWidget {
+  final List<String> missing;
+
+  const _ProfileRequiredDialog({required this.missing});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <_ProfileRequirement>[
+      _ProfileRequirement(
+        key: 'profile photo',
+        label: 'Profile photo',
+        icon: Icons.account_circle_outlined,
+      ),
+      _ProfileRequirement(
+        key: 'valid Egyptian phone number',
+        label: 'Phone number',
+        icon: Icons.phone_iphone_outlined,
+      ),
+      _ProfileRequirement(
+        key: 'Cairo/Giza area',
+        label: 'Location',
+        icon: Icons.location_on_outlined,
+      ),
+      _ProfileRequirement(
+        key: 'preferred sport',
+        label: 'Preferred sport',
+        icon: Icons.sports_soccer_outlined,
+      ),
+    ];
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      titlePadding: const EdgeInsets.fromLTRB(22, 22, 22, 8),
+      contentPadding: const EdgeInsets.fromLTRB(22, 0, 22, 8),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      title: const Text(
+        'Complete your profile',
+        style: TextStyle(fontWeight: FontWeight.w800),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'We need these details before booking so coaches can confirm your session safely.',
+            style: TextStyle(color: Colors.black54, height: 1.35),
+          ),
+          const SizedBox(height: 16),
+          ...items.map((item) {
+            final isMissing = missing.contains(item.key);
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isMissing
+                    ? const Color(0xFFFFF3F3)
+                    : const Color(0xFFEFFAF2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isMissing
+                        ? Icons.error_outline
+                        : Icons.check_circle_outline,
+                    color: isMissing
+                        ? const Color(0xFFD64545)
+                        : const Color(0xFF16A34A),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(item.icon, color: const Color(0xFF1F3A93), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      item.label,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1F3A93),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: const Text('Go to Profile'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileRequirement {
+  final String key;
+  final String label;
+  final IconData icon;
+
+  const _ProfileRequirement({
+    required this.key,
+    required this.label,
+    required this.icon,
+  });
 }

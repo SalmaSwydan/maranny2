@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/egypt_locations.dart';
+import '../../../../core/utils/profile_validators.dart';
 import '../../data/models/coach_onboarding_draft.dart';
 import 'coach_specialties_screen.dart';
 
@@ -27,6 +29,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
   final _nationalIdController = TextEditingController();
   final _locationController = TextEditingController();
   final _priceController = TextEditingController();
+  final Set<String> _selectedLocations = <String>{};
 
   String? _selectedYears;
 
@@ -63,7 +66,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
       password: widget.password,
       fullName: _fullNameController.text.trim(),
       nationalId: _nationalIdController.text.trim(),
-      city: _locationController.text.trim(),
+      city: _selectedLocations.join(', '),
       experienceYears: _mapYearsToInt(_selectedYears!),
       sessionPrice: double.parse(_priceController.text.trim()),
     );
@@ -131,8 +134,8 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                         controller: _fullNameController,
                         placeholder: 'Enter your full name',
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your full name';
+                          if (!ProfileValidators.isValidName(value ?? '')) {
+                            return 'Enter your real full name using letters only';
                           }
                           return null;
                         },
@@ -160,17 +163,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                         },
                       ),
                       const SizedBox(height: 20),
-                      _buildTextField(
-                        label: 'Location / City',
-                        controller: _locationController,
-                        placeholder: 'Where do you offer sessions?',
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter your location';
-                          }
-                          return null;
-                        },
-                      ),
+                      _buildLocationsSelector(),
                       const SizedBox(height: 20),
                       _buildDropdownField(
                         label: 'Years of Experience',
@@ -270,8 +263,9 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
               height: 6,
               margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
               decoration: BoxDecoration(
-                color:
-                    isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
+                color: isActive
+                    ? AppColors.primaryBlue
+                    : const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -310,15 +304,14 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
           inputFormatters: inputFormatters,
           validator: validator,
           maxLength: fieldMaxLength,
-          buildCounter:
-              fieldMaxLength != null
-                  ? (
-                    _, {
-                    required currentLength,
-                    required isFocused,
-                    required int? maxLength,
-                  }) => const SizedBox.shrink()
-                  : null,
+          buildCounter: fieldMaxLength != null
+              ? (
+                  _, {
+                  required currentLength,
+                  required isFocused,
+                  required int? maxLength,
+                }) => const SizedBox.shrink()
+              : null,
           decoration: InputDecoration(
             hintText: placeholder,
             hintStyle: const TextStyle(
@@ -391,22 +384,21 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: value,
-          items:
-              items
-                  .map(
-                    (item) => DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(
-                        item,
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
+          items: items
+              .map(
+                (item) => DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(
+                    item,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
                     ),
-                  )
-                  .toList(),
+                  ),
+                ),
+              )
+              .toList(),
           onChanged: onChanged,
           validator: validator,
           decoration: InputDecoration(
@@ -439,6 +431,108 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
           dropdownColor: Colors.white,
         ),
       ],
+    );
+  }
+
+  Widget _buildLocationsSelector() {
+    return FormField<Set<String>>(
+      initialValue: _selectedLocations,
+      validator: (_) {
+        if (_selectedLocations.length < 3) {
+          return 'Please choose at least 3 coaching areas';
+        }
+        return null;
+      },
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Coaching Areas',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: field.hasError ? AppColors.busy : Colors.transparent,
+                  width: 1.2,
+                ),
+              ),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: EgyptLocations.allAreas.map((area) {
+                  final selected = _selectedLocations.contains(area);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (selected) {
+                          _selectedLocations.remove(area);
+                        } else {
+                          _selectedLocations.add(area);
+                        }
+                        _locationController.text = _selectedLocations.join(
+                          ', ',
+                        );
+                        field.didChange(_selectedLocations);
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.primaryBlue : Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.primaryBlue
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Text(
+                        area,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: selected
+                              ? Colors.white
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              field.errorText ??
+                  '${_selectedLocations.length} selected. Pick the areas where clients can book you.',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                color: field.hasError
+                    ? AppColors.busy
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

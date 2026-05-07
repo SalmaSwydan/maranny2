@@ -2,37 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import '../../../../core/network/api_config.dart';
+import '../../../../core/utils/egypt_locations.dart';
 import '../../../bookings/presentation/screens/coach_details_screen.dart';
 import '../../../bookings/domain/models/booking_session_model.dart';
 import '../../../bookings/domain/models/coach_data_model.dart';
 import '../../../profile/data/repositories/profile_repository.dart';
 import '../../../sports/data/repositories/sports_repository.dart';
-
-const Map<String, List<String>> _egyptLocations = {
-  'Cairo': [
-    'Nasr City',
-    'Maadi',
-    'Heliopolis',
-    'New Cairo',
-    'Zamalek',
-    'Dokki',
-    'Mohandessin',
-    '6th of October',
-  ],
-  'Alexandria': [
-    'Smouha',
-    'Miami',
-    'Montazah',
-    'Sporting',
-    'Sidi Bishr',
-    'Stanley',
-    'Gleem',
-  ],
-  'Giza': ['Sheikh Zayed', 'Haram', 'Faisal', 'Agouza', 'Imbaba'],
-  'New Cairo': ['5th Settlement', 'Rehab', 'Madinaty', 'Shorouk', 'Badr City'],
-  'North Coast': ['Marina', 'Sahel', 'Sidi Abdel Rahman', 'Hacienda'],
-  'Red Sea': ['Hurghada', 'El Gouna', 'Sharm El Sheikh', 'Ain Sokhna'],
-};
 
 class ClientSearchScreen extends StatefulWidget {
   const ClientSearchScreen({super.key});
@@ -271,7 +246,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
         page: 1,
         pageSize: 20,
       );
-      final filteredData = data.where(_matchesSelectedSport).toList(growable: false);
+      final filteredData = data
+          .where(_matchesSelectedSport)
+          .toList(growable: false);
 
       developer.log(
         'ClientSearchScreen coaches response -> '
@@ -402,7 +379,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
 
   String _coachImage(Map<String, dynamic> coach) {
     final nestedUser = coach['user'];
-    final raw = coach['profilePictureUrl'] ??
+    final raw =
+        coach['profilePictureUrl'] ??
         coach['profilePicture'] ??
         coach['imageUrl'] ??
         coach['image'] ??
@@ -410,8 +388,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
         coach['url'] ??
         (nestedUser is Map<String, dynamic>
             ? nestedUser['profilePicture'] ??
-                nestedUser['profilePictureUrl'] ??
-                nestedUser['imageUrl']
+                  nestedUser['profilePictureUrl'] ??
+                  nestedUser['imageUrl']
             : null) ??
         '';
     return ApiConfig.resolveMediaUrl(raw.toString());
@@ -438,7 +416,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
             .where((day) => day.isNotEmpty)
             .toList();
     final coachSportIds = _coachSportIds(coach);
-    final selectedCoachSportId = coachSportIds.isNotEmpty ? coachSportIds.first : _sportIdFromCategory(sport);
+    final selectedCoachSportId = coachSportIds.isNotEmpty
+        ? coachSportIds.first
+        : _sportIdFromCategory(sport);
 
     final location = area.isNotEmpty ? '$area, $city' : city;
 
@@ -817,7 +797,7 @@ class _FilterSheetState extends State<_FilterSheet> {
   @override
   Widget build(BuildContext context) {
     final areas = _selectedCity != null
-        ? _egyptLocations[_selectedCity!] ?? []
+        ? EgyptLocations.areasForCity(_selectedCity)
         : <String>[];
 
     return DraggableScrollableSheet(
@@ -885,7 +865,7 @@ class _FilterSheetState extends State<_FilterSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _egyptLocations.keys.map((city) {
+              children: EgyptLocations.cities.map((city) {
                 final selected = _selectedCity == city;
                 return GestureDetector(
                   onTap: () => setState(() {
