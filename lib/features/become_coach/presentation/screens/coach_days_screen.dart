@@ -15,6 +15,7 @@ class CoachDaysScreen extends StatefulWidget {
 
 class _CoachDaysScreenState extends State<CoachDaysScreen> {
   late final Set<String> _selectedDays;
+  late final Map<String, List<String>> _availabilitySlots;
 
   final List<String> _daysOfWeek = const [
     'Saturday',
@@ -26,18 +27,57 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
     'Friday',
   ];
 
+  final List<String> _timeOptions = const [
+    '9:00 AM',
+    '10:00 AM',
+    '11:00 AM',
+    '12:00 PM',
+    '1:00 PM',
+    '2:00 PM',
+    '3:00 PM',
+    '4:00 PM',
+    '5:00 PM',
+    '6:00 PM',
+    '7:00 PM',
+    '8:00 PM',
+    '9:00 PM',
+    '10:00 PM',
+  ];
+
   @override
   void initState() {
     super.initState();
     _selectedDays = widget.draft.availableDays.toSet();
+    _availabilitySlots = Map<String, List<String>>.fromEntries(
+      widget.draft.availabilitySlots.entries.map(
+        (entry) => MapEntry(entry.key, List<String>.from(entry.value)),
+      ),
+    );
   }
 
   void _toggleDay(String day) {
     setState(() {
       if (_selectedDays.contains(day)) {
         _selectedDays.remove(day);
+        _availabilitySlots.remove(day);
       } else {
         _selectedDays.add(day);
+        _availabilitySlots.putIfAbsent(day, () => <String>[]);
+      }
+    });
+  }
+
+  void _toggleTime(String day, String time) {
+    setState(() {
+      final slots = _availabilitySlots.putIfAbsent(day, () => <String>[]);
+      if (slots.contains(time)) {
+        slots.remove(time);
+      } else {
+        slots.add(time);
+        slots.sort(
+          (left, right) =>
+              _timeOptions.indexOf(left).compareTo(_timeOptions.indexOf(right)),
+        );
       }
     });
   }
@@ -50,14 +90,37 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
       return;
     }
 
+    final dayWithoutHours = _selectedDays.firstWhere(
+      (day) => (_availabilitySlots[day] ?? const <String>[]).isEmpty,
+      orElse: () => '',
+    );
+
+    if (dayWithoutHours.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please choose free hours for $dayWithoutHours'),
+        ),
+      );
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder:
-            (context) => CoachCertificationsScreen(
-              draft: widget.draft.copyWith(
-                availableDays: _selectedDays.toList(growable: false),
+        builder: (context) => CoachCertificationsScreen(
+          draft: widget.draft.copyWith(
+            availableDays: _selectedDays.toList(growable: false),
+            availabilitySlots: Map<String, List<String>>.fromEntries(
+              _selectedDays.map(
+                (day) => MapEntry(
+                  day,
+                  List<String>.from(
+                    _availabilitySlots[day] ?? const <String>[],
+                  ),
+                ),
               ),
             ),
+          ),
+        ),
       ),
     );
   }
@@ -90,8 +153,8 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'When are you available to coach?',
+                    const Text(
+                      'Choose the days you coach and the hours you are free in.',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 14,
@@ -118,6 +181,10 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
                         );
                       },
                     ),
+                    if (_selectedDays.isNotEmpty) ...[
+                      const SizedBox(height: 28),
+                      ..._selectedDays.map(_buildDaySlotsCard),
+                    ],
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -177,8 +244,9 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
               height: 6,
               margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
               decoration: BoxDecoration(
-                color:
-                    isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
+                color: isActive
+                    ? AppColors.primaryBlue
+                    : const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -200,7 +268,7 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -222,6 +290,91 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
     );
   }
 
+  Widget _buildDaySlotsCard(String day) {
+    final selectedSlots = _availabilitySlots[day] ?? const <String>[];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            day,
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Tap the hours you are free in.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: _timeOptions.map((time) {
+              final isSelected = selectedSlots.contains(time);
+              return GestureDetector(
+                onTap: () => _toggleTime(day, time),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primaryBlue : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primaryBlue
+                          : Colors.grey.shade300,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    time,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildContinueButton() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -229,7 +382,7 @@ class _CoachDaysScreenState extends State<CoachDaysScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/bookings_models.dart';
 import '../../data/repositories/bookings_repository.dart';
 import '../widgets/booking_card.dart';
+import '../utils/bookings_refresh_notifier.dart';
 
 class UpcomingScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -33,13 +35,21 @@ class _UpcomingScreenState extends State<UpcomingScreen>
       initialIndex: widget.initialTabIndex > 1 ? 0 : widget.initialTabIndex,
     );
 
+    BookingsRefreshNotifier.changes.addListener(_handleRefreshSignal);
     _loadBookings();
   }
 
   @override
   void dispose() {
+    BookingsRefreshNotifier.changes.removeListener(_handleRefreshSignal);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _handleRefreshSignal() {
+    if (mounted) {
+      _loadBookings();
+    }
   }
 
   Future<void> _loadBookings() async {
@@ -52,6 +62,8 @@ class _UpcomingScreenState extends State<UpcomingScreen>
       final data = await _repo.getCoachBookings();
 
       if (!mounted) return;
+
+      _logCoachBookingBuckets(data);
 
       setState(() {
         _bookings = data;
@@ -68,22 +80,45 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   }
 
   bool _isPast(BookingModel booking) {
-    try {
-      final date = DateTime.parse(booking.session.sessionDate);
-      return date.isBefore(DateTime.now());
-    } catch (_) {
+    final scheduledAt = booking.scheduledDateTime;
+    if (scheduledAt == null) {
       return false;
     }
+    return scheduledAt.isBefore(DateTime.now());
   }
 
-  bool _isPending(BookingModel booking) {
-    return booking.status.toLowerCase() == 'pending';
+  bool _isPending(BookingModel booking) =>
+      isPendingBookingStatus(booking.status);
+
+  bool _isConfirmed(BookingModel booking) =>
+      isConfirmedBookingStatus(booking.status) ||
+      isCompletedBookingStatus(booking.status);
+
+  bool _isUpcoming(BookingModel booking) =>
+      !_isPast(booking) && _isConfirmed(booking);
+
+  bool _isPastSession(BookingModel booking) =>
+      _isPast(booking) && _isConfirmed(booking);
+
+  void _logCoachBookingBuckets(List<BookingModel> bookings) {
+    developer.log(
+      'Coach bookings categorized -> '
+      'pending=${bookings.where(_isPending).map((b) => _bookingLogMap(b)).toList(growable: false)} '
+      'upcoming=${bookings.where(_isUpcoming).map((b) => _bookingLogMap(b)).toList(growable: false)} '
+      'past=${bookings.where(_isPastSession).map((b) => _bookingLogMap(b)).toList(growable: false)}',
+      name: 'UpcomingScreen',
+    );
   }
 
-  bool _isConfirmed(BookingModel booking) {
-    final status = booking.status.toLowerCase();
-    return status == 'confirmed' || status == 'approved';
-  }
+  Map<String, dynamic> _bookingLogMap(BookingModel booking) => {
+    'bookingId': booking.bookingID,
+    'status': booking.status,
+    'normalizedStatus': booking.normalizedStatus,
+    'sessionDate': booking.session.sessionDate,
+    'startTime': booking.session.startTime,
+    'scheduledAt': booking.session.scheduledAt,
+    'parsedDateTime': booking.scheduledDateTime?.toIso8601String(),
+  };
 
   String _formatDate(String raw) {
     try {
@@ -100,7 +135,11 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   }
 
   String _clientName(BookingModel booking) {
-    return booking.coach.name.isNotEmpty ? booking.coach.name : 'Client';
+    final clientName = booking.client?.name;
+    if (clientName != null && clientName.isNotEmpty) {
+      return clientName;
+    }
+    return 'Client';
   }
 
   String _price(BookingModel booking) {
@@ -110,12 +149,13 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   Future<void> _approveBooking(BookingModel booking) async {
     try {
       await _repo.approveBooking(booking.bookingID);
+      BookingsRefreshNotifier.notifyUpdated();
       await _loadBookings();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking approved')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Booking approved')));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -127,12 +167,13 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   Future<void> _declineBooking(BookingModel booking) async {
     try {
       await _repo.declineBooking(booking.bookingID);
+      BookingsRefreshNotifier.notifyUpdated();
       await _loadBookings();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking declined')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Booking declined')));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -143,21 +184,22 @@ class _UpcomingScreenState extends State<UpcomingScreen>
 
   Future<void> _cancelBooking(BookingModel booking) async {
     try {
-      await _repo.cancelBooking(
-        booking.bookingID,
+      final response = await _repo.cancelSessionWithRefund(
+        booking.session.sessionID,
         reason: 'Cancelled by coach',
       );
+      BookingsRefreshNotifier.notifyUpdated();
       await _loadBookings();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking cancelled')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(response.message)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to cancel booking')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to cancel booking')));
     }
   }
 
@@ -212,9 +254,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final upcoming = _bookings
-        .where((b) => !_isPast(b) && _isConfirmed(b))
-        .toList();
+    final upcoming = _bookings.where(_isUpcoming).toList();
 
     final pending = _bookings
         .where((b) => !_isPast(b) && _isPending(b))
@@ -231,29 +271,29 @@ class _UpcomingScreenState extends State<UpcomingScreen>
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
                 ? Center(
-              child: TextButton(
-                onPressed: _loadBookings,
-                child: Text(_error!),
-              ),
-            )
+                    child: TextButton(
+                      onPressed: _loadBookings,
+                      child: Text(_error!),
+                    ),
+                  )
                 : RefreshIndicator(
-              onRefresh: _loadBookings,
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildBookingsList(
-                    bookings: upcoming,
-                    emptyMessage: 'No upcoming bookings yet',
-                    isPending: false,
+                    onRefresh: _loadBookings,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildBookingsList(
+                          bookings: upcoming,
+                          emptyMessage: 'No upcoming bookings yet',
+                          isPending: false,
+                        ),
+                        _buildBookingsList(
+                          bookings: pending,
+                          emptyMessage: 'No pending requests',
+                          isPending: true,
+                        ),
+                      ],
+                    ),
                   ),
-                  _buildBookingsList(
-                    bookings: pending,
-                    emptyMessage: 'No pending requests',
-                    isPending: true,
-                  ),
-                ],
-              ),
-            ),
           ),
         ],
       ),
@@ -313,10 +353,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
         indicatorWeight: 3,
         labelColor: AppColors.primaryBlue,
         unselectedLabelColor: AppColors.textSecondary,
-        labelStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
@@ -361,7 +398,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
             activity: session.sportName,
             date: _formatDate(session.sessionDate),
             time:
-            '${_formatTime(session.startTime)} - ${_formatTime(session.endTime)}',
+                '${_formatTime(session.startTime)} - ${_formatTime(session.endTime)}',
             onAccept: () => _approveBooking(booking),
             onDecline: () => _confirmDecline(booking),
           );
@@ -372,10 +409,13 @@ class _UpcomingScreenState extends State<UpcomingScreen>
           activity: session.sportName,
           date: _formatDate(session.sessionDate),
           time:
-          '${_formatTime(session.startTime)} - ${_formatTime(session.endTime)}',
+              '${_formatTime(session.startTime)} - ${_formatTime(session.endTime)}',
           location: session.location,
           price: _price(booking),
           status: booking.status,
+          mode: _isPastSession(booking)
+              ? BookingCardMode.past
+              : BookingCardMode.upcoming,
           onCancel: () => _confirmCancel(booking),
         );
       },

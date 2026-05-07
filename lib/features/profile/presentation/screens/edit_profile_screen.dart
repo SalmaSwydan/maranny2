@@ -84,10 +84,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isSaving = true);
 
     try {
-      String? uploadedImageUrl = _profileImageUrl;
-
       if (_profileImagePath != null && _profileImagePath!.isNotEmpty) {
-        uploadedImageUrl = await _profileRepository.uploadProfilePicture(
+        _profileImageUrl = await _profileRepository.uploadProfilePicture(
           File(_profileImagePath!),
         );
       }

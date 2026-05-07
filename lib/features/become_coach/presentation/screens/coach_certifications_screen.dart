@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:file_picker/file_picker.dart';
@@ -27,28 +29,26 @@ class DashedBorderPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = color
-          ..strokeWidth = strokeWidth
-          ..style = PaintingStyle.stroke;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
 
-    final path =
-        Path()..addRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(0, 0, size.width, size.height),
-            Radius.circular(radius),
-          ),
-        );
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, 0, size.width, size.height),
+          Radius.circular(radius),
+        ),
+      );
 
     final dashPath = Path();
     for (final metric in path.computeMetrics()) {
       double distance = 0;
       while (distance < metric.length) {
-        final end = (distance + dashLength).clamp(
-          0.0,
-          metric.length,
-        ).toDouble();
+        final end = (distance + dashLength)
+            .clamp(0.0, metric.length)
+            .toDouble();
         dashPath.addPath(metric.extractPath(distance, end), Offset.zero);
         distance += dashLength + dashSpace;
       }
@@ -72,11 +72,10 @@ class UploadIconPainter extends CustomPainter {
       colors: [Color(0xFF304CE9), Color(0xFF1B2B83)],
     ).createShader(rect);
 
-    final strokePaint =
-        Paint()
-          ..shader = shader
-          ..strokeWidth = 6
-          ..strokeCap = StrokeCap.round;
+    final strokePaint = Paint()
+      ..shader = shader
+      ..strokeWidth = 6
+      ..strokeCap = StrokeCap.round;
 
     final fillPaint = Paint()..shader = shader;
 
@@ -113,12 +112,11 @@ class UploadIconPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
 
-    final arrowPath =
-        Path()
-          ..moveTo(centerX, arrowTopY)
-          ..lineTo(centerX - arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35)
-          ..lineTo(centerX + arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35)
-          ..close();
+    final arrowPath = Path()
+      ..moveTo(centerX, arrowTopY)
+      ..lineTo(centerX - arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35)
+      ..lineTo(centerX + arrowWidth / 2.2, arrowTopY + arrowWidth * 0.35)
+      ..close();
 
     canvas.drawPath(arrowPath, fillPaint);
   }
@@ -174,14 +172,23 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
     });
 
     try {
-      final response = await _authRepository.completeCoachOnboarding(
-        widget.draft
-            .copyWith(
-              certificateUrl:
-                  _selectedFiles.isNotEmpty ? _selectedFiles.first.path : null,
-            )
-            .toRequest(),
+      final updatedDraft = widget.draft.copyWith(
+        certificateUrl: _selectedFiles.isNotEmpty
+            ? _selectedFiles.first.path
+            : null,
       );
+      final request = updatedDraft.toRequest();
+
+      developer.log(
+        'Coach onboarding selected dayToHours=${jsonEncode(updatedDraft.selectedDayToHours)}',
+        name: 'CoachCertificationsScreen',
+      );
+      developer.log(
+        'Coach onboarding request body=${jsonEncode(request.toJson())}',
+        name: 'CoachCertificationsScreen',
+      );
+
+      final response = await _authRepository.completeCoachOnboarding(request);
 
       if (!mounted) return;
 
@@ -341,8 +348,9 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
               height: 6,
               margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
               decoration: BoxDecoration(
-                color:
-                    isActive ? AppColors.primaryBlue : const Color(0xFFE0E0E0),
+                color: isActive
+                    ? AppColors.primaryBlue
+                    : const Color(0xFFE0E0E0),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
@@ -519,27 +527,26 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
               ),
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Center(
-                child:
-                    _isSubmitting
-                        ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                        : const Text(
-                          'Continue',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
                           ),
                         ),
+                      )
+                    : const Text(
+                        'Continue',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../data/models/bookings_models.dart';
 
 /// cardMode:
 ///   'upcoming'   — shows Cancel button  (default)
@@ -46,11 +47,20 @@ class BookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isConfirmed = status == 'Confirmed';
-    final Color statusColor =
-    isConfirmed ? AppColors.confirmed : AppColors.pending;
-    final Color statusBgColor =
-    isConfirmed ? AppColors.confirmedLight : AppColors.pendingLight;
+    final normalizedStatus = normalizeBookingStatus(status);
+    final bool isConfirmed =
+        normalizedStatus == 'confirmed' || normalizedStatus == 'completed';
+    final bool isCancelled = normalizedStatus == 'cancelled';
+    final Color statusColor = isCancelled
+        ? Colors.red
+        : isConfirmed
+        ? AppColors.confirmed
+        : AppColors.pending;
+    final Color statusBgColor = isCancelled
+        ? Colors.red.shade50
+        : isConfirmed
+        ? AppColors.confirmedLight
+        : AppColors.pendingLight;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -74,18 +84,19 @@ class BookingCard extends StatelessWidget {
             Container(
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.red.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border:
-                Border.all(color: Colors.red.shade200),
+                border: Border.all(color: Colors.red.shade200),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: Colors.red, size: 16),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.red,
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -131,13 +142,14 @@ class BookingCard extends StatelessWidget {
                 ),
               ),
               // Status badge — or session outcome badge for past
-              if (mode == BookingCardMode.past &&
-                  sessionStatus != 'none')
+              if (mode == BookingCardMode.past && sessionStatus != 'none')
                 _outcomeBadge()
               else
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: statusBgColor,
                     borderRadius: BorderRadius.circular(20),
@@ -158,38 +170,51 @@ class BookingCard extends StatelessWidget {
           const SizedBox(height: 12),
 
           // ── Date ──
-          Row(children: [
-            const Icon(Icons.calendar_today,
-                size: 16, color: AppColors.textSecondary),
-            const SizedBox(width: 6),
-            Text(date,
-                style: const TextStyle(
-                    fontSize: 12, fontFamily: 'Inter')),
-          ]),
+          Row(
+            children: [
+              const Icon(
+                Icons.calendar_today,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                date,
+                style: const TextStyle(fontSize: 12, fontFamily: 'Inter'),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
 
           // ── Time + Location ──
-          Row(children: [
-            const Icon(Icons.access_time,
-                size: 16, color: AppColors.textSecondary),
-            const SizedBox(width: 6),
-            Text(time,
-                style: const TextStyle(
-                    fontSize: 12, fontFamily: 'Inter')),
-            const SizedBox(width: 16),
-            const Icon(Icons.location_on,
-                size: 16, color: AppColors.textSecondary),
-            const SizedBox(width: 6),
-            Text(location,
-                style: const TextStyle(
-                    fontSize: 12, fontFamily: 'Inter')),
-          ]),
+          Row(
+            children: [
+              const Icon(
+                Icons.access_time,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                time,
+                style: const TextStyle(fontSize: 12, fontFamily: 'Inter'),
+              ),
+              const SizedBox(width: 16),
+              const Icon(
+                Icons.location_on,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                location,
+                style: const TextStyle(fontSize: 12, fontFamily: 'Inter'),
+              ),
+            ],
+          ),
 
           const SizedBox(height: 12),
-          const Divider(
-              height: 1,
-              thickness: 1,
-              color: AppColors.borderGray),
+          const Divider(height: 1, thickness: 1, color: AppColors.borderGray),
           const SizedBox(height: 12),
 
           // ── Bottom row: price + action ──
@@ -206,17 +231,12 @@ class BookingCard extends StatelessWidget {
   Widget _outcomeBadge() {
     final isNoShow = sessionStatus == 'no_show';
     return Container(
-      padding:
-      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: isNoShow
-            ? Colors.red.shade50
-            : Colors.green.shade50,
+        color: isNoShow ? Colors.red.shade50 : Colors.green.shade50,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isNoShow
-              ? Colors.red.shade200
-              : Colors.green.shade200,
+          color: isNoShow ? Colors.red.shade200 : Colors.green.shade200,
         ),
       ),
       child: Row(
@@ -262,11 +282,14 @@ class BookingCard extends StatelessWidget {
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text('Cancel',
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.red)),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.red,
+            ),
+          ),
         ),
       ],
     );
@@ -279,20 +302,21 @@ class BookingCard extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(price,
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary)),
+          Text(
+            price,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          ),
           Text(
             sessionStatus == 'attended'
                 ? 'Marked as Attended'
                 : 'Marked as No-Show',
             style: TextStyle(
               fontSize: 12,
-              color: sessionStatus == 'attended'
-                  ? Colors.green
-                  : Colors.red,
+              color: sessionStatus == 'attended' ? Colors.green : Colors.red,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -304,11 +328,14 @@ class BookingCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(price,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary)),
+        Text(
+          price,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -316,19 +343,25 @@ class BookingCard extends StatelessWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: onNoShow,
-                icon: const Icon(Icons.person_off_outlined,
-                    size: 15, color: Colors.red),
-                label: const Text('No-Show',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.red,
-                        fontWeight: FontWeight.w600)),
+                icon: const Icon(
+                  Icons.person_off_outlined,
+                  size: 15,
+                  color: Colors.red,
+                ),
+                label: const Text(
+                  'No-Show',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.red),
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
@@ -337,19 +370,25 @@ class BookingCard extends StatelessWidget {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: onAttended,
-                icon: const Icon(Icons.check_circle_outline,
-                    size: 15, color: Colors.white),
-                label: const Text('Session Done',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600)),
+                icon: const Icon(
+                  Icons.check_circle_outline,
+                  size: 15,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  'Session Done',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 10),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   elevation: 0,
                 ),
               ),

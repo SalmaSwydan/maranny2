@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
+import '../../../bookings/data/models/reviews_payments_models.dart';
+import '../../../bookings/data/repositories/reviews_payments_repository.dart';
 import '../../../home/presentation/widgets/review_card.dart';
+import '../../data/repositories/profile_repository.dart';
 import 'edit_profile_screen.dart';
 
 class CoachProfileScreen extends StatefulWidget {
@@ -14,6 +18,8 @@ class CoachProfileScreen extends StatefulWidget {
 
 class _CoachProfileScreenState extends State<CoachProfileScreen> {
   final AuthRepository _authRepository = AuthRepository();
+  final ProfileRepository _profileRepository = ProfileRepository();
+  final ReviewsRepository _reviewsRepository = ReviewsRepository();
 
   bool _isLoading = true;
   bool _isBioExpanded = false;
@@ -25,6 +31,9 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   String bio = 'No bio yet';
   String price = '0 LE';
   String? imageUrl;
+  List<ReviewModel> _reviews = const <ReviewModel>[];
+  double _averageRating = 0;
+  int _totalReviews = 0;
 
   @override
   void initState() {
@@ -35,19 +44,97 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   Future<void> _loadCoach() async {
     try {
       final UserModel user = await _authRepository.getCurrentUser();
+      final coachProfile = await _profileRepository.getCoachProfile(user.id);
+      final reviewsPage = await _loadCoachReviewsFallback(user.id);
+
+      final resolvedBio = coachProfile.resolvedBio?.trim() ?? '';
+      final resolvedLocation = coachProfile.resolvedLocation?.trim() ?? '';
+      final resolvedPrice = _formatPrice(coachProfile.resolvedPrice);
+      final averageRating = reviewsPage?.averageRating ?? coachProfile.avgRating;
+      final totalReviews = reviewsPage?.totalCount ?? coachProfile.totalReviews;
+
+      developer.log(
+        'CoachProfileScreen parsed fields -> '
+        'bio=$resolvedBio, '
+        'price=$resolvedPrice, '
+        'location=$resolvedLocation, '
+        'reviewsCount=$totalReviews, '
+        'averageRating=$averageRating',
+        name: 'CoachProfileScreen',
+      );
 
       if (!mounted) return;
 
       setState(() {
-        name = user.fullName.trim().isNotEmpty ? user.fullName : 'Coach';
-        email = user.email;
-        imageUrl = user.profilePicture;
+        name = coachProfile.name.trim().isNotEmpty
+            ? coachProfile.name
+            : (user.fullName.trim().isNotEmpty ? user.fullName : 'Coach');
+        email = (coachProfile.email?.trim().isNotEmpty ?? false)
+            ? coachProfile.email!
+            : user.email;
+        phone = (coachProfile.phoneNumber?.trim().isNotEmpty ?? false)
+            ? coachProfile.phoneNumber!
+            : 'Not added yet';
+        location = resolvedLocation.isNotEmpty
+            ? resolvedLocation
+            : 'Not added yet';
+        bio = resolvedBio.isNotEmpty ? resolvedBio : 'No bio yet';
+        price = resolvedPrice;
+        imageUrl = (coachProfile.profilePictureUrl?.trim().isNotEmpty ?? false)
+            ? coachProfile.profilePictureUrl
+            : user.profilePicture;
+        _reviews = reviewsPage?.reviews ?? const <ReviewModel>[];
+        _averageRating = averageRating;
+        _totalReviews = totalReviews;
         _isLoading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<PaginatedReviews?> _loadCoachReviewsFallback(int coachId) async {
+    try {
+      return await _reviewsRepository.getMyCoachReviews();
+    } catch (_) {
+      try {
+        return await _reviewsRepository.getCoachReviews(coachId);
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
+  String _formatPrice(double? value) {
+    if (value == null || value <= 0) {
+      return '0 LE';
+    }
+
+    if (value == value.roundToDouble()) {
+      return '${value.toInt()} LE';
+    }
+
+    return '${value.toStringAsFixed(2)} LE';
+  }
+
+  String _formatReviewTime(String raw) {
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) {
+      return raw;
+    }
+    final local = parsed.isUtc ? parsed.toLocal() : parsed;
+    final difference = DateTime.now().difference(local);
+    if (difference.inDays >= 1) {
+      return '${difference.inDays} days ago';
+    }
+    if (difference.inHours >= 1) {
+      return '${difference.inHours} hours ago';
+    }
+    if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes} minutes ago';
+    }
+    return 'Just now';
   }
 
   @override
@@ -77,12 +164,24 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             _buildAchievements(),
             const SizedBox(height: 24),
             _buildSectionTitle('Reviews'),
-            const ReviewCard(
-              name: 'No reviews yet',
-              review: 'Reviews will appear here after clients rate you.',
-              timestamp: '',
-              rating: 0,
-            ),
+            if (_reviews.isEmpty)
+              const ReviewCard(
+                name: 'No reviews yet',
+                review: 'Reviews will appear here after clients rate you.',
+                timestamp: '',
+                rating: 0,
+              )
+            else
+              ..._reviews.map(
+                (review) => ReviewCard(
+                  name: review.clientName,
+                  review: review.comment.isNotEmpty
+                      ? review.comment
+                      : 'No written comment provided.',
+                  timestamp: _formatReviewTime(review.createdAt),
+                  rating: review.rating.round().clamp(0, 5),
+                ),
+              ),
             const SizedBox(height: 24),
             _buildSectionTitle('Coach Certifications'),
             Padding(
@@ -172,23 +271,23 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.star, color: Colors.amber, size: 16),
-                        SizedBox(width: 4),
+                        const Icon(Icons.star, color: Colors.amber, size: 16),
+                        const SizedBox(width: 4),
                         Text(
-                          '0.0',
-                          style: TextStyle(
+                          _averageRating.toStringAsFixed(1),
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             fontFamily: 'Inter',
                             color: Colors.white,
                           ),
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
-                          '(0 reviewers)',
-                          style: TextStyle(
+                          '($_totalReviews reviewers)',
+                          style: const TextStyle(
                             fontSize: 12,
                             fontFamily: 'Inter',
                             color: Colors.white70,
@@ -250,7 +349,9 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     final shownBio = bio.trim().isEmpty ? 'No bio yet' : bio;
     final displayText = _isBioExpanded
         ? shownBio
-        : (shownBio.length > 150 ? '${shownBio.substring(0, 150)}...' : shownBio);
+        : (shownBio.length > 150
+              ? '${shownBio.substring(0, 150)}...'
+              : shownBio);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -294,7 +395,10 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
       decoration: _cardDecoration(),
       child: Column(
         children: [
-          _buildContactRow(Icons.email, email.isNotEmpty ? email : 'Not added yet'),
+          _buildContactRow(
+            Icons.email,
+            email.isNotEmpty ? email : 'Not added yet',
+          ),
           const Divider(height: 24),
           _buildContactRow(Icons.phone, phone),
           const Divider(height: 24),

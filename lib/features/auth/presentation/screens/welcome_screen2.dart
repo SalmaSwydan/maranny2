@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:maranny_two/features/auth/presentation/screens/register_screen.dart';
 import 'package:maranny_two/features/auth/presentation/screens/login_screen.dart';
-import '../../../become_coach/presentation/screens/coach_info_screen.dart';
 import '../../../home/presentation/screens/guest_homescreen.dart';
 
 class WelcomeScreen2 extends StatefulWidget {

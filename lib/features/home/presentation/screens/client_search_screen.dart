@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:developer' as developer;
 import '../../../bookings/presentation/screens/coach_details_screen.dart';
 import '../../../bookings/domain/models/booking_session_model.dart';
 import '../../../bookings/domain/models/coach_data_model.dart';
@@ -13,7 +15,7 @@ const Map<String, List<String>> _egyptLocations = {
     'Zamalek',
     'Dokki',
     'Mohandessin',
-    '6th of October'
+    '6th of October',
   ],
   'Alexandria': [
     'Smouha',
@@ -22,7 +24,7 @@ const Map<String, List<String>> _egyptLocations = {
     'Sporting',
     'Sidi Bishr',
     'Stanley',
-    'Gleem'
+    'Gleem',
   ],
   'Giza': ['Sheikh Zayed', 'Haram', 'Faisal', 'Agouza', 'Imbaba'],
   'New Cairo': ['5th Settlement', 'Rehab', 'Madinaty', 'Shorouk', 'Badr City'],
@@ -44,10 +46,12 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   String _selectedCategory = 'All';
   String _searchQuery = '';
 
-  double _maxPrice = 1000;
+  static const double _defaultMaxPrice = 10000;
+
+  double _maxPrice = _defaultMaxPrice;
   String? _selectedCity;
   String? _selectedArea;
-  String _certification = 'Only Certified Coaches';
+  String _certification = "Doesn't Matter";
   String _ratingFilter = "Doesn't Matter";
   bool _filterApplied = false;
 
@@ -76,9 +80,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     switch (category) {
       case 'Football':
         return 1;
-      case 'Swimming':
-        return 2;
       case 'Yoga':
+        return 2;
+      case 'Swimming':
         return 3;
       case 'Fitness':
         return 4;
@@ -91,6 +95,93 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       default:
         return null;
     }
+  }
+
+  String _normalizedSportName(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  List<int> _coachSportIds(Map<String, dynamic> coach) {
+    final ids = <int>[];
+    final sports = coach['sports'];
+    if (sports is List) {
+      for (final sport in sports) {
+        if (sport is Map<String, dynamic>) {
+          final rawId = sport['id'] ?? sport['sportID'] ?? sport['sportId'];
+          if (rawId is int) {
+            ids.add(rawId);
+          } else if (rawId is num) {
+            ids.add(rawId.toInt());
+          } else if (rawId is String) {
+            final parsed = int.tryParse(rawId);
+            if (parsed != null) {
+              ids.add(parsed);
+            }
+          }
+        }
+      }
+    }
+
+    final directId = coach['sportID'] ?? coach['sportId'];
+    if (directId is int) {
+      ids.add(directId);
+    } else if (directId is num) {
+      ids.add(directId.toInt());
+    } else if (directId is String) {
+      final parsed = int.tryParse(directId);
+      if (parsed != null) {
+        ids.add(parsed);
+      }
+    }
+
+    return ids.toSet().toList(growable: false);
+  }
+
+  List<String> _coachSportNames(Map<String, dynamic> coach) {
+    final names = <String>[];
+    final sports = coach['sports'];
+    if (sports is List) {
+      for (final sport in sports) {
+        if (sport is Map<String, dynamic>) {
+          final name = (sport['name'] ?? sport['sportName'] ?? '').toString();
+          if (name.trim().isNotEmpty) {
+            names.add(name.trim());
+          }
+        } else {
+          final text = sport.toString().trim();
+          if (text.isNotEmpty) {
+            names.add(text);
+          }
+        }
+      }
+    }
+
+    final directName = (coach['sport'] ?? coach['sportName'] ?? '')
+        .toString()
+        .trim();
+    if (directName.isNotEmpty) {
+      names.add(directName);
+    }
+
+    return names.toSet().toList(growable: false);
+  }
+
+  bool _matchesSelectedSport(Map<String, dynamic> coach) {
+    if (_selectedCategory == 'All') {
+      return true;
+    }
+
+    final selectedSportId = _sportIdFromCategory(_selectedCategory);
+    final coachSportIds = _coachSportIds(coach);
+    if (selectedSportId != null && coachSportIds.isNotEmpty) {
+      return coachSportIds.contains(selectedSportId);
+    }
+
+    final selectedSportName = _normalizedSportName(_selectedCategory);
+    final coachSportNames = _coachSportNames(coach);
+    return coachSportNames.any(
+      (name) => _normalizedSportName(name) == selectedSportName,
+    );
   }
 
   double? _minRatingFromFilter(String value) {
@@ -112,19 +203,73 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     });
 
     try {
+      final selectedSportId = _sportIdFromCategory(_selectedCategory);
+      developer.log(
+        'ClientSearchScreen load coaches -> '
+        'selectedChip=$_selectedCategory '
+        'mappedSportID=$selectedSportId '
+        'searchQuery=$_searchQuery '
+        'city=${_selectedCity ?? ''}',
+        name: 'ClientSearchScreen',
+      );
+      print(
+        '[ClientSearchScreen] load coaches -> '
+        'selectedChip=$_selectedCategory '
+        'mappedSportID=$selectedSportId '
+        'searchQuery=$_searchQuery '
+        'city=${_selectedCity ?? ''}',
+      );
+
       final data = await _profileRepository.searchCoachesList(
         name: _searchQuery.trim().isEmpty ? null : _searchQuery.trim(),
-        sportID: _sportIdFromCategory(_selectedCategory),
+        sportID: selectedSportId,
         city: _selectedCity,
         minRating: _minRatingFromFilter(_ratingFilter),
-        verifiedOnly: _verifiedOnlyFromCertification(_certification),
+        verifiedOnly: _filterApplied
+            ? _verifiedOnlyFromCertification(_certification)
+            : null,
         page: 1,
         pageSize: 20,
       );
+      final filteredData = data.where(_matchesSelectedSport).toList(growable: false);
+
+      developer.log(
+        'ClientSearchScreen coaches response -> '
+        'selectedChip=$_selectedCategory '
+        'mappedSportID=$selectedSportId '
+        'rawCount=${data.length} '
+        'filteredCount=${filteredData.length}',
+        name: 'ClientSearchScreen',
+      );
+      print(
+        '[ClientSearchScreen] coaches response -> '
+        'selectedChip=$_selectedCategory '
+        'mappedSportID=$selectedSportId '
+        'rawCount=${data.length} '
+        'filteredCount=${filteredData.length}',
+      );
+      for (final coach in data) {
+        final coachName = _coachName(coach);
+        final sportNames = _coachSportNames(coach);
+        final sportIds = _coachSportIds(coach);
+        developer.log(
+          'ClientSearchScreen coach -> '
+          'name=$coachName '
+          'sportNames=${jsonEncode(sportNames)} '
+          'sportIDs=${jsonEncode(sportIds)}',
+          name: 'ClientSearchScreen',
+        );
+        print(
+          '[ClientSearchScreen] coach -> '
+          'name=$coachName '
+          'sportNames=${jsonEncode(sportNames)} '
+          'sportIDs=${jsonEncode(sportIds)}',
+        );
+      }
 
       if (!mounted) return;
       setState(() {
-        _coaches = data;
+        _coaches = filteredData;
         _isLoading = false;
       });
     } catch (_) {
@@ -138,9 +283,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
 
   String _coachName(Map<String, dynamic> coach) {
     return (coach['name'] ??
-        coach['coachName'] ??
-        coach['fullName'] ??
-        'Unknown Coach')
+            coach['coachName'] ??
+            coach['fullName'] ??
+            'Unknown Coach')
         .toString();
   }
 
@@ -159,8 +304,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
 
   String _coachDescription(Map<String, dynamic> coach) {
     return (coach['bio'] ??
-        coach['description'] ??
-        'Professional coach with experience')
+            coach['description'] ??
+            'Professional coach with experience')
         .toString();
   }
 
@@ -188,7 +333,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       }
     }
 
-    final value = coach['price'] ?? coach['pricePerSession'];
+    final value =
+        coach['startingPrice'] ?? coach['price'] ?? coach['pricePerSession'];
     if (value is int) return value;
     if (value is num) return value.toInt();
     return 0;
@@ -216,9 +362,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
 
   String _coachImage(Map<String, dynamic> coach) {
     return (coach['profilePictureUrl'] ??
-        coach['imageUrl'] ??
-        coach['url'] ??
-        '')
+            coach['imageUrl'] ??
+            coach['url'] ??
+            '')
         .toString();
   }
 
@@ -237,6 +383,11 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     final sport = _coachSport(coach);
     final city = _coachCity(coach);
     final area = _coachArea(coach);
+    final availableDays =
+        ((coach['availableDays'] as List<dynamic>?) ?? const [])
+            .map((day) => day.toString())
+            .where((day) => day.isNotEmpty)
+            .toList();
 
     final location = area.isNotEmpty ? '$area, $city' : city;
 
@@ -256,6 +407,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       sport: sport,
       location: location,
       image: _coachImage(coach),
+      availableDays: availableDays,
       rating: _coachRating(coach),
       reviewCount: _coachReviews(coach),
       price: _coachPrice(coach),
@@ -317,7 +469,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   Widget build(BuildContext context) {
     final filteredByPrice = _coaches.where((coach) {
       final price = _coachPrice(coach);
-      return price == 0 || price <= _maxPrice;
+      return !_filterApplied || price == 0 || price <= _maxPrice;
     }).toList();
 
     return Scaffold(
@@ -374,7 +526,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                         color: Colors.black.withValues(alpha: 0.06),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
-                      )
+                      ),
                     ],
                   ),
                   child: Row(
@@ -389,7 +541,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                             setState(() => _searchQuery = v);
                             Future.delayed(
                               const Duration(milliseconds: 350),
-                                  () {
+                              () {
                                 if (mounted && _searchQuery == v) {
                                   _loadCoaches();
                                 }
@@ -398,8 +550,10 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                           },
                           decoration: const InputDecoration(
                             hintText: 'Browse coaches by name',
-                            hintStyle:
-                            TextStyle(color: Colors.grey, fontSize: 14),
+                            hintStyle: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                            ),
                             border: InputBorder.none,
                             isDense: true,
                           ),
@@ -515,50 +669,43 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
                 ? Center(
-              child: TextButton(
-                onPressed: _loadCoaches,
-                child: Text(_error!),
-              ),
-            )
+                    child: TextButton(
+                      onPressed: _loadCoaches,
+                      child: Text(_error!),
+                    ),
+                  )
                 : filteredByPrice.isEmpty
                 ? const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.search_off,
-                    size: 48,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'No coaches match your filters',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            )
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.search_off, size: 48, color: Colors.grey),
+                        SizedBox(height: 8),
+                        Text(
+                          'No coaches match your filters',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
                 : ListView.builder(
-              padding:
-              const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              itemCount: filteredByPrice.length,
-              itemBuilder: (context, index) => _CoachCard(
-                coach: filteredByPrice[index],
-                name: _coachName(filteredByPrice[index]),
-                sport: _coachSport(filteredByPrice[index]),
-                description:
-                _coachDescription(filteredByPrice[index]),
-                rating: _coachRating(filteredByPrice[index]),
-                reviews: _coachReviews(filteredByPrice[index]),
-                city: _coachCity(filteredByPrice[index]),
-                area: _coachArea(filteredByPrice[index]),
-                price: _coachPrice(filteredByPrice[index]),
-                color: _coachColor(filteredByPrice[index]),
-                image: _coachImage(filteredByPrice[index]),
-                onTap: () =>
-                    _openCoachDetails(filteredByPrice[index]),
-              ),
-            ),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    itemCount: filteredByPrice.length,
+                    itemBuilder: (context, index) => _CoachCard(
+                      coach: filteredByPrice[index],
+                      name: _coachName(filteredByPrice[index]),
+                      sport: _coachSport(filteredByPrice[index]),
+                      description: _coachDescription(filteredByPrice[index]),
+                      rating: _coachRating(filteredByPrice[index]),
+                      reviews: _coachReviews(filteredByPrice[index]),
+                      city: _coachCity(filteredByPrice[index]),
+                      area: _coachArea(filteredByPrice[index]),
+                      price: _coachPrice(filteredByPrice[index]),
+                      color: _coachColor(filteredByPrice[index]),
+                      image: _coachImage(filteredByPrice[index]),
+                      onTap: () => _openCoachDetails(filteredByPrice[index]),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -606,10 +753,10 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   int get _activeCount {
     int c = 0;
-    if (_maxPrice < 1000) c++;
+    if (_maxPrice < _ClientSearchScreenState._defaultMaxPrice) c++;
     if (_selectedCity != null) c++;
     if (_selectedArea != null) c++;
-    if (_certification != 'Only Certified Coaches') c++;
+    if (_certification != "Doesn't Matter") c++;
     if (_rating != "Doesn't Matter") c++;
     return c;
   }
@@ -654,8 +801,8 @@ class _FilterSheetState extends State<_FilterSheet> {
             Slider(
               value: _maxPrice,
               min: 100,
-              max: 1000,
-              divisions: 18,
+              max: _ClientSearchScreenState._defaultMaxPrice,
+              divisions: 99,
               activeColor: const Color(0xFF1F3A93),
               onChanged: (v) => setState(() => _maxPrice = v),
             ),
@@ -674,16 +821,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                   ),
                 ),
                 Text(
-                  '1000 LE',
+                  '${_ClientSearchScreenState._defaultMaxPrice.toInt()} LE',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            const Text(
-              'City',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text('City', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -729,18 +873,19 @@ class _FilterSheetState extends State<_FilterSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: [
-                'Only Certified Coaches',
-                'Certified Preferred',
-                "Doesn't Matter"
-              ]
-                  .map(
-                    (opt) => GestureDetector(
-                  onTap: () => setState(() => _certification = opt),
-                  child: _chip(opt, _certification == opt),
-                ),
-              )
-                  .toList(),
+              children:
+                  [
+                        'Only Certified Coaches',
+                        'Certified Preferred',
+                        "Doesn't Matter",
+                      ]
+                      .map(
+                        (opt) => GestureDetector(
+                          onTap: () => setState(() => _certification = opt),
+                          child: _chip(opt, _certification == opt),
+                        ),
+                      )
+                      .toList(),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -763,8 +908,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color:
-                      selected ? const Color(0xFF1F3A93) : Colors.white,
+                      color: selected ? const Color(0xFF1F3A93) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: selected
@@ -788,8 +932,9 @@ class _FilterSheetState extends State<_FilterSheet> {
                           style: TextStyle(
                             fontSize: 13,
                             color: selected ? Colors.white : Colors.black87,
-                            fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.normal,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
                           ),
                         ),
                       ],
@@ -903,7 +1048,7 @@ class _CoachCard extends StatelessWidget {
               color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
-            )
+            ),
           ],
         ),
         child: Row(
@@ -912,29 +1057,29 @@ class _CoachCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: image.isNotEmpty
                   ? Image.network(
-                image,
-                width: 64,
-                height: 64,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.person, color: color, size: 32),
-                ),
-              )
+                      image,
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.person, color: color, size: 32),
+                      ),
+                    )
                   : Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.person, color: color, size: 32),
-              ),
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.person, color: color, size: 32),
+                    ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -976,10 +1121,7 @@ class _CoachCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black54,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1002,8 +1144,10 @@ class _CoachCard extends StatelessWidget {
                       Flexible(
                         child: Text(
                           location,
-                          style:
-                          const TextStyle(fontSize: 11, color: Colors.grey),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                         ),

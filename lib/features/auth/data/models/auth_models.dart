@@ -39,11 +39,13 @@ class RegisterRequest {
     if (phoneNumber != null && phoneNumber!.trim().isNotEmpty) {
       map['phoneNumber'] = phoneNumber;
     }
-    if (nationalIdImageUrl != null)
+    if (nationalIdImageUrl != null) {
       map['nationalIdImageUrl'] = nationalIdImageUrl;
+    }
     if (isCertified != null) map['isCertified'] = isCertified;
-    if (certificateImageUrl != null)
+    if (certificateImageUrl != null) {
       map['certificateImageUrl'] = certificateImageUrl;
+    }
     return map;
   }
 }
@@ -80,6 +82,8 @@ class CompleteCoachOnboardingRequest {
   final double sessionPrice;
   final List<CoachOnboardingSportRequest> sports;
   final List<String> availableDays;
+  final List<String> availableHours;
+  final List<CoachAvailabilitySlotRequest> dayHourSlots;
   final String? bio;
   final String? certificateUrl;
 
@@ -93,6 +97,8 @@ class CompleteCoachOnboardingRequest {
     required this.sessionPrice,
     required this.sports,
     required this.availableDays,
+    required this.availableHours,
+    this.dayHourSlots = const [],
     this.bio,
     this.certificateUrl,
   });
@@ -107,10 +113,22 @@ class CompleteCoachOnboardingRequest {
     'sessionPrice': sessionPrice,
     'sports': sports.map((sport) => sport.toJson()).toList(),
     'availableDays': availableDays,
+    'availableHours': availableHours,
+    if (dayHourSlots.isNotEmpty)
+      'dayHourSlots': dayHourSlots.map((slot) => slot.toJson()).toList(),
     if (bio != null && bio!.trim().isNotEmpty) 'bio': bio,
     if (certificateUrl != null && certificateUrl!.trim().isNotEmpty)
       'certificateUrl': certificateUrl,
   };
+}
+
+class CoachAvailabilitySlotRequest {
+  final String day;
+  final List<String> hours;
+
+  const CoachAvailabilitySlotRequest({required this.day, required this.hours});
+
+  Map<String, dynamic> toJson() => {'day': day, 'hours': hours};
 }
 
 class CoachOnboardingSportRequest {
@@ -246,17 +264,17 @@ class ApiError {
         json['error'] as String? ??
         json['message'] as String? ??
         'Something went wrong';
-    final errorsList =
-        json['errors'] != null ? List<String>.from(json['errors']) : <String>[];
+    final errorsList = json['errors'] != null
+        ? List<String>.from(json['errors'])
+        : <String>[];
     return ApiError(
       message: errorMsg,
       errors: errorsList,
       attemptsRemaining: json['attemptsRemaining'] as int?,
       reason: json['reason'] as String?,
-      details:
-          json['details'] is Map<String, dynamic>
-              ? json['details'] as Map<String, dynamic>
-              : null,
+      details: json['details'] is Map<String, dynamic>
+          ? json['details'] as Map<String, dynamic>
+          : null,
     );
   }
 

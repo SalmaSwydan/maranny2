@@ -28,11 +28,12 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
   void initState() {
     super.initState();
 
-    _data = widget.coachData ??
+    _data =
+        widget.coachData ??
         allCoachesData.firstWhere(
-              (c) => c.name == widget.session.coachName,
+          (c) => c.name == widget.session.coachName,
           orElse: () => allCoachesData.firstWhere(
-                (c) => c.name.startsWith(widget.session.coachName.split(' ').first),
+            (c) => c.name.startsWith(widget.session.coachName.split(' ').first),
             orElse: () => allCoachesData.first,
           ),
         );
@@ -67,10 +68,12 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (_) => BookSessionSheet(
+        coachId: widget.session.coachUserId,
         coachName: widget.session.coachName,
         coachSport: '${widget.session.sport} Coach',
         coachImage: _image,
         coachPrice: _price,
+        availableDays: _data.availableDays,
       ),
     );
   }
@@ -160,20 +163,20 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
                 borderRadius: BorderRadius.circular(12),
                 child: _image.isNotEmpty
                     ? _isNetworkImage
-                    ? Image.network(
-                  _image,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _avatarBox(),
-                )
-                    : Image.asset(
-                  _image,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _avatarBox(),
-                )
+                          ? Image.network(
+                              _image,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _avatarBox(),
+                            )
+                          : Image.asset(
+                              _image,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _avatarBox(),
+                            )
                     : _avatarBox(),
               ),
               const SizedBox(width: 14),
@@ -370,7 +373,7 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 6,
-              )
+              ),
             ],
           ),
           child: Column(
@@ -419,7 +422,7 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 6,
-                )
+                ),
               ],
             ),
             child: Column(
@@ -446,7 +449,7 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
                           Row(
                             children: List.generate(
                               5,
-                                  (i) => Icon(
+                              (i) => Icon(
                                 Icons.star,
                                 size: 14,
                                 color: i < r.rating
@@ -528,7 +531,7 @@ class _StatCard extends StatelessWidget {
               color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 3),
-            )
+            ),
           ],
         ),
         child: Column(

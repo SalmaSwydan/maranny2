@@ -25,6 +25,6 @@ class NotificationsRepository {
   }
 
   Future<void> markAsRead(int notificationId) async {
-    await _dio.put('/notifications/$notificationId/read');
+    await _dio.put(ApiConfig.notificationRead(notificationId));
   }
 }

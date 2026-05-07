@@ -121,9 +121,19 @@ class ProductCard extends StatelessWidget {
         color: Colors.grey.shade200,
         child: const Icon(Icons.image_not_supported, size: 40));
     if (product.imageAsset.isEmpty) return placeholder();
+    final isNetworkImage =
+        product.imageAsset.startsWith('http://') ||
+        product.imageAsset.startsWith('https://');
     final isFilePath = product.imageAsset.startsWith('/') ||
         product.imageAsset.startsWith('file:') ||
         RegExp(r'^[A-Za-z]:[\\/]').hasMatch(product.imageAsset);
+    if (isNetworkImage) {
+      return Image.network(
+        product.imageAsset,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => placeholder(),
+      );
+    }
     if (isFilePath) {
       final file = File(product.imageAsset);
       if (!file.existsSync()) return placeholder();

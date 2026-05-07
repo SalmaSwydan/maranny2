@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import '../../../../../core/network/token_storage.dart';
 import '../widgets/SessionCard.dart';
 import '../widgets/header.dart';
@@ -6,6 +7,8 @@ import '../widgets/pending_request_card.dart';
 import '../widgets/review_card.dart';
 import '../../../bookings/presentation/utils/shared_bookings_manager.dart';
 import '../../../bookings/presentation/screens/upcoming_pending.dart';
+import '../../../bookings/data/models/reviews_payments_models.dart';
+import '../../../bookings/data/repositories/reviews_payments_repository.dart';
 import '../../../reviews/presentation/screens/all_reviews_screen.dart';
 import '../../../bookings/presentation/utils/shared_pending_requests_manager.dart';
 import '../../../../../core/widgets/app_side_menu.dart';
@@ -22,11 +25,13 @@ class CoachHomeScreen extends StatefulWidget {
 
 class _CoachHomeScreenState extends State<CoachHomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final ReviewsRepository _reviewsRepository = ReviewsRepository();
 
   late List<Map<String, dynamic>> _pendingRequests;
   late List<Map<String, dynamic>> _todaysSchedule;
 
   String _userName = 'Coach';
+  List<ReviewModel> _recentReviews = const <ReviewModel>[];
 
   @override
   void initState() {
@@ -66,6 +71,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
     }
 
     _refresh();
+    _loadRecentReviews();
   }
 
   Future<void> _loadUserName() async {
@@ -85,6 +91,48 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       _todaysSchedule = SharedBookingsManager.getConfirmedBookings();
       _pendingRequests = SharedPendingRequestsManager.getNextPendingRequests(2);
     });
+  }
+
+  Future<void> _loadRecentReviews() async {
+    try {
+      final reviewsPage = await _reviewsRepository.getMyCoachReviews(pageSize: 10);
+      if (!mounted) {
+        return;
+      }
+      developer.log(
+        'CoachHomeScreen recent reviews -> count=${reviewsPage.reviews.length} averageRating=${reviewsPage.averageRating}',
+        name: 'CoachHomeScreen',
+      );
+      setState(() {
+        _recentReviews = reviewsPage.reviews.take(2).toList(growable: false);
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _recentReviews = const <ReviewModel>[];
+      });
+    }
+  }
+
+  String _formatReviewTime(String raw) {
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) {
+      return raw;
+    }
+    final local = parsed.isUtc ? parsed.toLocal() : parsed;
+    final difference = DateTime.now().difference(local);
+    if (difference.inDays >= 1) {
+      return '${difference.inDays} days ago';
+    }
+    if (difference.inHours >= 1) {
+      return '${difference.inHours} hours ago';
+    }
+    if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes} minutes ago';
+    }
+    return 'Just now';
   }
 
   String _extractTimeFromDate(String dateStr) {
@@ -420,20 +468,19 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                 MaterialPageRoute(builder: (_) => const AllReviewsScreen()),
               ),
             ),
-
-            const ReviewCard(
-              name: "Ahmed Yasser",
-              review: "Excellent coaching! Really improved My skills",
-              timestamp: "2 days ago",
-              rating: 5,
-            ),
-
-            const ReviewCard(
-              name: "Maria K.",
-              review: "Very patient and professional.",
-              timestamp: "2 days ago",
-              rating: 5,
-            ),
+            if (_recentReviews.isEmpty)
+              _emptyCard('No reviews yet')
+            else
+              ..._recentReviews.map(
+                (review) => ReviewCard(
+                  name: review.clientName,
+                  review: review.comment.isNotEmpty
+                      ? review.comment
+                      : 'No written comment provided.',
+                  timestamp: _formatReviewTime(review.createdAt),
+                  rating: review.rating.round().clamp(0, 5),
+                ),
+              ),
 
             const SizedBox(height: 24),
           ],

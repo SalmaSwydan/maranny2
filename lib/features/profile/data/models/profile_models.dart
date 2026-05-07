@@ -77,7 +77,9 @@ class UpdatePreferencesRequest {
     if (maxDistance != null) map['maxDistance'] = maxDistance;
     if (city != null) map['city'] = city;
     if (area != null) map['area'] = area;
-    if (locationPreference != null) map['locationPreference'] = locationPreference;
+    if (locationPreference != null) {
+      map['locationPreference'] = locationPreference;
+    }
     if (ratingPreference != null) map['ratingPreference'] = ratingPreference;
     if (coachGender != null) map['coachGender'] = coachGender;
     if (coachAgeRange != null) map['coachAgeRange'] = coachAgeRange;
@@ -90,6 +92,8 @@ class CoachProfileModel {
   final int coachID;
   final String name;
   final String? bio;
+  final String? about;
+  final String? description;
   final int experienceYears;
   final double avgRating;
   final String? gender;
@@ -98,6 +102,13 @@ class CoachProfileModel {
   final String verificationStatus;
   final String? email;
   final String? phoneNumber;
+  final String? city;
+  final String? location;
+  final String? address;
+  final double? sessionPrice;
+  final double? hourlyRate;
+  final double? startingPrice;
+  final List<String> availableDays;
   final List<CoachSportModel> sports;
   final List<String> locations;
   final int totalReviews;
@@ -116,35 +127,90 @@ class CoachProfileModel {
     required this.upcomingSessions,
     required this.recentReviews,
     this.bio,
+    this.about,
+    this.description,
     this.gender,
     this.profilePictureUrl,
     this.certificateUrl,
     this.email,
     this.phoneNumber,
+    this.city,
+    this.location,
+    this.address,
+    this.sessionPrice,
+    this.hourlyRate,
+    this.startingPrice,
+    this.availableDays = const [],
   });
 
   factory CoachProfileModel.fromJson(Map<String, dynamic> json) {
+    final payload = (json['coach'] is Map<String, dynamic>)
+        ? json['coach'] as Map<String, dynamic>
+        : json;
+
     return CoachProfileModel(
-      coachID: json['coachID'] as int,
-      name: json['name'] as String,
-      bio: json['bio'] as String?,
-      experienceYears: json['experienceYears'] as int? ?? 0,
-      avgRating: (json['avgRating'] as num?)?.toDouble() ?? 0,
-      gender: json['gender'] as String?,
-      profilePictureUrl: json['url'] as String?,
-      certificateUrl: json['certificateUrl'] as String?,
-      verificationStatus: json['verificationStatus'] as String? ?? 'Pending',
-      email: json['email'] as String?,
-      phoneNumber: json['phoneNumber'] as String?,
-      sports: (json['sports'] as List<dynamic>? ?? [])
-          .map((e) => CoachSportModel.fromJson(e as Map<String, dynamic>))
+      coachID: _asInt(
+        payload['coachID'] ?? payload['coachId'] ?? payload['id'],
+      ),
+      name: _asString(payload['name']),
+      bio: _asNullableString(payload['bio']),
+      about: _asNullableString(payload['about']),
+      description: _asNullableString(payload['description']),
+      experienceYears: _asInt(payload['experienceYears']),
+      avgRating: _asDouble(payload['avgRating']),
+      gender: _asNullableString(payload['gender']),
+      profilePictureUrl: _asNullableString(
+        payload['url'] ?? payload['profilePictureUrl'],
+      ),
+      certificateUrl: _asNullableString(payload['certificateUrl']),
+      verificationStatus: _asString(
+        payload['verificationStatus'],
+        fallback: 'Pending',
+      ),
+      email: _asNullableString(payload['email']),
+      phoneNumber: _asNullableString(payload['phoneNumber']),
+      city: _asNullableString(payload['city']),
+      location: _asNullableString(payload['location']),
+      address: _asNullableString(payload['address']),
+      sessionPrice: _asNullableDouble(payload['sessionPrice']),
+      hourlyRate: _asNullableDouble(payload['hourlyRate']),
+      startingPrice: _asNullableDouble(
+        payload['startingPrice'] ?? payload['pricePerSession'],
+      ),
+      availableDays: List<String>.from(payload['availableDays'] ?? const []),
+      sports: (payload['sports'] as List<dynamic>? ?? [])
+          .whereType<Map>()
+          .map((e) => CoachSportModel.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
-      locations: List<String>.from(json['locations'] ?? []),
-      totalReviews: json['totalReviews'] as int? ?? 0,
-      upcomingSessions: List<Map<String, dynamic>>.from(json['upcomingSessions'] ?? []),
-      recentReviews: List<Map<String, dynamic>>.from(json['recentReviews'] ?? []),
+      locations: List<String>.from(payload['locations'] ?? const []),
+      totalReviews: _asInt(payload['totalReviews']),
+      upcomingSessions:
+          (payload['upcomingSessions'] as List<dynamic>? ?? const [])
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList(),
+      recentReviews: (payload['recentReviews'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList(),
     );
   }
+
+  String? get resolvedBio => _firstNonEmptyString([bio, about, description]);
+
+  double? get resolvedPrice => _firstNonNullDouble([
+    sessionPrice,
+    startingPrice,
+    hourlyRate,
+    ...sports.map((sport) => sport.pricePerSession),
+  ]);
+
+  String? get resolvedLocation => _firstNonEmptyString([
+    if (locations.isNotEmpty) locations.first,
+    city,
+    location,
+    address,
+  ]);
 }
 
 class CoachSportModel {
@@ -164,11 +230,11 @@ class CoachSportModel {
 
   factory CoachSportModel.fromJson(Map<String, dynamic> json) {
     return CoachSportModel(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      description: json['description'] as String?,
-      pricePerSession: (json['pricePerSession'] as num?)?.toDouble(),
-      experienceYears: json['experienceYears'] as int?,
+      id: _asInt(json['id']),
+      name: _asString(json['name']),
+      description: _asNullableString(json['description']),
+      pricePerSession: _asNullableDouble(json['pricePerSession']),
+      experienceYears: _asNullableInt(json['experienceYears']),
     );
   }
 }
@@ -185,8 +251,68 @@ class ChangePasswordRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'currentPassword': currentPassword,
-        'newPassword': newPassword,
-        'confirmPassword': confirmPassword,
-      };
+    'currentPassword': currentPassword,
+    'newPassword': newPassword,
+    'confirmPassword': confirmPassword,
+  };
+}
+
+int _asInt(dynamic value, {int fallback = 0}) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
+int? _asNullableInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
+double _asDouble(dynamic value, {double fallback = 0}) {
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? fallback;
+  return fallback;
+}
+
+double? _asNullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
+String _asString(dynamic value, {String fallback = ''}) {
+  if (value == null) return fallback;
+  final stringValue = value.toString();
+  return stringValue.isEmpty ? fallback : stringValue;
+}
+
+String? _asNullableString(dynamic value) {
+  if (value == null) return null;
+  final stringValue = value.toString();
+  return stringValue.isEmpty ? null : stringValue;
+}
+
+String? _firstNonEmptyString(List<String?> values) {
+  for (final value in values) {
+    if (value != null && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+double? _firstNonNullDouble(List<double?> values) {
+  for (final value in values) {
+    if (value != null && value > 0) {
+      return value;
+    }
+  }
+  return null;
 }

@@ -105,7 +105,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               // ── Sliding card — matches Figma size ──
               SizedBox(
                 // ✅ Fixed height matching Figma card proportions
-                height: size.height * 0.28,
+                height: size.height * 0.30,
                 child: PageView.builder(
                   controller: _pageController,
                   itemCount: _pages.length,
@@ -117,7 +117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 20),
+                            horizontal: 24, vertical: 14),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
@@ -131,17 +131,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           children: [
                             // Icon with circle background like Figma
                             Container(
-                              width: 56, height: 56,
+                              width: 48, height: 48,
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.2),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 _iconFromString(page['icon']!),
-                                color: Colors.white, size: 30,
+                                color: Colors.white, size: 28,
                               ),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 10),
                             Text(
                               page['title']!,
                               style: const TextStyle(
@@ -152,7 +152,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
                             Text(
                               page['subtitle']!,
                               style: const TextStyle(

@@ -1,137 +1,286 @@
-/// ─────────────────────────────────────────────────────────────
+import 'dart:io';
+
 /// MARKETPLACE MODELS
-/// ─────────────────────────────────────────────────────────────
 
 class ProductModel {
-  final int    productID;
-  final String productName;
+  final int productId;
+  final String title;
   final String description;
   final double price;
   final String condition;
-  final String? imageUrl;
-  final ProductCategory    category;
-  final ProductSeller      seller;
-  final List<SportRef>     sports;
+  final String imageUrl;
+  final String categoryName;
+  final String sellerName;
+  final String sellerPhone;
+  final String location;
+  final double rating;
+  final int reviewsCount;
+  final String createdAt;
+  final int? ownerId;
+  final int? sellerId;
 
   const ProductModel({
-    required this.productID, required this.productName,
-    required this.description, required this.price,
-    required this.condition, required this.category,
-    required this.seller, required this.sports, this.imageUrl,
+    required this.productId,
+    required this.title,
+    required this.description,
+    required this.price,
+    required this.condition,
+    required this.imageUrl,
+    required this.categoryName,
+    required this.sellerName,
+    required this.sellerPhone,
+    required this.location,
+    required this.rating,
+    required this.reviewsCount,
+    required this.createdAt,
+    this.ownerId,
+    this.sellerId,
   });
 
-  factory ProductModel.fromJson(Map<String, dynamic> json) =>
-      ProductModel(
-        productID:   json['productID']   as int,
-        productName: json['productName'] as String,
-        description: json['description'] as String,
-        price:       (json['price']      as num).toDouble(),
-        condition:   json['condition']   as String,
-        imageUrl:    json['imageUrl']    as String?,
-        category: ProductCategory.fromJson(
-            json['category'] as Map<String, dynamic>),
-        seller: ProductSeller.fromJson(
-            json['seller'] as Map<String, dynamic>),
-        sports: (json['sports'] as List<dynamic>? ?? [])
-            .map((e) =>
-            SportRef.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
-}
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    final category = _asMap(json['category']);
+    final seller = _asMap(json['seller']) ?? _asMap(json['owner']);
 
-class ProductCategory {
-  final int    categoryID;
-  final String categoryName;
+    return ProductModel(
+      productId: _asInt(json['productId'] ?? json['productID'] ?? json['id']),
+      title: _firstNonEmptyString([
+            _asNullableString(json['title']),
+            _asNullableString(json['name']),
+            _asNullableString(json['productName']),
+          ]) ??
+          'Product',
+      description: _asString(json['description']),
+      price: _asDouble(json['price']),
+      condition: _firstNonEmptyString([
+            _asNullableString(json['condition']),
+            _asNullableString(json['status']),
+          ]) ??
+          'New',
+      imageUrl: _firstNonEmptyString([
+            _asNullableString(json['imageUrl']),
+            _asNullableString(json['image']),
+            _asNullableString(json['photoUrl']),
+            _asNullableString(json['photo']),
+            _asNullableString(json['thumbnail']),
+          ]) ??
+          '',
+      categoryName: _firstNonEmptyString([
+            _asNullableString(json['categoryName']),
+            _asNullableString(json['category']),
+            _asNullableString(category?['categoryName']),
+            _asNullableString(category?['name']),
+          ]) ??
+          'Equipment',
+      sellerName: _firstNonEmptyString([
+            _asNullableString(json['sellerName']),
+            _asNullableString(json['storeName']),
+            _asNullableString(seller?['name']),
+            _asNullableString(seller?['fullName']),
+          ]) ??
+          'Seller',
+      sellerPhone: _firstNonEmptyString([
+            _asNullableString(json['sellerPhone']),
+            _asNullableString(json['phoneNumber']),
+            _asNullableString(json['contactPhone']),
+            _asNullableString(seller?['phone']),
+            _asNullableString(seller?['phoneNumber']),
+          ]) ??
+          '',
+      location: _firstNonEmptyString([
+            _asNullableString(json['sellerLocation']),
+            _asNullableString(json['location']),
+            _asNullableString(json['city']),
+            _asNullableString(seller?['location']),
+            _asNullableString(seller?['city']),
+          ]) ??
+          'Unknown',
+      rating: _asDouble(
+        json['rating'] ?? json['sellerRating'] ?? json['avgRating'],
+      ),
+      reviewsCount: _asInt(
+        json['reviewsCount'] ?? json['reviewCount'] ?? json['totalReviews'],
+      ),
+      createdAt: _asString(
+        json['createdAt'] ?? json['date'] ?? json['postedAt'],
+      ),
+      ownerId: _asNullableInt(json['ownerId']),
+      sellerId: _asNullableInt(
+        json['sellerId'] ?? seller?['id'] ?? seller?['clientID'],
+      ),
+    );
+  }
 
-  const ProductCategory(
-      {required this.categoryID, required this.categoryName});
-
-  factory ProductCategory.fromJson(Map<String, dynamic> json) =>
-      ProductCategory(
-        categoryID:   json['categoryID']   as int,
-        categoryName: json['categoryName'] as String,
-      );
-}
-
-class ProductSeller {
-  final int    clientID;
-  final String name;
-  final String? email;
-  final String? phone;
-
-  const ProductSeller({
-    required this.clientID, required this.name,
-    this.email, this.phone,
-  });
-
-  factory ProductSeller.fromJson(Map<String, dynamic> json) =>
-      ProductSeller(
-        clientID: json['clientID'] as int,
-        name:     json['name']     as String,
-        email:    json['email']    as String?,
-        phone:    json['phone']    as String?,
-      );
-}
-
-class SportRef {
-  final int    id;
-  final String name;
-
-  const SportRef({required this.id, required this.name});
-
-  factory SportRef.fromJson(Map<String, dynamic> json) =>
-      SportRef(id: json['id'] as int, name: json['name'] as String);
+  bool get hasPhone => sellerPhone.trim().isNotEmpty;
 }
 
 class PaginatedProducts {
-  final int                totalCount;
-  final int                page;
-  final int                pageSize;
-  final int                totalPages;
+  final int totalCount;
+  final int page;
+  final int pageSize;
+  final int totalPages;
   final List<ProductModel> products;
 
   const PaginatedProducts({
-    required this.totalCount, required this.page,
-    required this.pageSize, required this.totalPages,
+    required this.totalCount,
+    required this.page,
+    required this.pageSize,
+    required this.totalPages,
     required this.products,
   });
 
-  factory PaginatedProducts.fromJson(Map<String, dynamic> json) =>
-      PaginatedProducts(
-        totalCount: json['totalCount'] as int,
-        page:       json['page']       as int,
-        pageSize:   json['pageSize']   as int,
-        totalPages: json['totalPages'] as int,
-        products: (json['products'] as List<dynamic>)
-            .map((e) =>
-            ProductModel.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+  factory PaginatedProducts.fromJson(Map<String, dynamic> json) {
+    final list =
+        json['products'] ??
+        json['items'] ??
+        json['data'] ??
+        json['results'] ??
+        const <dynamic>[];
+
+    final products = list is List
+        ? list
+            .whereType<Map>()
+            .map((e) => ProductModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList(growable: false)
+        : const <ProductModel>[];
+
+    return PaginatedProducts(
+      totalCount: _asInt(
+        json['totalCount'] ?? json['count'] ?? json['total'] ?? products.length,
+      ),
+      page: _asInt(json['page'], fallback: 1),
+      pageSize: _asInt(json['pageSize'], fallback: products.length),
+      totalPages: _asInt(json['totalPages'], fallback: 1),
+      products: products,
+    );
+  }
 }
 
 class CreateProductRequest {
-  final String    productName;
-  final String    description;
-  final double    price;
-  final String    condition;
-  final int       categoryID;
-  final List<int> sportIDs;
-  final String?   imageUrl;
+  final String title;
+  final double price;
+  final String category;
+  final String condition;
+  final String description;
+  final String sellerName;
+  final String sellerPhone;
+  final String location;
+  final File? imageFile;
 
   const CreateProductRequest({
-    required this.productName, required this.description,
-    required this.price, required this.condition,
-    required this.categoryID, required this.sportIDs,
-    this.imageUrl,
+    required this.title,
+    required this.price,
+    required this.category,
+    required this.condition,
+    required this.description,
+    required this.sellerName,
+    required this.sellerPhone,
+    required this.location,
+    this.imageFile,
   });
 
-  Map<String, dynamic> toJson() => {
-    'productName': productName,
+  int? get categoryId => _categoryIdFromName(category);
+
+  bool get hasImage => imageFile != null;
+
+  Map<String, dynamic> toApiJson({String? imageUrl, List<int>? sportIds}) => {
+    'productName': title,
     'description': description,
-    'price':       price,
-    'condition':   condition,
-    'categoryID':  categoryID,
-    'sportIDs':    sportIDs,
-    if (imageUrl != null) 'imageUrl': imageUrl,
+    'price': price,
+    'condition': condition,
+    'categoryID': categoryId ?? 1,
+    if (sportIds != null && sportIds.isNotEmpty) 'sportIDs': sportIds,
+    if (imageUrl != null && imageUrl.trim().isNotEmpty) 'imageUrl': imageUrl,
   };
+}
+
+int? _categoryIdFromName(String rawCategory) {
+  switch (rawCategory.trim().toLowerCase()) {
+    case 'equipment':
+      return 1;
+    case 'clothing':
+      return 2;
+    case 'accessories':
+      return 3;
+    case 'used':
+      return 4;
+    default:
+      return null;
+  }
+}
+
+Map<String, dynamic>? _asMap(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return Map<String, dynamic>.from(value);
+  }
+  return null;
+}
+
+int _asInt(dynamic value, {int fallback = 0}) {
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value) ?? fallback;
+  }
+  return fallback;
+}
+
+int? _asNullableInt(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value);
+  }
+  return null;
+}
+
+double _asDouble(dynamic value, {double fallback = 0}) {
+  if (value is double) {
+    return value;
+  }
+  if (value is num) {
+    return value.toDouble();
+  }
+  if (value is String) {
+    return double.tryParse(value) ?? fallback;
+  }
+  return fallback;
+}
+
+String _asString(dynamic value, {String fallback = ''}) {
+  if (value == null) {
+    return fallback;
+  }
+  final stringValue = value.toString();
+  return stringValue.isEmpty ? fallback : stringValue;
+}
+
+String? _asNullableString(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+  final stringValue = value.toString();
+  return stringValue.isEmpty ? null : stringValue;
+}
+
+String? _firstNonEmptyString(List<String?> values) {
+  for (final value in values) {
+    if (value != null && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+  }
+  return null;
 }

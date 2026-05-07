@@ -5,7 +5,7 @@
 class ApiConfig {
   ApiConfig._();
   // ✅ Dev tunnel URL — works for everyone on any device
-  static const String baseUrl = 'https://x4d1zblh-7112.uks1.devtunnels.ms/api';
+  static const String baseUrl = 'https://7hhfsd89-7112.uks1.devtunnels.ms/api';
   // ── Auth endpoints ────────────────────────────────────────
   static const String register = '/auth/register';
   static const String completeCoachOnboarding =
@@ -25,17 +25,24 @@ class ApiConfig {
   static const String updateProfile = '/users/profile';
   static const String uploadProfilePic = '/users/profile/image';
   static const String updatePreferences = '/users/preferences';
+  static const String coachSetup = '/users/coach-setup';
 
   // ── Sessions endpoints ────────────────────────────────────
   static const String sessions = '/sessions';
   static const String mySessions = '/sessions/my';
+  static const String sessionsAvailability = '/sessions/availability';
 
   // ── Bookings endpoints ────────────────────────────────────
   static const String bookings = '/bookings';
   static const String myBookings = '/bookings/my';
+  static const String coachMyBookings = '/bookings/coach/my';
 
   // ── Reviews endpoints ─────────────────────────────────────
   static const String reviews = '/reviews';
+  static const String myCoachReviews = '/reviews/my-coach-reviews';
+  static String coachReviews(int coachId) => '/reviews/coach/$coachId';
+  static String bookingReview(int bookingId) => '/bookings/$bookingId/review';
+  static String reviewResponse(int reviewId) => '/reviews/$reviewId/response';
 
   // ── Search endpoints ──────────────────────────────────────
   static const String searchCoaches = '/search/coaches';
@@ -43,21 +50,27 @@ class ApiConfig {
   // ── Payments endpoints ────────────────────────────────────
   static const String initiatePayment = '/payments/initiate';
   static const String myPayments = '/payments/my';
+  static String paymentById(int paymentId) => '/payments/$paymentId';
 
   // ── Notifications endpoints ───────────────────────────────
   static const String notifications = '/notifications';
   static const String unreadCount = '/notifications/unread-count';
+  static String notificationRead(int notificationId) =>
+      '/notifications/$notificationId/read';
 
   // ── Chat endpoints ────────────────────────────────────────
   // ── Chat endpoints ────────────────────────────────────────
   static const String sendMessage = '/chat/send';
   static const String conversations = '/chat/conversations';
-  static const String conversation = '/chat/conversation';
-  static const String markConversationRead = '/chat/conversation';
+  static String conversation(int otherUserId) =>
+      '/chat/conversation/$otherUserId';
+  static String markConversationRead(int otherUserId) =>
+      '/chat/conversation/$otherUserId/read';
   static const String chatUnreadCount = '/chat/unread-count';
 
   // ── Marketplace endpoints ─────────────────────────────────
   static const String products = '/products';
+  static String productById(int productId) => '/products/$productId';
 
   // ── Sports endpoints ──────────────────────────────────────
   static const String sports = '/sports';

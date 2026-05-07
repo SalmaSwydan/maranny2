@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'dart:developer' as developer;
 import '../../data/models/bookings_models.dart';
 import '../../data/repositories/bookings_repository.dart';
 import 'booking_confirmed_screen.dart';
+import '../utils/bookings_refresh_notifier.dart';
 
 class PaymentScreen extends StatefulWidget {
-  final int sessionID;
+  final int? sessionID;
+  final int? coachID;
+  final int? sportID;
+  final String? sessionDate;
+  final String? startTime;
   final String day;
   final String time;
   final String coachName;
@@ -14,7 +21,11 @@ class PaymentScreen extends StatefulWidget {
 
   const PaymentScreen({
     super.key,
-    required this.sessionID,
+    this.sessionID,
+    this.coachID,
+    this.sportID,
+    this.sessionDate,
+    this.startTime,
     required this.day,
     required this.time,
     this.coachName = 'Coach',
@@ -30,36 +41,120 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   final BookingsRepository _repo = BookingsRepository();
 
-  int selectedMethod = 0;
+  static const int _payOnArrivalMethod = 2;
+  int selectedMethod = _payOnArrivalMethod;
   bool _isBooking = false;
+
+  String get _paymentMethodLabel => 'PayOnArrival';
 
   Future<void> _confirmBooking() async {
     if (_isBooking) return;
 
+    final hasRealSession = widget.sessionID != null;
+    final hasAvailabilityPayload =
+        widget.coachID != null &&
+        widget.sportID != null &&
+        widget.sessionDate != null &&
+        widget.startTime != null &&
+        widget.sessionDate!.trim().isNotEmpty &&
+        widget.startTime!.trim().isNotEmpty;
+
+    if (!hasRealSession && !hasAvailabilityPayload) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not book this session. Please choose another time.',
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isBooking = true);
 
     try {
-      await _repo.bookSession(
-        BookSessionRequest(
-          sessionID: widget.sessionID,
-          notes: 'Booked from mobile app',
-        ),
+      final finalScheduledAt = combineSessionDateAndTime(
+        sessionDate: widget.sessionDate,
+        startTime: widget.startTime,
       );
+      final request = widget.sessionID != null
+          ? BookSessionRequest(
+              sessionID: widget.sessionID,
+              notes: 'Booked from mobile app',
+            )
+          : BookSessionRequest(
+              coachID: widget.coachID,
+              sportID: widget.sportID,
+              sessionDate: widget.sessionDate,
+              startTime: widget.startTime,
+              notes: 'Booked from mobile app',
+            );
+
+      developer.log(
+        'PaymentScreen booking submit -> '
+        'coachId=${widget.coachID} '
+        'sportId=${widget.sportID} '
+        'sessionId=${widget.sessionID} '
+        'selectedDate=${widget.sessionDate} '
+        'selectedDay=${widget.day} '
+        'selectedTime=${widget.startTime ?? widget.time} '
+        'requestBody=${request.toJson()} '
+        'finalSessionDateTime=${finalScheduledAt?.toIso8601String() ?? ''} '
+        'paymentMethod=$_paymentMethodLabel',
+        name: 'PaymentScreen',
+      );
+      print(
+        '[PaymentScreen] booking submit -> '
+        'coachId=${widget.coachID} '
+        'sportId=${widget.sportID} '
+        'sessionId=${widget.sessionID} '
+        'selectedDate=${widget.sessionDate} '
+        'selectedDay=${widget.day} '
+        'selectedTime=${widget.startTime ?? widget.time} '
+        'requestBody=${request.toJson()} '
+        'finalSessionDateTime=${finalScheduledAt?.toIso8601String() ?? ''} '
+        'paymentMethod=$_paymentMethodLabel',
+      );
+
+      await _repo.bookSession(request);
+      BookingsRefreshNotifier.notifyUpdated();
 
       if (!mounted) return;
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => const BookingConfirmedScreen(),
-        ),
-            (route) => false,
+        MaterialPageRoute(builder: (_) => const BookingConfirmedScreen()),
+        (route) => false,
       );
-    } catch (e) {
+    } on DioException catch (error) {
+      developer.log(
+        'PaymentScreen booking failed -> '
+        'status=${error.response?.statusCode} '
+        'response=${error.response?.data} '
+        'message=${error.message}',
+        name: 'PaymentScreen',
+        error: error,
+      );
+      print(
+        '[PaymentScreen] booking failed -> '
+        'status=${error.response?.statusCode} '
+        'response=${error.response?.data} '
+        'message=${error.message}',
+      );
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to book session: $e')),
+        SnackBar(content: Text(_friendlyBookingError(error))),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not book this session. Please choose another time.',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isBooking = false);
@@ -69,6 +164,53 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool get _isNetworkImage {
     return widget.coachImage.startsWith('http://') ||
         widget.coachImage.startsWith('https://');
+  }
+
+  String _friendlyBookingError(DioException error) {
+    final statusCode = error.response?.statusCode;
+    final data = error.response?.data;
+    final backendMessage = _extractBackendMessage(data);
+    if (backendMessage != null) {
+      return backendMessage;
+    }
+    if (statusCode == 401) {
+      return 'Your session expired. Please sign in again and retry.';
+    }
+    if (statusCode == 403) {
+      return 'You are not allowed to book this session.';
+    }
+    if (statusCode == 404) {
+      return 'This session is no longer available.';
+    }
+    if (statusCode != null && statusCode >= 500) {
+      return 'Server error while booking this session. Please try again.';
+    }
+    return 'Could not book this session. Please choose another time.';
+  }
+
+  String? _extractBackendMessage(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final direct = data['message'] ?? data['error'] ?? data['title'];
+      if (direct is String && direct.trim().isNotEmpty) {
+        return direct.trim();
+      }
+
+      final errors = data['errors'];
+      if (errors is Map) {
+        for (final value in errors.values) {
+          if (value is List && value.isNotEmpty) {
+            final first = value.first;
+            if (first is String && first.trim().isNotEmpty) {
+              return first.trim();
+            }
+          }
+          if (value is String && value.trim().isNotEmpty) {
+            return value.trim();
+          }
+        }
+      }
+    }
+    return null;
   }
 
   @override
@@ -112,22 +254,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         borderRadius: BorderRadius.circular(22),
                         child: widget.coachImage.isNotEmpty
                             ? _isNetworkImage
-                            ? Image.network(
-                          widget.coachImage,
-                          width: 44,
-                          height: 44,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _avatarCircle(),
-                        )
-                            : Image.asset(
-                          widget.coachImage,
-                          width: 44,
-                          height: 44,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _avatarCircle(),
-                        )
+                                  ? Image.network(
+                                      widget.coachImage,
+                                      width: 44,
+                                      height: 44,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _avatarCircle(),
+                                    )
+                                  : Image.asset(
+                                      widget.coachImage,
+                                      width: 44,
+                                      height: 44,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _avatarCircle(),
+                                    )
                             : _avatarCircle(),
                       ),
                       const SizedBox(width: 12),
@@ -178,13 +320,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            _paymentOption(0, 'Credit Card', Icons.credit_card),
             _paymentOption(
-              1,
-              'Digital Wallet',
-              Icons.account_balance_wallet_outlined,
+              _payOnArrivalMethod,
+              'Pay on Arrival',
+              Icons.store_outlined,
             ),
-            _paymentOption(2, 'Pay on Arrival', Icons.store_outlined),
             const Spacer(),
             SizedBox(
               width: double.infinity,
@@ -200,23 +340,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
                 child: _isBooking
                     ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(
-                  selectedMethod == 2
-                      ? 'Confirm Booking'
-                      : 'Pay ${widget.coachPrice} LE',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
+                        'Confirm Booking',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -231,7 +369,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
       backgroundColor: const Color(0xFF303F9F),
       child: Text(
         widget.coachName.isNotEmpty ? widget.coachName[0].toUpperCase() : 'C',
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -240,7 +381,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, color: Colors.black54),
+        ),
         Flexible(
           child: Text(
             value,
@@ -257,16 +401,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _paymentOption(int value, String label, IconData icon) {
-    return RadioListTile<int>(
-      value: value,
-      groupValue: selectedMethod,
-      onChanged: (v) => setState(() => selectedMethod = v!),
-      title: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF303F9F), size: 20),
-          const SizedBox(width: 10),
-          Text(label),
-        ],
+    final selected = selectedMethod == value;
+
+    return GestureDetector(
+      onTap: () => setState(() => selectedMethod = value),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? const Color(0xFF303F9F) : Colors.grey.shade300,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: const Color(0xFF303F9F), size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text(label)),
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: selected ? const Color(0xFF303F9F) : Colors.grey,
+            ),
+          ],
+        ),
       ),
     );
   }
