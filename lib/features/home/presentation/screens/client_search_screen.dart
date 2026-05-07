@@ -6,6 +6,7 @@ import '../../../bookings/presentation/screens/coach_details_screen.dart';
 import '../../../bookings/domain/models/booking_session_model.dart';
 import '../../../bookings/domain/models/coach_data_model.dart';
 import '../../../profile/data/repositories/profile_repository.dart';
+import '../../../sports/data/repositories/sports_repository.dart';
 
 const Map<String, List<String>> _egyptLocations = {
   'Cairo': [
@@ -43,6 +44,7 @@ class ClientSearchScreen extends StatefulWidget {
 class _ClientSearchScreenState extends State<ClientSearchScreen> {
   final _searchController = TextEditingController();
   final ProfileRepository _profileRepository = ProfileRepository();
+  final SportsRepository _sportsRepository = SportsRepository();
 
   String _selectedCategory = 'All';
   String _searchQuery = '';
@@ -59,42 +61,79 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   bool _isLoading = false;
   String? _error;
   List<Map<String, dynamic>> _coaches = [];
-
-  final List<String> _categories = [
+  final Map<String, int> _sportIdsByName = {};
+  List<String> _categories = const [
     'All',
+    'Basketball',
     'Football',
-    'Horse Riding',
-    'Yoga',
-    'Fitness',
+    'Gym Training',
+    'Padel',
     'Swimming',
     'Tennis',
-    'Basketball',
   ];
 
   @override
   void initState() {
     super.initState();
+    _loadSports();
     _loadCoaches();
   }
 
   int? _sportIdFromCategory(String category) {
+    if (category == 'All') {
+      return null;
+    }
+
+    final mappedId = _sportIdsByName[category];
+    if (mappedId != null) {
+      return mappedId;
+    }
+
     switch (category) {
+      case 'Basketball':
+        return 2;
       case 'Football':
         return 1;
-      case 'Yoga':
-        return 2;
+      case 'Gym Training':
+        return 5;
+      case 'Padel':
+        return 6;
       case 'Swimming':
         return 3;
-      case 'Fitness':
-        return 4;
       case 'Tennis':
-        return 5;
-      case 'Basketball':
-        return 6;
-      case 'Horse Riding':
-        return 7;
+        return 4;
       default:
         return null;
+    }
+  }
+
+  Future<void> _loadSports() async {
+    try {
+      final sports = await _sportsRepository.getSports();
+      final categories = <String>['All'];
+      for (final sport in sports) {
+        final name = sport.name.trim();
+        if (name.isEmpty) {
+          continue;
+        }
+        _sportIdsByName[name] = sport.id;
+        if (!categories.contains(name)) {
+          categories.add(name);
+        }
+      }
+
+      if (!mounted || categories.length <= 1) {
+        return;
+      }
+
+      setState(() {
+        _categories = categories;
+        if (!_categories.contains(_selectedCategory)) {
+          _selectedCategory = 'All';
+        }
+      });
+    } catch (_) {
+      // Keep the built-in fallback list if sports loading fails.
     }
   }
 

@@ -12,6 +12,9 @@ class SessionModel {
   final int sportID;
   final int? bookedCount;
   final int? availableSlots;
+  final String? reservationStatus;
+  final int? pendingBookings;
+  final int? confirmedBookings;
   final CoachSummary? coach;
 
   const SessionModel({
@@ -28,6 +31,9 @@ class SessionModel {
     required this.sportID,
     this.bookedCount,
     this.availableSlots,
+    this.reservationStatus,
+    this.pendingBookings,
+    this.confirmedBookings,
     this.coach,
   });
 
@@ -61,6 +67,11 @@ class SessionModel {
     sportID: _asInt(json['sportID'] ?? json['sportId'] ?? json['sport']?['id']),
     bookedCount: _asNullableInt(json['bookedCount']),
     availableSlots: _asNullableInt(json['availableSlots']),
+    reservationStatus: _asNullableString(
+      json['reservationStatus'] ?? json['slotStatus'] ?? json['bookingStatus'],
+    ),
+    pendingBookings: _asNullableInt(json['pendingBookings']),
+    confirmedBookings: _asNullableInt(json['confirmedBookings']),
     coach: _asMap(json['coach']) != null
         ? CoachSummary.fromJson(_asMap(json['coach'])!)
         : null,
@@ -153,6 +164,7 @@ class CoachAvailabilityModel {
   final List<String> availableHours;
   final List<CoachAvailabilityDateEntry> dayHourSlots;
   final List<CoachAvailabilityDateEntry> upcomingAvailableDates;
+  final List<CoachWeeklySlotStatus> weeklySlotStatuses;
   final List<String> locations;
   final List<String> sports;
   final bool hasProfileAvailability;
@@ -165,6 +177,7 @@ class CoachAvailabilityModel {
     required this.availableHours,
     required this.dayHourSlots,
     required this.upcomingAvailableDates,
+    required this.weeklySlotStatuses,
     required this.locations,
     required this.sports,
     required this.hasProfileAvailability,
@@ -189,6 +202,11 @@ class CoachAvailabilityModel {
         upcomingAvailableDates: _availabilityDateList(
           json['upcomingAvailableDates'] ?? json['UpcomingAvailableDates'],
         ),
+        weeklySlotStatuses: ((json['weeklySlotStatuses'] as List<dynamic>?) ??
+                const [])
+            .whereType<Map>()
+            .map((e) => CoachWeeklySlotStatus.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
         locations: _stringList(json['locations']),
         sports: _stringList(json['sports']),
         hasProfileAvailability: _asBool(
@@ -200,6 +218,43 @@ class CoachAvailabilityModel {
             .whereType<Map>()
             .map((e) => SessionModel.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
+      );
+}
+
+class CoachWeeklySlotStatus {
+  final String dayName;
+  final String date;
+  final String hour;
+  final String reservationStatus;
+  final int pendingBookings;
+  final int confirmedBookings;
+  final int? availableSlots;
+  final int? sessionId;
+
+  const CoachWeeklySlotStatus({
+    required this.dayName,
+    required this.date,
+    required this.hour,
+    required this.reservationStatus,
+    required this.pendingBookings,
+    required this.confirmedBookings,
+    this.availableSlots,
+    this.sessionId,
+  });
+
+  factory CoachWeeklySlotStatus.fromJson(Map<String, dynamic> json) =>
+      CoachWeeklySlotStatus(
+        dayName: _asString(json['dayName'] ?? json['day']),
+        date: _asString(json['date']),
+        hour: _asString(json['hour'] ?? json['startTime']),
+        reservationStatus: _asString(
+          json['reservationStatus'] ?? json['status'],
+          fallback: 'Free',
+        ),
+        pendingBookings: _asInt(json['pendingBookings']),
+        confirmedBookings: _asInt(json['confirmedBookings']),
+        availableSlots: _asNullableInt(json['availableSlots']),
+        sessionId: _asNullableInt(json['sessionId'] ?? json['sessionID']),
       );
 }
 

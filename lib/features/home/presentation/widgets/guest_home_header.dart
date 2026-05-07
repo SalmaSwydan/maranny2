@@ -61,13 +61,12 @@ class _SportsCategories extends StatelessWidget {
   Widget build(BuildContext context) {
     final categories = [
       _CategoryItem('All Sports', Icons.apps),
-      _CategoryItem('Football', Icons.sports_soccer),
       _CategoryItem('Basketball', Icons.sports_basketball),
-      _CategoryItem('Tennis', Icons.sports_tennis),
+      _CategoryItem('Football', Icons.sports_soccer),
+      _CategoryItem('Gym Training', Icons.fitness_center),
+      _CategoryItem('Padel', Icons.sports_tennis),
       _CategoryItem('Swimming', Icons.pool),
-      _CategoryItem('Running', Icons.directions_run),
-      _CategoryItem('Yoga', Icons.self_improvement),
-      _CategoryItem('Boxing', Icons.sports_mma),
+      _CategoryItem('Tennis', Icons.sports_tennis),
     ];
 
     return Column(

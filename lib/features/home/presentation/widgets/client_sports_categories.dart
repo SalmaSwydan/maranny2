@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/theme/app_colors.dart';
 
 class SportsCategoriesTwo extends StatelessWidget {
@@ -6,6 +7,16 @@ class SportsCategoriesTwo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const categories = [
+      'All Sports',
+      'Basketball',
+      'Football',
+      'Gym Training',
+      'Padel',
+      'Swimming',
+      'Tennis',
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -17,14 +28,12 @@ class SportsCategoriesTwo extends StatelessWidget {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: const [
-              _Chip('All Sports', selected: true),
-              _Chip('⚽ Football'),
-              _Chip('🏀 Basketball'),
-              _Chip('🎾 Tennis'),
+            children: [
+              for (var i = 0; i < categories.length; i++)
+                _Chip(categories[i], selected: i == 0),
             ],
           ),
-        )
+        ),
       ],
     );
   }

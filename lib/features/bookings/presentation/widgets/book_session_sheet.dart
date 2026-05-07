@@ -39,6 +39,11 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
   String? _selectedDay;
   _AvailabilitySlotData? _selectedSlot;
 
+  static const Color _freeSlotColor = Color(0xFF22C55E);
+  static const Color _pendingSlotColor = Color(0xFFFACC15);
+  static const Color _reservedSlotColor = Color(0xFFEF4444);
+  static const Color _selectedSlotColor = Color(0xFF304FFE);
+
   @override
   void initState() {
     super.initState();
@@ -402,6 +407,8 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     required String date,
     required String normalizedHour,
   }) {
+    SessionModel? sameDayAndTimeFallback;
+
     for (final session in availability.sessions) {
       final sessionDay = _weekdayName(
         DateTime.tryParse(session.sessionDate)?.weekday ?? 0,
@@ -410,15 +417,31 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
         continue;
       }
 
-      if (date.isNotEmpty && session.sessionDate != date) {
-        continue;
-      }
-
       if (_normalizedTimeValue(session.startTime) == normalizedHour) {
-        return session;
+        if (date.isEmpty) {
+          return session;
+        }
+
+        if (_sameCalendarDate(session.sessionDate, date)) {
+          return session;
+        }
+
+        sameDayAndTimeFallback ??= session;
       }
     }
-    return null;
+    return sameDayAndTimeFallback;
+  }
+
+  bool _sameCalendarDate(String firstRaw, String secondRaw) {
+    final first = DateTime.tryParse(firstRaw);
+    final second = DateTime.tryParse(secondRaw);
+    if (first == null || second == null) {
+      return firstRaw.trim() == secondRaw.trim();
+    }
+
+    return first.year == second.year &&
+        first.month == second.month &&
+        first.day == second.day;
   }
 
   List<String> _uniqueHoursForEntries(
@@ -488,6 +511,23 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
   }
 
   void _selectSlot(_AvailabilitySlotData slot, _AvailabilityRowData row) {
+    final slotState = _slotVisualState(slot);
+    if (slotState == _AvailabilityVisualState.reserved) {
+      _showSlotMessage(
+        title: 'Already reserved',
+        message: 'This period is already confirmed by the coach and cannot be reserved.',
+      );
+      return;
+    }
+
+    if (slotState == _AvailabilityVisualState.pending) {
+      _showSlotMessage(
+        title: 'Pending confirmation',
+        message: 'This period is still pending coach confirmation. Please choose another available time.',
+      );
+      return;
+    }
+
     developer.log(
       'BookSessionSheet selectedDay=${row.day} '
       'selectedDate=${slot.date.isNotEmpty ? slot.date : 'none'} '
@@ -516,9 +556,163 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     });
   }
 
+  void _showSlotMessage({required String title, required String message}) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  _AvailabilityVisualState _slotVisualState(_AvailabilitySlotData slot) {
+    final weeklySlotStatus = _matchingWeeklySlotStatus(slot);
+    if (weeklySlotStatus != null) {
+      final normalizedWeeklyStatus = normalizeBookingStatus(
+        weeklySlotStatus.reservationStatus,
+      );
+      if (normalizedWeeklyStatus == 'pending') {
+        return _AvailabilityVisualState.pending;
+      }
+      if (normalizedWeeklyStatus == 'confirmed' ||
+          normalizedWeeklyStatus == 'completed') {
+        return _AvailabilityVisualState.reserved;
+      }
+      if ((weeklySlotStatus.confirmedBookings) > 0) {
+        return _AvailabilityVisualState.reserved;
+      }
+      if ((weeklySlotStatus.pendingBookings) > 0) {
+        return _AvailabilityVisualState.pending;
+      }
+      final availableSlots = weeklySlotStatus.availableSlots;
+      if (availableSlots != null && availableSlots <= 0) {
+        return _AvailabilityVisualState.reserved;
+      }
+    }
+
+    final session = slot.session;
+    if (session == null) {
+      return _AvailabilityVisualState.free;
+    }
+
+    final normalizedReservationStatus = normalizeBookingStatus(
+      session.reservationStatus ?? session.status,
+    );
+    if (normalizedReservationStatus == 'pending') {
+      return _AvailabilityVisualState.pending;
+    }
+    if (normalizedReservationStatus == 'confirmed' ||
+        normalizedReservationStatus == 'completed') {
+      return _AvailabilityVisualState.reserved;
+    }
+    if (normalizedReservationStatus == 'cancelled') {
+      return _AvailabilityVisualState.free;
+    }
+
+    if ((session.confirmedBookings ?? 0) > 0) {
+      return _AvailabilityVisualState.reserved;
+    }
+    if ((session.pendingBookings ?? 0) > 0) {
+      return _AvailabilityVisualState.pending;
+    }
+
+    final availableSlots = session.availableSlots;
+    if (availableSlots != null && availableSlots <= 0) {
+      return _AvailabilityVisualState.reserved;
+    }
+
+    final bookedCount = session.bookedCount;
+    if ((bookedCount ?? 0) > 0) {
+      return _AvailabilityVisualState.reserved;
+    }
+
+    final normalizedStatus = normalizeBookingStatus(session.status);
+    if (normalizedStatus == 'pending') {
+      return _AvailabilityVisualState.pending;
+    }
+    if (normalizedStatus == 'confirmed' || normalizedStatus == 'completed') {
+      return _AvailabilityVisualState.reserved;
+    }
+    if (normalizedStatus == 'cancelled') {
+      return _AvailabilityVisualState.free;
+    }
+
+    final raw = session.status.trim().toLowerCase();
+    if (raw.contains('free') || raw.contains('open') || raw.contains('available')) {
+      return _AvailabilityVisualState.free;
+    }
+
+    return _AvailabilityVisualState.reserved;
+  }
+
+  CoachWeeklySlotStatus? _matchingWeeklySlotStatus(_AvailabilitySlotData slot) {
+    final availability = _availability;
+    if (availability == null) {
+      return null;
+    }
+
+    final normalizedHour = _normalizedTimeValue(slot.label);
+    for (final weeklyStatus in availability.weeklySlotStatuses) {
+      if (weeklyStatus.dayName.trim().toLowerCase() !=
+          slot.day.trim().toLowerCase()) {
+        continue;
+      }
+      if (_normalizedTimeValue(weeklyStatus.hour) != normalizedHour) {
+        continue;
+      }
+      return weeklyStatus;
+    }
+    return null;
+  }
+
+  Color _slotBackgroundColor({
+    required _AvailabilitySlotData slot,
+    required bool selected,
+  }) {
+    if (selected) {
+      return _selectedSlotColor;
+    }
+
+    switch (_slotVisualState(slot)) {
+      case _AvailabilityVisualState.free:
+        return _freeSlotColor;
+      case _AvailabilityVisualState.pending:
+        return _pendingSlotColor;
+      case _AvailabilityVisualState.reserved:
+        return _reservedSlotColor;
+    }
+  }
+
+  Color _slotTextColor({
+    required _AvailabilitySlotData slot,
+    required bool selected,
+  }) {
+    if (selected) {
+      return Colors.white;
+    }
+
+    switch (_slotVisualState(slot)) {
+      case _AvailabilityVisualState.pending:
+        return Colors.black87;
+      case _AvailabilityVisualState.free:
+      case _AvailabilityVisualState.reserved:
+        return Colors.white;
+    }
+  }
+
   bool get _canContinueBooking {
     final slot = _selectedSlot;
     if (slot == null || _selectedDay == null) {
+      return false;
+    }
+    if (_slotVisualState(slot) != _AvailabilityVisualState.free) {
       return false;
     }
     if (slot.session != null) {
@@ -568,6 +762,33 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                 'Available days',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              children: const [
+                _AvailabilityLegendChip(
+                  color: _freeSlotColor,
+                  label: 'Free',
+                  textColor: Colors.white,
+                ),
+                _AvailabilityLegendChip(
+                  color: _pendingSlotColor,
+                  label: 'Pending',
+                  textColor: Colors.black87,
+                ),
+                _AvailabilityLegendChip(
+                  color: _reservedSlotColor,
+                  label: 'Reserved',
+                  textColor: Colors.white,
+                ),
+                _AvailabilityLegendChip(
+                  color: _selectedSlotColor,
+                  label: 'Selected',
+                  textColor: Colors.white,
+                ),
+              ],
             ),
             const SizedBox(height: 14),
             Expanded(
@@ -643,9 +864,10 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                                               vertical: 10,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: selected
-                                                  ? const Color(0xFF304FFE)
-                                                  : Colors.white,
+                                              color: _slotBackgroundColor(
+                                                slot: slot,
+                                                selected: selected,
+                                              ),
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                               boxShadow: [
@@ -662,9 +884,10 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                                               style: TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w500,
-                                                color: selected
-                                                    ? Colors.white
-                                                    : Colors.black87,
+                                                color: _slotTextColor(
+                                                  slot: slot,
+                                                  selected: selected,
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -816,4 +1039,37 @@ class _MappedAvailabilityResult {
     required this.source,
     required this.entries,
   });
+}
+
+enum _AvailabilityVisualState { free, pending, reserved }
+
+class _AvailabilityLegendChip extends StatelessWidget {
+  final Color color;
+  final String label;
+  final Color textColor;
+
+  const _AvailabilityLegendChip({
+    required this.color,
+    required this.label,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: textColor,
+        ),
+      ),
+    );
+  }
 }
