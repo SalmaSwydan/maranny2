@@ -464,8 +464,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final isNetworkImage =
         product.imageAsset.startsWith('http://') ||
         product.imageAsset.startsWith('https://');
-    final isFilePath = product.imageAsset.startsWith('/') ||
-        product.imageAsset.startsWith('file:') ||
+    final isFilePath = product.imageAsset.startsWith('file:') ||
         RegExp(r'^[A-Za-z]:[\\/]').hasMatch(product.imageAsset);
     if (isNetworkImage) {
       return Image.network(

@@ -103,6 +103,26 @@ class _ListItemScreenState extends State<ListItemScreen> {
           : null,
     );
 
+    final selectedImagePath = request.imageFile?.path ?? '';
+    final selectedImageExists = request.imageFile?.existsSync() ?? false;
+    developer.log(
+      'List item image submit debug -> '
+      'endpoint=createProduct '
+      'category=$_category '
+      'condition=$_condition '
+      'selectedImagePath=$selectedImagePath '
+      'selectedImageExists=$selectedImageExists',
+      name: 'ListItemScreen',
+    );
+    print(
+      '[ListItemScreen] image submit debug -> '
+      'endpoint=createProduct '
+      'category=$_category '
+      'condition=$_condition '
+      'selectedImagePath=$selectedImagePath '
+      'selectedImageExists=$selectedImageExists',
+    );
+
     setState(() {
       _isSubmitting = true;
     });
@@ -184,28 +204,28 @@ class _ListItemScreenState extends State<ListItemScreen> {
   String _friendlyCreateError(DioException error) {
     final statusCode = error.response?.statusCode;
     final data = error.response?.data;
-    if (statusCode == 400 && data is Map<String, dynamic>) {
-      final validationMessage = _extractValidationMessage(data);
-      return validationMessage ??
-          (data['message'] ??
-                  data['error'] ??
-                  'Please check your product details and try again.')
-              .toString();
-    }
-    if (statusCode == 401) {
-      return 'Your session expired. Please sign in again and retry.';
-    }
-    if (statusCode == 404) {
-      return 'Marketplace service is currently unavailable.';
-    }
-    if (statusCode != null && statusCode >= 500) {
-      return 'Server error while listing your item. Please try again.';
-    }
+
     if (data is Map<String, dynamic>) {
       final validationMessage = _extractValidationMessage(data);
       if (validationMessage != null) {
         return validationMessage;
       }
+    }
+
+    if (statusCode == 400) {
+      return 'Please check your product details and try again.';
+    }
+    if (statusCode == 401) {
+      return 'Your session expired. Please sign in again and retry.';
+    }
+    if (statusCode == 403) {
+      return 'Your account is not allowed to list items right now.';
+    }
+    if (statusCode == 404) {
+      return 'Marketplace create route is not available on the current backend.';
+    }
+    if (statusCode != null && statusCode >= 500) {
+      return 'Server error while listing your item. Please try again.';
     }
     return 'Could not list your item right now. Please try again.';
   }

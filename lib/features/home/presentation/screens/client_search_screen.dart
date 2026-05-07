@@ -388,12 +388,15 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
             .map((day) => day.toString())
             .where((day) => day.isNotEmpty)
             .toList();
+    final coachSportIds = _coachSportIds(coach);
+    final selectedCoachSportId = coachSportIds.isNotEmpty ? coachSportIds.first : _sportIdFromCategory(sport);
 
     final location = area.isNotEmpty ? '$area, $city' : city;
 
     final session = BookingSessionModel(
       id: name.replaceAll(' ', '_'),
       coachUserId: _coachId(coach),
+      sportId: selectedCoachSportId,
       coachName: name,
       sport: sport,
       location: location,
@@ -405,6 +408,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     final coachData = CoachData(
       name: name,
       sport: sport,
+      sportId: selectedCoachSportId,
       location: location,
       image: _coachImage(coach),
       availableDays: availableDays,

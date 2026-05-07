@@ -9,6 +9,7 @@ class BookSessionSheet extends StatefulWidget {
   final int? coachId;
   final String coachName;
   final String coachSport;
+  final int? coachSportId;
   final String coachImage;
   final int coachPrice;
   final List<String> availableDays;
@@ -18,6 +19,7 @@ class BookSessionSheet extends StatefulWidget {
     this.coachId,
     this.coachName = 'Coach',
     this.coachSport = 'Coach',
+    this.coachSportId,
     this.coachImage = '',
     this.coachPrice = 500,
     this.availableDays = const [],
@@ -204,6 +206,10 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
         const <int>[];
     if (availabilitySportIds.length == 1) {
       return availabilitySportIds.first;
+    }
+
+    if (widget.coachSportId != null && widget.coachSportId! > 0) {
+      return widget.coachSportId;
     }
 
     return _sportIdFromText(widget.coachSport);

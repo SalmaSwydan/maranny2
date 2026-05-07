@@ -69,6 +69,7 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
       ),
       builder: (_) => BookSessionSheet(
         coachId: widget.session.coachUserId,
+        coachSportId: widget.session.sportId ?? widget.coachData?.sportId,
         coachName: widget.session.coachName,
         coachSport: '${widget.session.sport} Coach',
         coachImage: _image,

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import '../../../../core/network/api_config.dart';
+
 /// MARKETPLACE MODELS
 
 class ProductModel {
@@ -56,20 +58,25 @@ class ProductModel {
             _asNullableString(json['status']),
           ]) ??
           'New',
-      imageUrl: _firstNonEmptyString([
-            _asNullableString(json['imageUrl']),
-            _asNullableString(json['image']),
-            _asNullableString(json['photoUrl']),
-            _asNullableString(json['photo']),
-            _asNullableString(json['thumbnail']),
-          ]) ??
-          '',
-      categoryName: _firstNonEmptyString([
-            _asNullableString(json['categoryName']),
-            _asNullableString(json['category']),
-            _asNullableString(category?['categoryName']),
-            _asNullableString(category?['name']),
-          ]) ??
+      imageUrl: ApiConfig.resolveMediaUrl(
+        _firstNonEmptyString([
+          _asNullableString(json['imageUrl']),
+          _asNullableString(json['imageURL']),
+          _asNullableString(json['image']),
+          _asNullableString(json['productImage']),
+          _asNullableString(json['productImageUrl']),
+          _asNullableString(json['photoUrl']),
+          _asNullableString(json['imagePath']),
+          _asNullableString(json['pictureUrl']),
+          _asNullableString(json['photo']),
+          _asNullableString(json['thumbnail']),
+        ]),
+      ),
+      categoryName: _extractCategoryName(
+            json['categoryName'],
+            category,
+            json['category'],
+          ) ??
           'Equipment',
       sellerName: _firstNonEmptyString([
             _asNullableString(json['sellerName']),
@@ -82,16 +89,23 @@ class ProductModel {
             _asNullableString(json['sellerPhone']),
             _asNullableString(json['phoneNumber']),
             _asNullableString(json['contactPhone']),
+            _asNullableString(json['whatsApp']),
+            _asNullableString(json['whatsapp']),
             _asNullableString(seller?['phone']),
             _asNullableString(seller?['phoneNumber']),
+            _asNullableString(seller?['contactPhone']),
+            _asNullableString(seller?['whatsApp']),
+            _asNullableString(seller?['whatsapp']),
           ]) ??
           '',
       location: _firstNonEmptyString([
             _asNullableString(json['sellerLocation']),
             _asNullableString(json['location']),
             _asNullableString(json['city']),
+            _asNullableString(json['address']),
             _asNullableString(seller?['location']),
             _asNullableString(seller?['city']),
+            _asNullableString(seller?['address']),
           ]) ??
           'Unknown',
       rating: _asDouble(
@@ -182,14 +196,20 @@ class CreateProductRequest {
 
   bool get hasImage => imageFile != null;
 
-  Map<String, dynamic> toApiJson({String? imageUrl, List<int>? sportIds}) => {
+  Map<String, dynamic> toApiJson({
+    String? imageUrl,
+    List<int>? sportIds,
+    int? categoryIdOverride,
+  }) => {
     'productName': title,
     'description': description,
     'price': price,
     'condition': condition,
-    'categoryID': categoryId ?? 1,
-    if (sportIds != null && sportIds.isNotEmpty) 'sportIDs': sportIds,
-    if (imageUrl != null && imageUrl.trim().isNotEmpty) 'imageUrl': imageUrl,
+    'categoryID': categoryIdOverride ?? categoryId ?? 1,
+    'sportIDs': List<int>.from(sportIds ?? const <int>[]),
+    'imageUrl': imageUrl?.trim() ?? '',
+    'categoryName': category,
+    'category': category,
   };
 }
 
@@ -197,12 +217,10 @@ int? _categoryIdFromName(String rawCategory) {
   switch (rawCategory.trim().toLowerCase()) {
     case 'equipment':
       return 1;
-    case 'clothing':
-      return 2;
     case 'accessories':
+      return 2;
+    case 'clothing':
       return 3;
-    case 'used':
-      return 4;
     default:
       return null;
   }
@@ -269,10 +287,10 @@ String _asString(dynamic value, {String fallback = ''}) {
 }
 
 String? _asNullableString(dynamic value) {
-  if (value == null) {
+  if (value == null || value is Map || value is List) {
     return null;
   }
-  final stringValue = value.toString();
+  final stringValue = value.toString().trim();
   return stringValue.isEmpty ? null : stringValue;
 }
 
@@ -282,5 +300,37 @@ String? _firstNonEmptyString(List<String?> values) {
       return value.trim();
     }
   }
+  return null;
+}
+
+String? _extractCategoryName(
+  dynamic rootCategoryName,
+  Map<String, dynamic>? category,
+  dynamic rawCategory,
+) {
+  final direct = _firstNonEmptyString([
+    _asNullableString(rootCategoryName),
+    _asNullableString(category?['categoryName']),
+    _asNullableString(category?['name']),
+    _asNullableString(category?['title']),
+  ]);
+  if (direct != null) {
+    return direct;
+  }
+
+  final raw = _asNullableString(rawCategory);
+  if (raw == null) {
+    return null;
+  }
+
+  final categoryNameMatch = RegExp(r'categoryName\s*:\s*([^,}]+)', caseSensitive: false).firstMatch(raw);
+  if (categoryNameMatch != null) {
+    return categoryNameMatch.group(1)?.trim();
+  }
+
+  if (!raw.contains('{') && !raw.contains('}')) {
+    return raw.trim();
+  }
+
   return null;
 }

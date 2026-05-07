@@ -29,6 +29,7 @@ class CoachAchievement {
 class CoachData {
   final String name;
   final String sport;
+  final int? sportId;
   final String location; // ✅ single field — "Area, City"
   final String image;
   final List<String> availableDays;
@@ -45,6 +46,7 @@ class CoachData {
   const CoachData({
     required this.name,
     required this.sport,
+    this.sportId,
     required this.location,
     required this.image,
     this.availableDays = const [],

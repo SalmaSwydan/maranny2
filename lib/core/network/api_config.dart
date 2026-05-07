@@ -5,7 +5,27 @@
 class ApiConfig {
   ApiConfig._();
   // ✅ Dev tunnel URL — works for everyone on any device
-  static const String baseUrl = 'https://7hhfsd89-7112.uks1.devtunnels.ms/api';
+  static const String baseUrl = 'https://qkkxgs1g-7112.uks1.devtunnels.ms/api';
+
+  static String get publicBaseUrl =>
+      baseUrl.endsWith('/api') ? baseUrl.substring(0, baseUrl.length - 4) : baseUrl;
+
+  static String resolveMediaUrl(String? rawPath) {
+    final value = rawPath?.trim() ?? '';
+    if (value.isEmpty) {
+      return '';
+    }
+    if (value.startsWith('http://') ||
+        value.startsWith('https://') ||
+        value.startsWith('file:') ||
+        RegExp(r'^[A-Za-z]:[\\/]').hasMatch(value)) {
+      return value;
+    }
+    if (value.startsWith('/')) {
+      return '$publicBaseUrl$value';
+    }
+    return '$publicBaseUrl/$value';
+  }
   // ── Auth endpoints ────────────────────────────────────────
   static const String register = '/auth/register';
   static const String completeCoachOnboarding =

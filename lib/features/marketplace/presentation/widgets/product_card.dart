@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/network/api_config.dart';
 import '../utils/marketplace_product.dart';
 
 class ProductCard extends StatelessWidget {
@@ -120,26 +121,32 @@ class ProductCard extends StatelessWidget {
     Widget placeholder() => Container(
         color: Colors.grey.shade200,
         child: const Icon(Icons.image_not_supported, size: 40));
-    if (product.imageAsset.isEmpty) return placeholder();
+
+    final resolvedImageUrl = ApiConfig.resolveMediaUrl(product.imageAsset);
+    debugPrint('[Marketplace][ProductCard] final image url -> $resolvedImageUrl');
+
+    if (resolvedImageUrl.isEmpty) return placeholder();
     final isNetworkImage =
-        product.imageAsset.startsWith('http://') ||
-        product.imageAsset.startsWith('https://');
-    final isFilePath = product.imageAsset.startsWith('/') ||
-        product.imageAsset.startsWith('file:') ||
-        RegExp(r'^[A-Za-z]:[\\/]').hasMatch(product.imageAsset);
+        resolvedImageUrl.startsWith('http://') ||
+        resolvedImageUrl.startsWith('https://');
+    final isFilePath = resolvedImageUrl.startsWith('file:') ||
+        RegExp(r'^[A-Za-z]:[\/]').hasMatch(resolvedImageUrl);
     if (isNetworkImage) {
       return Image.network(
-        product.imageAsset,
+        resolvedImageUrl,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => placeholder(),
+        errorBuilder: (_, error, stackTrace) {
+          debugPrint('[Marketplace][ProductCard] image load error -> url=$resolvedImageUrl error=$error');
+          return placeholder();
+        },
       );
     }
     if (isFilePath) {
-      final file = File(product.imageAsset);
+      final file = File(resolvedImageUrl);
       if (!file.existsSync()) return placeholder();
       return Image.file(file, fit: BoxFit.cover);
     }
-    return Image.asset(product.imageAsset,
+    return Image.asset(resolvedImageUrl,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => placeholder());
   }

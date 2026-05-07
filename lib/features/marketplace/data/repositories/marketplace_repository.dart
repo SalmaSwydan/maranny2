@@ -24,6 +24,12 @@ class MarketplaceRepository {
       'Marketplace fetch -> url=${_buildLogUrl(ApiConfig.products)} query=$query category=$category response=${jsonEncode(response.data)}',
       name: 'MarketplaceRepository',
     );
+    print(
+      '[MarketplaceRepository] marketplace list response -> '
+      'url=${_buildLogUrl(ApiConfig.products)} '
+      'query=$query category=$category '
+      'response=${jsonEncode(response.data)}',
+    );
     final parsed = _parseProductsResponse(response.data);
     developer.log(
       'Marketplace parsed products count=${parsed.length}',
@@ -38,6 +44,10 @@ class MarketplaceRepository {
       'Marketplace product details -> productId=$productId response=${jsonEncode(response.data)}',
       name: 'MarketplaceRepository',
     );
+    print(
+      '[MarketplaceRepository] product details response -> '
+      'productId=$productId response=${jsonEncode(response.data)}',
+    );
     final data = response.data as Map<String, dynamic>;
     final productJson = _extractProductJson(data) ?? data;
     return ProductModel.fromJson(productJson);
@@ -51,37 +61,179 @@ class MarketplaceRepository {
   }
 
   Future<int> createProduct(CreateProductRequest request) async {
+    final imageUrl = _resolveImageUrlForApi(request);
+    final resolvedCategoryId = await _resolveCategoryId(request);
+
+    if (request.hasImage) {
+      try {
+        return await _createProductWithMultipart(
+          request: request,
+          imageUrl: imageUrl,
+          resolvedCategoryId: resolvedCategoryId,
+        );
+      } on DioException catch (error) {
+        developer.log(
+          'Multipart marketplace create failed, falling back to JSON create -> status=${error.response?.statusCode} data=${jsonEncode(error.response?.data)}',
+          name: 'MarketplaceRepository',
+          error: error,
+          stackTrace: error.stackTrace,
+        );
+      }
+    }
+
+    return _createProductJson(
+      request: request,
+      imageUrl: imageUrl,
+      resolvedCategoryId: resolvedCategoryId,
+    );
+  }
+
+  Future<int> _createProductJson({
+    required CreateProductRequest request,
+    required String? imageUrl,
+    required int? resolvedCategoryId,
+  }) async {
     final requestUrl = _buildLogUrl(ApiConfig.products);
     final requestBody = request.toApiJson(
-      imageUrl: _resolveImageUrlForApi(request),
+      imageUrl: imageUrl,
+      sportIds: const <int>[],
+      categoryIdOverride: resolvedCategoryId,
     );
     final imageMimeType = _inferMimeType(request.imageFile?.path);
 
     developer.log(
       'Create product request prepared -> '
       'url=$requestUrl method=POST '
+      'resolvedCategoryId=$resolvedCategoryId '
       'swaggerExpectedContentTypes=application/json,text/json,application/*+json '
       'imageSelected=${request.hasImage} '
       'imagePath=${request.imageFile?.path ?? ''} '
       'imageMimeType=$imageMimeType '
-      'imageName=${request.imageFile == null ? '' : request.imageFile!.path.split(RegExp(r"[\\/]")).last} '
+      'imageName=${request.imageFile == null ? '' : request.imageFile!.path.split(RegExp(r"[\/]")).last} '
       'body=${jsonEncode(requestBody)}',
       name: 'MarketplaceRepository',
     );
     print(
       '[MarketplaceRepository] Create product request prepared -> '
       'url=$requestUrl method=POST '
+      'resolvedCategoryId=$resolvedCategoryId '
       'swaggerExpectedContentTypes=application/json,text/json,application/*+json '
       'imageSelected=${request.hasImage} '
       'imagePath=${request.imageFile?.path ?? ''} '
       'imageMimeType=$imageMimeType '
-      'imageName=${request.imageFile == null ? '' : request.imageFile!.path.split(RegExp(r"[\\/]")).last} '
+      'imageName=${request.imageFile == null ? '' : request.imageFile!.path.split(RegExp(r"[\/]")).last} '
       'body=${jsonEncode(requestBody)}',
     );
-    return _createProductWithPayload(
-      request: request,
-      payload: requestBody,
+
+    try {
+      return await _createProductWithPayload(
+        request: request,
+        payload: requestBody,
+      );
+    } on DioException catch (error) {
+      if (_isCategoryNotFoundError(error)) {
+        for (final fallbackCategoryId in _fallbackCategoryIdsFor(
+          request.category,
+          excluding: requestBody['categoryID'] as int?,
+        )) {
+          final retryBody = request.toApiJson(
+            imageUrl: imageUrl,
+            sportIds: const <int>[],
+            categoryIdOverride: fallbackCategoryId,
+          );
+          developer.log(
+            'Retrying create product with fallback category -> '
+            'originalCategory=${request.category} fallbackCategoryId=$fallbackCategoryId body=${jsonEncode(retryBody)}',
+            name: 'MarketplaceRepository',
+          );
+          print(
+            '[MarketplaceRepository] Retrying create product with fallback category -> '
+            'originalCategory=${request.category} fallbackCategoryId=$fallbackCategoryId body=${jsonEncode(retryBody)}',
+          );
+          try {
+            return await _createProductWithPayload(
+              request: request,
+              payload: retryBody,
+            );
+          } on DioException catch (retryError) {
+            if (!_isCategoryNotFoundError(retryError)) {
+              rethrow;
+            }
+          }
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<int> _createProductWithMultipart({
+    required CreateProductRequest request,
+    required String? imageUrl,
+    required int? resolvedCategoryId,
+  }) async {
+    final requestUrl = _buildLogUrl(ApiConfig.products);
+    final imagePath = request.imageFile!.path;
+    final imageName = imagePath.split(RegExp(r'[\/]')).last;
+    final imageExists = request.imageFile?.existsSync() ?? false;
+    final imageLength = imageExists ? await request.imageFile!.length() : 0;
+    final payload = <String, dynamic>{
+      'productName': request.title,
+      'description': request.description,
+      'price': request.price,
+      'condition': request.condition,
+      'categoryID': resolvedCategoryId ?? request.categoryId ?? 1,
+      'sportIDs': <int>[],
+      'imageUrl': imageUrl?.trim() ?? '',
+      'categoryName': request.category,
+      'category': request.category,
+      'image': await MultipartFile.fromFile(imagePath, filename: imageName),
+    };
+
+    developer.log(
+      'Create product multipart request prepared -> '
+      'url=$requestUrl method=POST contentType=${Headers.multipartFormDataContentType} '
+      'formDataFields=${jsonEncode(payload.keys.toList())} '
+      'formDataFileFields=${jsonEncode(<String>['image'])} '
+      'imageField=image imagePath=$imagePath imageName=$imageName imageExists=$imageExists imageLength=$imageLength bodyFields=${jsonEncode(payload.keys.where((key) => key != 'image').toList())}',
+      name: 'MarketplaceRepository',
     );
+    print(
+      '[MarketplaceRepository] Create product multipart request prepared -> '
+      'url=$requestUrl method=POST contentType=${Headers.multipartFormDataContentType} '
+      'formDataFields=${jsonEncode(payload.keys.toList())} '
+      'formDataFileFields=${jsonEncode(<String>['image'])} '
+      'imageField=image imagePath=$imagePath imageName=$imageName imageExists=$imageExists imageLength=$imageLength bodyFields=${jsonEncode(payload.keys.where((key) => key != 'image').toList())}',
+    );
+
+    final response = await _dio.post(
+      ApiConfig.products,
+      data: FormData.fromMap(payload),
+      options: Options(
+        method: 'POST',
+        headers: <String, dynamic>{'Accept': 'application/json'},
+        contentType: Headers.multipartFormDataContentType,
+      ),
+    );
+
+    developer.log(
+      'Create product multipart response -> status=${response.statusCode} data=${jsonEncode(response.data)}',
+      name: 'MarketplaceRepository',
+    );
+    print(
+      '[MarketplaceRepository] Create product multipart response -> status=${response.statusCode} data=${jsonEncode(response.data)}',
+    );
+
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      return _asInt(
+        data['productId'] ??
+            data['productID'] ??
+            data['id'] ??
+            data['data']?['productId'] ??
+            data['data']?['id'],
+      );
+    }
+    return 0;
   }
 
   Future<int> _createProductWithPayload({
@@ -179,6 +331,91 @@ class MarketplaceRepository {
 
     return filtered;
   }
+
+
+  Future<int?> _resolveCategoryId(CreateProductRequest request) async {
+    try {
+      final response = await _dio.get('/products/categories');
+      developer.log(
+        'Marketplace categories lookup -> response=${jsonEncode(response.data)}',
+        name: 'MarketplaceRepository',
+      );
+      final data = response.data;
+      final list = data is Map<String, dynamic>
+          ? data['categories']
+          : data;
+      if (list is List) {
+        final normalizedRequested = request.category.trim().toLowerCase();
+        for (final item in list) {
+          if (item is Map) {
+            final map = Map<String, dynamic>.from(item);
+            final name = (map['name'] ?? map['categoryName'] ?? '').toString().trim().toLowerCase();
+            if (name == normalizedRequested) {
+              return _asInt(map['id'] ?? map['categoryID']);
+            }
+          }
+        }
+      }
+    } on DioException catch (error) {
+      developer.log(
+        'Marketplace categories lookup failed -> status=${error.response?.statusCode} data=${jsonEncode(error.response?.data)}',
+        name: 'MarketplaceRepository',
+        error: error,
+        stackTrace: error.stackTrace,
+      );
+    } catch (error, stackTrace) {
+      developer.log(
+        'Marketplace categories lookup unexpected failure',
+        name: 'MarketplaceRepository',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return _defaultCategoryIdForName(request.category);
+  }
+
+  bool _isCategoryNotFoundError(DioException error) {
+    final data = error.response?.data;
+    if (data is Map<String, dynamic>) {
+      final message = (data['message'] ?? data['error'] ?? data['title'] ?? '').toString().toLowerCase();
+      return message.contains('category not found');
+    }
+    return false;
+  }
+
+  List<int> _fallbackCategoryIdsFor(String categoryName, {int? excluding}) {
+    final preferred = <int>[];
+    switch (categoryName.trim().toLowerCase()) {
+      case 'equipment':
+        preferred.addAll(const [1, 2, 3, 4]);
+        break;
+      case 'accessories':
+        preferred.addAll(const [2, 3, 4, 1]);
+        break;
+      case 'clothing':
+        preferred.addAll(const [3, 2, 4, 1]);
+        break;
+      default:
+        preferred.addAll(const [1, 2, 3, 4]);
+        break;
+    }
+    return preferred.where((id) => id != excluding).toList(growable: false);
+  }
+
+  int _defaultCategoryIdForName(String categoryName) {
+    switch (categoryName.trim().toLowerCase()) {
+      case 'equipment':
+        return 1;
+      case 'accessories':
+        return 2;
+      case 'clothing':
+        return 3;
+      default:
+        return 1;
+    }
+  }
+
 
   String _buildLogUrl(String path) {
     final baseUrl = _dio.options.baseUrl;
