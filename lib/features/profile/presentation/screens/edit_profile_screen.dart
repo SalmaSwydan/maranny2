@@ -126,9 +126,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _showError('Enter a valid Egyptian mobile number');
         return;
       }
-      if (bio.isNotEmpty && !ProfileValidators.hasFiftyWordBio(bio)) {
+      if (bio.isNotEmpty && !ProfileValidators.hasMinimumBioWords(bio)) {
         _showError(
-          'Bio is optional, but if you add it please write at least 50 words',
+          'Bio is optional, but if added it must contain at least 20 words.',
         );
         return;
       }

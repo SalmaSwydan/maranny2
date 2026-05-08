@@ -45,6 +45,14 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   double _averageRating = 0;
   int _totalReviews = 0;
 
+  bool get _shouldShowVerificationNotice {
+    final normalized = verificationStatus.trim().toLowerCase();
+    return normalized.isEmpty ||
+        (normalized != 'verified' &&
+            normalized != 'approved' &&
+            normalized != 'accepted');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -215,6 +223,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
+            if (_shouldShowVerificationNotice) _buildVerificationNotice(),
             _buildStats(),
             _buildSectionTitle('Bio'),
             _buildBioCard(),
@@ -388,6 +397,71 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildVerificationNotice() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF8FF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBCEEFF)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1F3A93).withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: const BoxDecoration(
+              color: Color(0xFFD6F3FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.hourglass_top_rounded,
+              color: AppColors.primaryBlue,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Your coach account is currently under review.',
+                  style: TextStyle(
+                    color: Color(0xFF142450),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Please note that account verification may take between 24 to 48 hours. You will be notified once your account has been approved.',
+                  style: TextStyle(
+                    color: Color(0xFF52698F),
+                    fontSize: 12.5,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

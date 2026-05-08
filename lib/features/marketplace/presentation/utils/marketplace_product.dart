@@ -12,6 +12,7 @@ class MarketplaceProduct {
   final int reviewers;
   final String location;
   final String whatsapp;
+  final bool showPhoneNumber;
   final String description;
 
   const MarketplaceProduct({
@@ -26,6 +27,7 @@ class MarketplaceProduct {
     required this.reviewers,
     required this.location,
     required this.whatsapp,
+    this.showPhoneNumber = true,
     required this.description,
   });
 
@@ -42,6 +44,7 @@ class MarketplaceProduct {
       reviewers: model.reviewsCount,
       location: model.location,
       whatsapp: model.sellerPhone,
+      showPhoneNumber: model.showPhoneNumber,
       description: model.description,
     );
   }

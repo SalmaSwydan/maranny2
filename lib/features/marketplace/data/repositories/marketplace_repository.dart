@@ -207,7 +207,9 @@ class MarketplaceRepository {
   }) async {
     final requestUrl = _buildLogUrl(ApiConfig.products);
     final imagePath = request.imageFile?.path ?? '';
-    final imageName = imagePath.isEmpty ? '' : imagePath.split(RegExp(r'[\/]')).last;
+    final imageName = imagePath.isEmpty
+        ? ''
+        : imagePath.split(RegExp(r'[\/]')).last;
     final imageExists = request.imageFile?.existsSync() ?? false;
     final imageLength = imageExists ? await request.imageFile!.length() : 0;
     final payload = <String, dynamic>{
@@ -222,19 +224,25 @@ class MarketplaceRepository {
       'category': request.category,
       'sellerName': request.sellerName,
       'storeName': request.sellerName,
-      'sellerPhone': request.sellerPhone,
-      'phoneNumber': request.sellerPhone,
-      'contactPhone': request.sellerPhone,
+      'showPhoneNumber': request.showPhoneNumber,
+      'sellerPhone': request.showPhoneNumber ? request.sellerPhone : null,
+      'phoneNumber': request.showPhoneNumber ? request.sellerPhone : null,
+      'contactPhone': request.showPhoneNumber ? request.sellerPhone : null,
       'location': request.location,
       'sellerLocation': request.location,
       'city': request.location,
     };
 
     if (request.imageFile != null && imageExists) {
-      payload['image'] = await MultipartFile.fromFile(imagePath, filename: imageName);
+      payload['image'] = await MultipartFile.fromFile(
+        imagePath,
+        filename: imageName,
+      );
     }
 
-    final fileFieldNames = payload.keys.where((key) => key == 'image').toList(growable: false);
+    final fileFieldNames = payload.keys
+        .where((key) => key == 'image')
+        .toList(growable: false);
 
     developer.log(
       'Create product multipart request prepared -> '
@@ -333,11 +341,7 @@ class MarketplaceRepository {
       }
       return 0;
     } on DioException catch (error) {
-      _logCreateError(
-        requestUrl: requestUrl,
-        payload: payload,
-        error: error,
-      );
+      _logCreateError(requestUrl: requestUrl, payload: payload, error: error);
       rethrow;
     }
   }
@@ -350,26 +354,29 @@ class MarketplaceRepository {
     final trimmedQuery = query?.trim().toLowerCase() ?? '';
     final selectedCategory = category?.trim() ?? 'All';
 
-    final filtered = products.where((product) {
-      final matchesCategory = selectedCategory == 'All'
-          ? true
-          : selectedCategory == 'Used'
+    final filtered = products
+        .where((product) {
+          final matchesCategory = selectedCategory == 'All'
+              ? true
+              : selectedCategory == 'Used'
               ? product.condition.toLowerCase() == 'used'
               : product.categoryName.toLowerCase() ==
-                  selectedCategory.toLowerCase();
+                    selectedCategory.toLowerCase();
 
-      final haystack = [
-        product.title,
-        product.categoryName,
-        product.description,
-        product.sellerName,
-        product.location,
-      ].join(' ').toLowerCase();
-      final matchesQuery =
-          trimmedQuery.isEmpty ? true : haystack.contains(trimmedQuery);
+          final haystack = [
+            product.title,
+            product.categoryName,
+            product.description,
+            product.sellerName,
+            product.location,
+          ].join(' ').toLowerCase();
+          final matchesQuery = trimmedQuery.isEmpty
+              ? true
+              : haystack.contains(trimmedQuery);
 
-      return matchesCategory && matchesQuery;
-    }).toList(growable: false);
+          return matchesCategory && matchesQuery;
+        })
+        .toList(growable: false);
 
     developer.log(
       'Marketplace filters -> selectedCategory=$selectedCategory searchQuery=$trimmedQuery filteredResults=${filtered.length}',
@@ -379,7 +386,6 @@ class MarketplaceRepository {
     return filtered;
   }
 
-
   Future<int?> _resolveCategoryId(CreateProductRequest request) async {
     try {
       final response = await _dio.get('/products/categories');
@@ -388,15 +394,16 @@ class MarketplaceRepository {
         name: 'MarketplaceRepository',
       );
       final data = response.data;
-      final list = data is Map<String, dynamic>
-          ? data['categories']
-          : data;
+      final list = data is Map<String, dynamic> ? data['categories'] : data;
       if (list is List) {
         final normalizedRequested = request.category.trim().toLowerCase();
         for (final item in list) {
           if (item is Map) {
             final map = Map<String, dynamic>.from(item);
-            final name = (map['name'] ?? map['categoryName'] ?? '').toString().trim().toLowerCase();
+            final name = (map['name'] ?? map['categoryName'] ?? '')
+                .toString()
+                .trim()
+                .toLowerCase();
             if (name == normalizedRequested) {
               return _asInt(map['id'] ?? map['categoryID']);
             }
@@ -425,7 +432,9 @@ class MarketplaceRepository {
   bool _isCategoryNotFoundError(DioException error) {
     final data = error.response?.data;
     if (data is Map<String, dynamic>) {
-      final message = (data['message'] ?? data['error'] ?? data['title'] ?? '').toString().toLowerCase();
+      final message = (data['message'] ?? data['error'] ?? data['title'] ?? '')
+          .toString()
+          .toLowerCase();
       return message.contains('category not found');
     }
     return false;
@@ -462,7 +471,6 @@ class MarketplaceRepository {
         return 1;
     }
   }
-
 
   String _buildLogUrl(String path) {
     final baseUrl = _dio.options.baseUrl;
@@ -548,7 +556,9 @@ class MarketplaceRepository {
       stackTrace: error.stackTrace,
     );
     print('[MarketplaceRepository] $message');
-    print('[MarketplaceRepository] Create product raw response.data -> $responseData');
+    print(
+      '[MarketplaceRepository] Create product raw response.data -> $responseData',
+    );
     print(
       '[MarketplaceRepository] Create product validation errors -> '
       '${jsonEncode(validationErrors)}',

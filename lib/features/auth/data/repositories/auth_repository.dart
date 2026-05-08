@@ -5,6 +5,8 @@ import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_config.dart';
 import '../../../../core/network/token_storage.dart';
+import '../../../../core/utils/client_profile_storage.dart';
+import '../../../../core/utils/user_preferences_storage.dart';
 import '../models/auth_models.dart';
 import '../models/user_model.dart';
 
@@ -29,6 +31,8 @@ class AuthRepository {
 
   Future<LoginResponse> login(LoginRequest request) async {
     try {
+      await ClientProfileStorage.clear();
+      await UserPreferencesStorage.clear();
       final response = await _dio.post(ApiConfig.login, data: request.toJson());
       final loginResponse = LoginResponse.fromJson(
         response.data as Map<String, dynamic>,
@@ -44,6 +48,8 @@ class AuthRepository {
         firstName: loginResponse.user.firstName,
         lastName: loginResponse.user.lastName,
       );
+      await ClientProfileStorage.clearLegacy();
+      await UserPreferencesStorage.clearLegacy();
       return loginResponse;
     } on DioException catch (e) {
       throw _handleError(e);
@@ -94,6 +100,8 @@ class AuthRepository {
       }
     } catch (_) {
     } finally {
+      await ClientProfileStorage.clear();
+      await UserPreferencesStorage.clear();
       await TokenStorage.clear();
     }
   }

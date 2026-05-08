@@ -33,9 +33,13 @@ class _ListItemScreenState extends State<ListItemScreen> {
   String? _imagePath;
   String _category = 'Equipment';
   String _condition = 'New';
+  bool _showPhoneNumber = true;
   bool _isSubmitting = false;
 
   static const _categories = ['Equipment', 'Clothing', 'Accessories'];
+  static final RegExp _egyptMarketplacePhoneRegex = RegExp(
+    r'^(?:\+20|0)1[0125][0-9]{8}$',
+  );
 
   @override
   void dispose() {
@@ -89,12 +93,12 @@ class _ListItemScreenState extends State<ListItemScreen> {
       _showMessage('Please enter the seller or store name');
       return;
     }
-    if (sellerPhone.isEmpty) {
+    if (_showPhoneNumber && sellerPhone.isEmpty) {
       _showMessage('Please enter your contact number');
       return;
     }
-    if (!ProfileValidators.isValidEgyptPhone(sellerPhone)) {
-      _showMessage('Please enter a valid Egyptian phone number');
+    if (_showPhoneNumber && !_isValidMarketplacePhone(sellerPhone)) {
+      _showMessage('Please enter a valid Egyptian mobile number.');
       return;
     }
     if (sellerLocation.isEmpty) {
@@ -113,7 +117,10 @@ class _ListItemScreenState extends State<ListItemScreen> {
       condition: _condition,
       description: description,
       sellerName: sellerName,
-      sellerPhone: ProfileValidators.normalizeEgyptPhone(sellerPhone),
+      sellerPhone: _showPhoneNumber
+          ? ProfileValidators.normalizeEgyptPhone(sellerPhone)
+          : '',
+      showPhoneNumber: _showPhoneNumber,
       location: sellerLocation,
       imageFile: _imagePath != null && _imagePath!.isNotEmpty
           ? File(_imagePath!)
@@ -167,6 +174,7 @@ class _ListItemScreenState extends State<ListItemScreen> {
               reviewers: 0,
               location: request.location,
               whatsapp: request.sellerPhone,
+              showPhoneNumber: request.showPhoneNumber,
               description: request.description,
             );
 
@@ -295,6 +303,11 @@ class _ListItemScreenState extends State<ListItemScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool _isValidMarketplacePhone(String value) {
+    final normalized = value.trim().replaceAll(RegExp(r'[\s\-()]'), '');
+    return _egyptMarketplacePhoneRegex.hasMatch(normalized);
   }
 
   @override
@@ -483,6 +496,8 @@ class _ListItemScreenState extends State<ListItemScreen> {
                       hint: 'Store or seller name',
                     ),
                     const SizedBox(height: 12),
+                    _buildPhoneVisibilityOptions(),
+                    const SizedBox(height: 12),
                     _buildTextField(
                       controller: _sellerPhoneController,
                       hint: 'Your phone number (e.g. +20 100 123 4567)',
@@ -604,6 +619,38 @@ class _ListItemScreenState extends State<ListItemScreen> {
     ),
   );
 
+  Widget _buildPhoneVisibilityOptions() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        children: [
+          _PhoneVisibilityOption(
+            selected: _showPhoneNumber,
+            title: 'Show phone number to buyers',
+            onTap: _isSubmitting
+                ? null
+                : () => setState(() => _showPhoneNumber = true),
+          ),
+          Divider(
+            height: 1,
+            color: AppColors.primaryBlue.withValues(alpha: 0.12),
+          ),
+          _PhoneVisibilityOption(
+            selected: !_showPhoneNumber,
+            title: 'Hide phone number from buyers',
+            onTap: _isSubmitting
+                ? null
+                : () => setState(() => _showPhoneNumber = false),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLocationDropdown() {
     final areas = EgyptLocations.allAreas;
     final value = areas.contains(_sellerLocationController.text.trim())
@@ -634,6 +681,70 @@ class _ListItemScreenState extends State<ListItemScreen> {
                   if (v == null) return;
                   setState(() => _sellerLocationController.text = v);
                 },
+        ),
+      ),
+    );
+  }
+}
+
+class _PhoneVisibilityOption extends StatelessWidget {
+  final bool selected;
+  final String title;
+  final VoidCallback? onTap;
+
+  const _PhoneVisibilityOption({
+    required this.selected,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected
+                      ? AppColors.primaryBlue
+                      : AppColors.primaryBlue.withValues(alpha: 0.35),
+                  width: 2,
+                ),
+              ),
+              child: selected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: AppColors.primaryBlue,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

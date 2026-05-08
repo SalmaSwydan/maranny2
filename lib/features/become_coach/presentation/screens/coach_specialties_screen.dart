@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/profile_validators.dart';
 import '../../../sports/data/models/sport_model.dart';
 import '../../../sports/data/repositories/sports_repository.dart';
 import '../../data/models/coach_onboarding_draft.dart';
@@ -52,13 +53,28 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
       return;
     }
 
+    final bio = _bioController.text.trim();
+    if (bio.isNotEmpty && !ProfileValidators.hasMinimumBioWords(bio)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Bio is optional, but if added it must contain at least 20 words.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final nextDraft = widget.draft.copyWith(
       selectedSports: [_selectedSpecialty!],
-      bio: _bioController.text.trim(),
+      bio: bio,
     );
 
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => CoachDaysScreen(draft: nextDraft)),
+      MaterialPageRoute(
+        builder: (context) => CoachDaysScreen(draft: nextDraft),
+      ),
     );
   }
 

@@ -66,7 +66,8 @@ class ProfileValidators {
       .where((word) => word.trim().isNotEmpty)
       .length;
 
-  static bool hasFiftyWordBio(String value) => wordCount(value) >= 50;
+  static bool hasMinimumBioWords(String value, {int minimum = 20}) =>
+      wordCount(value) >= minimum;
 
   static List<String> missingClientProfileFields({
     required String? profilePicture,

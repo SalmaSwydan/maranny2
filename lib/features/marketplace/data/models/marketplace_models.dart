@@ -14,6 +14,7 @@ class ProductModel {
   final String categoryName;
   final String sellerName;
   final String sellerPhone;
+  final bool showPhoneNumber;
   final String location;
   final double rating;
   final int reviewsCount;
@@ -31,6 +32,7 @@ class ProductModel {
     required this.categoryName,
     required this.sellerName,
     required this.sellerPhone,
+    required this.showPhoneNumber,
     required this.location,
     required this.rating,
     required this.reviewsCount,
@@ -45,7 +47,8 @@ class ProductModel {
 
     return ProductModel(
       productId: _asInt(json['productId'] ?? json['productID'] ?? json['id']),
-      title: _firstNonEmptyString([
+      title:
+          _firstNonEmptyString([
             _asNullableString(json['title']),
             _asNullableString(json['name']),
             _asNullableString(json['productName']),
@@ -53,7 +56,8 @@ class ProductModel {
           'Product',
       description: _asString(json['description']),
       price: _asDouble(json['price']),
-      condition: _firstNonEmptyString([
+      condition:
+          _firstNonEmptyString([
             _asNullableString(json['condition']),
             _asNullableString(json['status']),
           ]) ??
@@ -72,20 +76,23 @@ class ProductModel {
           _asNullableString(json['thumbnail']),
         ]),
       ),
-      categoryName: _extractCategoryName(
+      categoryName:
+          _extractCategoryName(
             json['categoryName'],
             category,
             json['category'],
           ) ??
           'Equipment',
-      sellerName: _firstNonEmptyString([
+      sellerName:
+          _firstNonEmptyString([
             _asNullableString(json['sellerName']),
             _asNullableString(json['storeName']),
             _asNullableString(seller?['name']),
             _asNullableString(seller?['fullName']),
           ]) ??
           'Seller',
-      sellerPhone: _firstNonEmptyString([
+      sellerPhone:
+          _firstNonEmptyString([
             _asNullableString(json['sellerPhone']),
             _asNullableString(json['phoneNumber']),
             _asNullableString(json['contactPhone']),
@@ -98,7 +105,15 @@ class ProductModel {
             _asNullableString(seller?['whatsapp']),
           ]) ??
           '',
-      location: _firstNonEmptyString([
+      showPhoneNumber: _asBool(
+        json['showPhoneNumber'] ??
+            json['isPhoneVisible'] ??
+            json['phoneVisible'] ??
+            seller?['showPhoneNumber'],
+        fallback: true,
+      ),
+      location:
+          _firstNonEmptyString([
             _asNullableString(json['sellerLocation']),
             _asNullableString(json['location']),
             _asNullableString(json['city']),
@@ -124,7 +139,7 @@ class ProductModel {
     );
   }
 
-  bool get hasPhone => sellerPhone.trim().isNotEmpty;
+  bool get hasPhone => showPhoneNumber && sellerPhone.trim().isNotEmpty;
 }
 
 class PaginatedProducts {
@@ -152,9 +167,9 @@ class PaginatedProducts {
 
     final products = list is List
         ? list
-            .whereType<Map>()
-            .map((e) => ProductModel.fromJson(Map<String, dynamic>.from(e)))
-            .toList(growable: false)
+              .whereType<Map>()
+              .map((e) => ProductModel.fromJson(Map<String, dynamic>.from(e)))
+              .toList(growable: false)
         : const <ProductModel>[];
 
     return PaginatedProducts(
@@ -177,6 +192,7 @@ class CreateProductRequest {
   final String description;
   final String sellerName;
   final String sellerPhone;
+  final bool showPhoneNumber;
   final String location;
   final File? imageFile;
 
@@ -188,6 +204,7 @@ class CreateProductRequest {
     required this.description,
     required this.sellerName,
     required this.sellerPhone,
+    required this.showPhoneNumber,
     required this.location,
     this.imageFile,
   });
@@ -212,9 +229,10 @@ class CreateProductRequest {
     'category': category,
     'sellerName': sellerName,
     'storeName': sellerName,
-    'sellerPhone': sellerPhone,
-    'phoneNumber': sellerPhone,
-    'contactPhone': sellerPhone,
+    'showPhoneNumber': showPhoneNumber,
+    'sellerPhone': showPhoneNumber ? sellerPhone : null,
+    'phoneNumber': showPhoneNumber ? sellerPhone : null,
+    'contactPhone': showPhoneNumber ? sellerPhone : null,
     'location': location,
     'sellerLocation': location,
     'city': location,
@@ -286,6 +304,25 @@ double _asDouble(dynamic value, {double fallback = 0}) {
   return fallback;
 }
 
+bool _asBool(dynamic value, {bool fallback = false}) {
+  if (value is bool) {
+    return value;
+  }
+  if (value is num) {
+    return value != 0;
+  }
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+  }
+  return fallback;
+}
+
 String _asString(dynamic value, {String fallback = ''}) {
   if (value == null) {
     return fallback;
@@ -331,7 +368,10 @@ String? _extractCategoryName(
     return null;
   }
 
-  final categoryNameMatch = RegExp(r'categoryName\s*:\s*([^,}]+)', caseSensitive: false).firstMatch(raw);
+  final categoryNameMatch = RegExp(
+    r'categoryName\s*:\s*([^,}]+)',
+    caseSensitive: false,
+  ).firstMatch(raw);
   if (categoryNameMatch != null) {
     return categoryNameMatch.group(1)?.trim();
   }

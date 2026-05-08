@@ -151,11 +151,11 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
       );
       return;
     }
-    if (bio.isNotEmpty && !ProfileValidators.hasFiftyWordBio(bio)) {
+    if (bio.isNotEmpty && !ProfileValidators.hasMinimumBioWords(bio)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Bio is optional, but if you add it please write at least 50 words',
+            'Bio is optional, but if added it must contain at least 20 words.',
           ),
           backgroundColor: Colors.red,
         ),

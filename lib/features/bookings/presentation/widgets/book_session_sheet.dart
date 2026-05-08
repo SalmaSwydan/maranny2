@@ -44,11 +44,9 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
   List<String> _visibleAvailableDays = [];
   String? _selectedDay;
   _AvailabilitySlotData? _selectedSlot;
+  Map<String, int> _clientBookingCountsByDate = const {};
 
-  static const Color _freeSlotColor = Color(0xFF22C55E);
-  static const Color _pendingSlotColor = Color(0xFFFACC15);
-  static const Color _reservedSlotColor = Color(0xFFEF4444);
-  static const Color _selectedSlotColor = Color(0xFF304FFE);
+  static const int _maxClientBookingsPerDay = 2;
 
   @override
   void initState() {
@@ -61,16 +59,20 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       _isLoading = true;
       _error = null;
       _availability = null;
-      _selectedDay = null;
+      _selectedDay = _dateKey(DateTime.now());
       _selectedSlot = null;
+      _clientBookingCountsByDate = const {};
     });
 
     if (widget.coachId == null) {
+      final bookingCounts = await _loadClientBookingCountsByDate();
+      if (!mounted) {
+        return;
+      }
       setState(() {
         _visibleAvailableDays = _normalizeDays(widget.availableDays);
-        _selectedDay = _visibleAvailableDays.isNotEmpty
-            ? _visibleAvailableDays.first
-            : null;
+        _selectedDay = _dateKey(DateTime.now());
+        _clientBookingCountsByDate = bookingCounts;
         _isLoading = false;
       });
       return;
@@ -78,6 +80,7 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
 
     try {
       final availability = await _repo.getCoachAvailability(widget.coachId!);
+      final bookingCounts = await _loadClientBookingCountsByDate();
       if (!mounted) {
         return;
       }
@@ -85,9 +88,8 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       setState(() {
         _availability = availability;
         _visibleAvailableDays = _normalizeDays(availability.availableDays);
-        _selectedDay = _visibleAvailableDays.isNotEmpty
-            ? _visibleAvailableDays.first
-            : null;
+        _selectedDay = _dateKey(DateTime.now());
+        _clientBookingCountsByDate = bookingCounts;
         _isLoading = false;
       });
       developer.log(
@@ -127,6 +129,36 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     return normalizedDays;
   }
 
+  Future<Map<String, int>> _loadClientBookingCountsByDate() async {
+    try {
+      final bookings = await _repo.getMyBookings();
+      final counts = <String, int>{};
+      for (final booking in bookings) {
+        final status = normalizeBookingStatus(booking.status);
+        if (status != 'pending' && status != 'confirmed') {
+          continue;
+        }
+
+        final bookingDate = DateTime.tryParse(booking.session.sessionDate);
+        if (bookingDate == null) {
+          continue;
+        }
+
+        final dateKey = _dateKey(bookingDate);
+        counts[dateKey] = (counts[dateKey] ?? 0) + 1;
+      }
+      return counts;
+    } catch (error, stackTrace) {
+      developer.log(
+        'Could not load client booking counts',
+        name: 'BookSessionSheet',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const {};
+    }
+  }
+
   String _weekdayName(int weekday) {
     switch (weekday) {
       case DateTime.monday:
@@ -146,6 +178,32 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       default:
         return '';
     }
+  }
+
+  String _weekdayShortName(int weekday) {
+    switch (weekday) {
+      case DateTime.monday:
+        return 'Mon';
+      case DateTime.tuesday:
+        return 'Tue';
+      case DateTime.wednesday:
+        return 'Wed';
+      case DateTime.thursday:
+        return 'Thu';
+      case DateTime.friday:
+        return 'Fri';
+      case DateTime.saturday:
+        return 'Sat';
+      case DateTime.sunday:
+        return 'Sun';
+      default:
+        return '';
+    }
+  }
+
+  static String _dateKey(DateTime date) {
+    final normalized = DateTime(date.year, date.month, date.day);
+    return normalized.toIso8601String().substring(0, 10);
   }
 
   String _formatDate(String raw) {
@@ -334,6 +392,112 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     return rows;
   }
 
+  List<_AvailabilityRowData> _buildNextSevenRows() {
+    final sourceRows = _buildRows();
+    final today = DateTime.now();
+
+    return List<_AvailabilityRowData>.generate(7, (index) {
+      final date = DateTime(today.year, today.month, today.day + index);
+      final dateKey = _dateKey(date);
+      final dayName = _weekdayName(date.weekday);
+
+      _AvailabilityRowData? sourceRow;
+      for (final row in sourceRows) {
+        if (row.day.toLowerCase() == dayName.toLowerCase()) {
+          sourceRow = row;
+          break;
+        }
+      }
+
+      final slots = <_AvailabilitySlotData>[];
+      if (sourceRow != null) {
+        for (final slot in sourceRow.slots) {
+          if (slot.date.isNotEmpty && !_sameCalendarDate(slot.date, dateKey)) {
+            continue;
+          }
+
+          slots.add(
+            _AvailabilitySlotData(
+              day: dayName,
+              date: dateKey,
+              formattedDate: _formatDate(dateKey),
+              label: slot.label,
+              normalizedLabel: slot.normalizedLabel,
+              requestStartTime: slot.requestStartTime,
+              rawSourceTime: slot.rawSourceTime,
+              session: slot.session,
+            ),
+          );
+        }
+      }
+
+      _addWeeklyStatusSlotsForDate(
+        target: slots,
+        dayName: dayName,
+        dateKey: dateKey,
+      );
+
+      final dedupedSlots = _dedupeRenderedSlots(slots);
+      return _AvailabilityRowData(
+        day: dayName,
+        date: dateKey,
+        formattedDate: _formatDate(dateKey),
+        dayShort: _weekdayShortName(date.weekday),
+        dayNumber: date.day.toString(),
+        slots: dedupedSlots,
+        hasAvailabilityEntry:
+            (sourceRow?.hasAvailabilityEntry ?? false) ||
+            dedupedSlots.isNotEmpty,
+      );
+    });
+  }
+
+  void _addWeeklyStatusSlotsForDate({
+    required List<_AvailabilitySlotData> target,
+    required String dayName,
+    required String dateKey,
+  }) {
+    final availability = _availability;
+    if (availability == null) {
+      return;
+    }
+
+    for (final status in availability.weeklySlotStatuses) {
+      if (status.dayName.trim().toLowerCase() != dayName.toLowerCase()) {
+        continue;
+      }
+      if (status.date.isNotEmpty && !_sameCalendarDate(status.date, dateKey)) {
+        continue;
+      }
+
+      final normalizedHour = _normalizedTimeValue(status.hour);
+      if (normalizedHour.isEmpty) {
+        continue;
+      }
+      if (target.any((slot) => slot.normalizedLabel == normalizedHour)) {
+        continue;
+      }
+
+      target.add(
+        _AvailabilitySlotData(
+          day: dayName,
+          date: dateKey,
+          formattedDate: _formatDate(dateKey),
+          label: _formatTime(status.hour),
+          normalizedLabel: normalizedHour,
+          requestStartTime: status.hour,
+          rawSourceTime: status.hour,
+          session: _matchSessionForAvailabilitySlot(
+            availability: availability,
+            day: dayName,
+            date: dateKey,
+            normalizedHour: normalizedHour,
+          ),
+        ),
+      );
+    }
+  }
+
   _MappedAvailabilityResult _buildAvailabilityEntriesForDay({
     required String day,
     required List<CoachAvailabilityDateEntry> dayHourEntries,
@@ -344,17 +508,12 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
         .toList(growable: false);
 
     if (dayHourEntriesWithHours.isNotEmpty) {
-      final fallbackDate = _firstNonEmptyDate(upcomingDateEntries);
-      final fallbackFormattedDate = fallbackDate.isNotEmpty
-          ? _formatDate(fallbackDate)
-          : '';
-
       return _MappedAvailabilityResult(
         source: 'dayHourSlots',
         entries: [
           _MappedAvailabilityEntry(
-            date: fallbackDate,
-            formattedDate: fallbackFormattedDate,
+            date: '',
+            formattedDate: '',
             hours: _uniqueHoursForEntries(dayHourEntriesWithHours),
           ),
         ],
@@ -501,20 +660,24 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     return uniqueSlots;
   }
 
-  String _firstNonEmptyDate(List<CoachAvailabilityDateEntry> entries) {
-    for (final entry in entries) {
-      if (entry.date.isNotEmpty) {
-        return entry.date;
-      }
-    }
-    return '';
-  }
-
   int _availableHoursCountForDate(_AvailabilityRowData row) {
     if (row.slots.isNotEmpty) {
       return row.slots.length;
     }
     return 0;
+  }
+
+  bool _hasReachedClientDailyLimit(String dateKey) {
+    if (dateKey.isEmpty) {
+      return false;
+    }
+    return (_clientBookingCountsByDate[dateKey] ?? 0) >=
+        _maxClientBookingsPerDay;
+  }
+
+  bool _isSlotSelectable(_AvailabilitySlotData slot, _AvailabilityRowData row) {
+    return _slotVisualState(slot) == _AvailabilityVisualState.free &&
+        !_hasReachedClientDailyLimit(row.date);
   }
 
   void _selectSlot(_AvailabilitySlotData slot, _AvailabilityRowData row) {
@@ -548,19 +711,8 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       'availableHoursCount=${_availableHoursCountForDate(row)}',
       name: 'BookSessionSheet',
     );
-    print(
-      '[BookSessionSheet] selectedDay=${row.day} '
-      'selectedDate=${slot.date.isNotEmpty ? slot.date : 'none'} '
-      'selectedHour=${slot.requestStartTime} '
-      'selectedDisplayHour=${slot.label} '
-      'selectedRawSourceHour=${slot.rawSourceTime} '
-      'selectedSessionId=${slot.session?.sessionID} '
-      'selectedSportId=${slot.session?.sportID} '
-      'availableHoursCount=${_availableHoursCountForDate(row)}',
-    );
-
     setState(() {
-      _selectedDay = row.day;
+      _selectedDay = row.date.isNotEmpty ? row.date : row.day;
       _selectedSlot = slot;
     });
   }
@@ -738,47 +890,15 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     return null;
   }
 
-  Color _slotBackgroundColor({
-    required _AvailabilitySlotData slot,
-    required bool selected,
-  }) {
-    if (selected) {
-      return _selectedSlotColor;
-    }
-
-    switch (_slotVisualState(slot)) {
-      case _AvailabilityVisualState.free:
-        return _freeSlotColor;
-      case _AvailabilityVisualState.pending:
-        return _pendingSlotColor;
-      case _AvailabilityVisualState.reserved:
-        return _reservedSlotColor;
-    }
-  }
-
-  Color _slotTextColor({
-    required _AvailabilitySlotData slot,
-    required bool selected,
-  }) {
-    if (selected) {
-      return Colors.white;
-    }
-
-    switch (_slotVisualState(slot)) {
-      case _AvailabilityVisualState.pending:
-        return Colors.black87;
-      case _AvailabilityVisualState.free:
-      case _AvailabilityVisualState.reserved:
-        return Colors.white;
-    }
-  }
-
   bool get _canContinueBooking {
     final slot = _selectedSlot;
     if (slot == null || _selectedDay == null) {
       return false;
     }
     if (_slotVisualState(slot) != _AvailabilityVisualState.free) {
+      return false;
+    }
+    if (_hasReachedClientDailyLimit(_selectedDay ?? '')) {
       return false;
     }
     if (slot.session != null) {
@@ -799,10 +919,14 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final rows = _buildRows();
-    final hasAnyAvailabilityRow = rows
-        .where((row) => row.hasAvailabilityEntry || row.slots.isNotEmpty)
-        .isNotEmpty;
+    final rows = _buildNextSevenRows();
+    final selectedRow = rows.firstWhere(
+      (row) => row.date == _selectedDay,
+      orElse: () => rows.first,
+    );
+    final selectedFreeSlots = selectedRow.slots
+        .where((slot) => _isSlotSelectable(slot, selectedRow))
+        .toList(growable: false);
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -825,36 +949,75 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Available days',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                'Choose a free time.',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 8,
-              children: const [
-                _AvailabilityLegendChip(
-                  color: _freeSlotColor,
-                  label: 'Free',
-                  textColor: Colors.white,
-                ),
-                _AvailabilityLegendChip(
-                  color: _pendingSlotColor,
-                  label: 'Pending',
-                  textColor: Colors.black87,
-                ),
-                _AvailabilityLegendChip(
-                  color: _reservedSlotColor,
-                  label: 'Reserved',
-                  textColor: Colors.white,
-                ),
-                _AvailabilityLegendChip(
-                  color: _selectedSlotColor,
-                  label: 'Selected',
-                  textColor: Colors.white,
-                ),
-              ],
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 21,
+                    backgroundColor: const Color(0xFFE8EEFF),
+                    backgroundImage: widget.coachImage.startsWith('http')
+                        ? NetworkImage(widget.coachImage)
+                        : null,
+                    child: widget.coachImage.startsWith('http')
+                        ? null
+                        : Text(
+                            widget.coachName.isNotEmpty
+                                ? widget.coachName[0].toUpperCase()
+                                : 'C',
+                            style: const TextStyle(
+                              color: Color(0xFF1F3A93),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.coachName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1F3A93),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${widget.coachSport} - $_price LE/hr',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF667085),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 14),
             Expanded(
@@ -867,103 +1030,86 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                         child: Text(_error!),
                       ),
                     )
-                  : !hasAnyAvailabilityRow
-                  ? const Center(
-                      child: Text(
-                        'This coach has no available hours yet',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: rows.length,
-                      separatorBuilder: (_, __) =>
-                          Divider(height: 22, color: Colors.grey.shade300),
-                      itemBuilder: (context, index) {
-                        final row = rows[index];
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 95,
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(
-                                  row.day,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF374151),
-                                  ),
+                  : ListView(
+                      children: [
+                        const _PickerSectionLabel('DAY'),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 68,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: rows.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 10),
+                            itemBuilder: (context, index) {
+                              final row = rows[index];
+                              final selected = row.date == selectedRow.date;
+                              final freeCount = row.slots
+                                  .where((slot) => _isSlotSelectable(slot, row))
+                                  .length;
+                              return _DaySelectorCard(
+                                day: row.dayShort,
+                                dateNumber: row.dayNumber,
+                                freeCount: freeCount,
+                                selected: selected,
+                                onTap: () => setState(() {
+                                  _selectedDay = row.date;
+                                  _selectedSlot = null;
+                                }),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        _PickerSectionLabel(
+                          'FREE TIMES - ${selectedRow.dayShort} ${selectedRow.dayNumber}',
+                        ),
+                        const SizedBox(height: 10),
+                        const _DurationNotice(),
+                        const SizedBox(height: 12),
+                        if (_hasReachedClientDailyLimit(selectedRow.date))
+                          const _DayLimitNotice(),
+                        if (selectedRow.slots.isEmpty ||
+                            selectedFreeSlots.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 18),
+                            child: Text(
+                              'No free time slots for this day',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        else
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: selectedRow.slots.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  mainAxisExtent: 46,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: row.slots.isEmpty
-                                  ? Padding(
-                                      padding: const EdgeInsets.only(top: 10),
-                                      child: Text(
-                                        row.hasAvailabilityEntry
-                                            ? 'No available time slots for this day'
-                                            : 'This coach has no available hours yet',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    )
-                                  : Wrap(
-                                      spacing: 10,
-                                      runSpacing: 10,
-                                      children: row.slots.map((slot) {
-                                        final selected =
-                                            _selectedSlot?.slotKey ==
-                                                slot.slotKey &&
-                                            _selectedDay == row.day;
-
-                                        return GestureDetector(
-                                          onTap: () => _selectSlot(slot, row),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 10,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: _slotBackgroundColor(
-                                                slot: slot,
-                                                selected: selected,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withValues(alpha: 0.05),
-                                                  blurRadius: 6,
-                                                  offset: const Offset(0, 2),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Text(
-                                              slot.label,
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                                color: _slotTextColor(
-                                                  slot: slot,
-                                                  selected: selected,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                            ),
-                          ],
-                        );
-                      },
+                            itemBuilder: (context, index) {
+                              final slot = selectedRow.slots[index];
+                              final isFree = _isSlotSelectable(
+                                slot,
+                                selectedRow,
+                              );
+                              final selected =
+                                  _selectedSlot?.slotKey == slot.slotKey &&
+                                  _selectedDay == selectedRow.date;
+                              return _TimeSlotChip(
+                                label: slot.label,
+                                selected: selected,
+                                enabled: isFree,
+                                onTap: isFree
+                                    ? () => _selectSlot(slot, selectedRow)
+                                    : null,
+                              );
+                            },
+                          ),
+                      ],
                     ),
             ),
             const SizedBox(height: 18),
@@ -975,7 +1121,7 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                     ? null
                     : () async {
                         final canBook = await _ensureClientProfileComplete();
-                        if (!canBook || !mounted) {
+                        if (!canBook || !context.mounted) {
                           return;
                         }
                         final slot = _selectedSlot!;
@@ -992,17 +1138,6 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                           'displayTime=${slot.label} '
                           'rawSourceTime=${slot.rawSourceTime}',
                           name: 'BookSessionSheet',
-                        );
-                        print(
-                          '[BookSessionSheet] continue booking -> '
-                          'inputCoachId=${widget.coachId} '
-                          'resolvedCoachId=$resolvedCoachId '
-                          'resolvedSportId=$resolvedSportId '
-                          'sessionId=${slot.session?.sessionID} '
-                          'sessionDate=${slot.date} '
-                          'requestStartTime=${slot.requestStartTime} '
-                          'displayTime=${slot.label} '
-                          'rawSourceTime=${slot.rawSourceTime}',
                         );
                         Navigator.push(
                           context,
@@ -1045,7 +1180,7 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                         ),
                       )
                     : const Text(
-                        'Book Now',
+                        'Continue',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -1064,6 +1199,10 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
 
 class _AvailabilityRowData {
   final String day;
+  final String date;
+  final String formattedDate;
+  final String dayShort;
+  final String dayNumber;
   final List<_AvailabilitySlotData> slots;
   final bool hasAvailabilityEntry;
 
@@ -1071,6 +1210,10 @@ class _AvailabilityRowData {
     required this.day,
     required this.slots,
     required this.hasAvailabilityEntry,
+    this.date = '',
+    this.formattedDate = '',
+    this.dayShort = '',
+    this.dayNumber = '',
   });
 }
 
@@ -1122,31 +1265,186 @@ class _MappedAvailabilityResult {
 
 enum _AvailabilityVisualState { free, pending, reserved }
 
-class _AvailabilityLegendChip extends StatelessWidget {
-  final Color color;
+class _PickerSectionLabel extends StatelessWidget {
   final String label;
-  final Color textColor;
 
-  const _AvailabilityLegendChip({
-    required this.color,
-    required this.label,
-    required this.textColor,
+  const _PickerSectionLabel(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        color: Color(0xFF98A2B3),
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 2.2,
+      ),
+    );
+  }
+}
+
+class _DaySelectorCard extends StatelessWidget {
+  final String day;
+  final String dateNumber;
+  final int freeCount;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DaySelectorCard({
+    required this.day,
+    required this.dateNumber,
+    required this.freeCount,
+    required this.selected,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(999),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 72,
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF6FD3F5) : const Color(0xFFEFF3FB),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$day $dateNumber',
+              style: TextStyle(
+                color: selected
+                    ? const Color(0xFF153273)
+                    : const Color(0xFF475467),
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '$freeCount free',
+              style: TextStyle(
+                color: selected
+                    ? const Color(0xFF153273)
+                    : const Color(0xFF667085),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _TimeSlotChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  const _TimeSlotChip({
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = !enabled
+        ? const Color(0xFF98A2B3)
+        : selected
+        ? Colors.white
+        : const Color(0xFF344054);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(13),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF304FFE)
+              : enabled
+              ? const Color(0xFFEFF3FB)
+              : Colors.white.withValues(alpha: 0.62),
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(
+            color: enabled
+                ? Colors.transparent
+                : const Color(0xFFD0D5DD).withValues(alpha: 0.55),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            decoration: enabled ? null : TextDecoration.lineThrough,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DurationNotice extends StatelessWidget {
+  const _DurationNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF8FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFB9E6FE)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: Color(0xFF1570EF), size: 18),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Please note: the session duration is 45 to 60 minutes.',
+              style: TextStyle(
+                color: Color(0xFF175CD3),
+                fontSize: 12.5,
+                height: 1.25,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayLimitNotice extends StatelessWidget {
+  const _DayLimitNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 12),
       child: Text(
-        label,
+        'You can only book up to 2 sessions per day.',
         style: TextStyle(
-          fontSize: 12,
+          color: Color(0xFFD92D20),
+          fontSize: 13,
           fontWeight: FontWeight.w700,
-          color: textColor,
         ),
       ),
     );

@@ -147,8 +147,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       product.location,
       fallback: 'Unknown',
     );
-    final displayPhone = _displayPhone(product.whatsapp);
-    final hasCallablePhone = _extractCallablePhone(product.whatsapp).isNotEmpty;
+    final displayPhone = product.showPhoneNumber
+        ? _displayPhone(product.whatsapp)
+        : 'Hidden by seller';
+    final hasCallablePhone =
+        product.showPhoneNumber &&
+        _extractCallablePhone(product.whatsapp).isNotEmpty;
     final displayCondition = _normalizeText(
       product.condition,
       fallback: 'Unknown',
