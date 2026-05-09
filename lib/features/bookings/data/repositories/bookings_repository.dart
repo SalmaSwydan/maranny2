@@ -248,10 +248,15 @@ class BookingsRepository {
 
   List<BookingModel> _parseBookings(dynamic data) {
     if (data is List) {
-      return data
+      final bookings = data
           .whereType<Map>()
           .map((e) => BookingModel.fromJson(Map<String, dynamic>.from(e)))
           .toList();
+      developer.log(
+        'Parsed bookings from list -> count=${bookings.length}',
+        name: 'BookingsRepository',
+      );
+      return bookings;
     }
 
     if (data is Map<String, dynamic>) {
@@ -259,15 +264,39 @@ class BookingsRepository {
           data['bookings'] ??
           data['items'] ??
           data['data'] ??
+          data['results'] ??
+          data['result'] ??
+          data['records'] ??
           const <dynamic>[];
       if (list is List) {
-        return list
+        final bookings = list
             .whereType<Map>()
             .map((e) => BookingModel.fromJson(Map<String, dynamic>.from(e)))
             .toList();
+        developer.log(
+          'Parsed bookings from object -> keys=${data.keys.toList()} count=${bookings.length}',
+          name: 'BookingsRepository',
+        );
+        return bookings;
+      }
+
+      final singleBooking = data['booking'];
+      if (singleBooking is Map) {
+        final bookings = [
+          BookingModel.fromJson(Map<String, dynamic>.from(singleBooking)),
+        ];
+        developer.log(
+          'Parsed single booking from object -> count=${bookings.length}',
+          name: 'BookingsRepository',
+        );
+        return bookings;
       }
     }
 
+    developer.log(
+      'Parsed bookings -> unsupported response type=${data.runtimeType}',
+      name: 'BookingsRepository',
+    );
     return const <BookingModel>[];
   }
 

@@ -34,9 +34,34 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
           (c) => c.name == widget.session.coachName,
           orElse: () => allCoachesData.firstWhere(
             (c) => c.name.startsWith(widget.session.coachName.split(' ').first),
-            orElse: () => allCoachesData.first,
+            orElse: _coachDataFromSession,
           ),
         );
+  }
+
+  CoachData _coachDataFromSession() {
+    return CoachData(
+      name: widget.session.coachName.trim().isEmpty
+          ? 'Coach'
+          : widget.session.coachName.trim(),
+      sport: widget.session.sport.trim().isEmpty
+          ? 'Sport'
+          : widget.session.sport.trim(),
+      sportId: widget.session.sportId,
+      location: widget.session.location.trim().isEmpty
+          ? 'Location not added yet'
+          : widget.session.location.trim(),
+      image: widget.image,
+      rating: 0,
+      reviewCount: 0,
+      price: 0,
+      bio: 'No bio yet',
+      totalStudents: 0,
+      totalSessions: 0,
+      hoursTaught: 0,
+      achievements: const [],
+      reviews: const [],
+    );
   }
 
   String get _bio => _data.bio;

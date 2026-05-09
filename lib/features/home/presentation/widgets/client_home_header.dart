@@ -9,11 +9,7 @@ class HomeHeaderTwo extends StatelessWidget {
   final VoidCallback? onMenuTap;
   final String userName;
 
-  const HomeHeaderTwo({
-    super.key,
-    this.onMenuTap,
-    required this.userName,
-  });
+  const HomeHeaderTwo({super.key, this.onMenuTap, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -29,18 +25,13 @@ class HomeHeaderTwo extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _WelcomeRow(
-            onMenuTap: onMenuTap,
-            userName: userName,
-          ),
+          _WelcomeRow(onMenuTap: onMenuTap, userName: userName),
           const SizedBox(height: 20),
           GestureDetector(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ClientSearchScreen()),
             ),
-            child: const AbsorbPointer(
-              child: HomeSearchBar(),
-            ),
+            child: const AbsorbPointer(child: HomeSearchBar()),
           ),
           const SizedBox(height: 18),
           const SportsCategoriesTwo(),
@@ -54,10 +45,7 @@ class _WelcomeRow extends StatelessWidget {
   final VoidCallback? onMenuTap;
   final String userName;
 
-  const _WelcomeRow({
-    this.onMenuTap,
-    required this.userName,
-  });
+  const _WelcomeRow({this.onMenuTap, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +81,7 @@ class _WelcomeRow extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             const Text(
-              'you have 2 sessions scheduled this week',
+              'find coaches, book sessions, and track your progress',
               style: TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
@@ -108,19 +96,10 @@ class _WelcomeRow extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              const Icon(Icons.notifications_none,
-                  color: Colors.white, size: 26),
-              Positioned(
-                right: -2,
-                top: -2,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                ),
+              const Icon(
+                Icons.notifications_none,
+                color: Colors.white,
+                size: 26,
               ),
             ],
           ),

@@ -91,14 +91,12 @@ class _UpcomingScreenState extends State<UpcomingScreen>
       isPendingBookingStatus(booking.status);
 
   bool _isConfirmed(BookingModel booking) =>
-      isConfirmedBookingStatus(booking.status) ||
-      isCompletedBookingStatus(booking.status);
+      isConfirmedBookingStatus(booking.status);
 
-  bool _isUpcoming(BookingModel booking) =>
-      !_isPast(booking) && _isConfirmed(booking);
+  bool _isUpcoming(BookingModel booking) => _isConfirmed(booking);
 
   bool _isPastSession(BookingModel booking) =>
-      _isPast(booking) && _isConfirmed(booking);
+      _isPast(booking) && isCompletedBookingStatus(booking.status);
 
   void _logCoachBookingBuckets(List<BookingModel> bookings) {
     developer.log(
@@ -143,7 +141,14 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   }
 
   String _price(BookingModel booking) {
-    return '250 LE/hr';
+    final price = booking.session.price;
+    if (price == null || price <= 0) {
+      return 'Price not set';
+    }
+    if (price == price.roundToDouble()) {
+      return '${price.toInt()} LE';
+    }
+    return '${price.toStringAsFixed(2)} LE';
   }
 
   Future<void> _approveBooking(BookingModel booking) async {
@@ -153,6 +158,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
       await _loadBookings();
 
       if (!mounted) return;
+      _tabController.animateTo(0);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Booking approved')));
@@ -256,9 +262,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   Widget build(BuildContext context) {
     final upcoming = _bookings.where(_isUpcoming).toList();
 
-    final pending = _bookings
-        .where((b) => !_isPast(b) && _isPending(b))
-        .toList();
+    final pending = _bookings.where(_isPending).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),

@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
+import '../../../bookings/data/models/bookings_models.dart';
+import '../../../bookings/data/repositories/bookings_repository.dart';
 import '../../../bookings/data/models/reviews_payments_models.dart';
 import '../../../bookings/data/repositories/reviews_payments_repository.dart';
+import '../../../bookings/presentation/utils/bookings_refresh_notifier.dart';
 import '../../../home/presentation/widgets/review_card.dart';
 import '../../data/repositories/profile_repository.dart';
 import 'edit_profile_screen.dart';
@@ -22,6 +25,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   final AuthRepository _authRepository = AuthRepository();
   final ProfileRepository _profileRepository = ProfileRepository();
   final ReviewsRepository _reviewsRepository = ReviewsRepository();
+  final BookingsRepository _bookingsRepository = BookingsRepository();
 
   bool _isLoading = true;
   bool _isBioExpanded = false;
@@ -38,8 +42,9 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   String availabilityLabel = 'Not added yet';
   String certificationLabel = 'No certifications yet';
   String totalReviewsValue = '0';
-  String yearsExperienceValue = '0';
-  String availableDaysValue = '0';
+  String totalClientsValue = '0';
+  String totalSessionsValue = '0';
+  String pendingRequestsValue = '0';
   String? imageUrl;
   List<ReviewModel> _reviews = const <ReviewModel>[];
   double _averageRating = 0;
@@ -56,7 +61,20 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   @override
   void initState() {
     super.initState();
+    BookingsRefreshNotifier.changes.addListener(_handleBookingsRefresh);
     _loadCoach();
+  }
+
+  @override
+  void dispose() {
+    BookingsRefreshNotifier.changes.removeListener(_handleBookingsRefresh);
+    super.dispose();
+  }
+
+  void _handleBookingsRefresh() {
+    if (mounted) {
+      _loadCoach();
+    }
   }
 
   Future<void> _loadCoach() async {
@@ -66,7 +84,13 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
       final coachProfile = await _profileRepository.getCoachProfile(
         coachSetup.coachId > 0 ? coachSetup.coachId : user.id,
       );
-      final reviewsPage = await _loadCoachReviewsFallback(coachSetup.coachId);
+      final results = await Future.wait<Object?>([
+        _loadCoachReviewsFallback(coachSetup.coachId),
+        _loadCoachBookingsFallback(),
+      ]);
+      final reviewsPage = results[0] as PaginatedReviews?;
+      final coachBookings =
+          (results[1] as List<BookingModel>?) ?? const <BookingModel>[];
 
       final resolvedBio = coachSetup.bio?.trim().isNotEmpty == true
           ? coachSetup.bio!.trim()
@@ -104,6 +128,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           (coachSetup.certificateUrl?.trim().isNotEmpty ?? false)
           ? 'Certificate uploaded'
           : 'No certifications yet';
+      final bookingStats = _buildBookingStats(coachBookings);
 
       developer.log(
         'CoachProfileScreen parsed fields -> '
@@ -114,7 +139,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         'location=$resolvedLocation, '
         'availability=$availabilityText, '
         'reviewsCount=$totalReviews, '
-        'averageRating=$averageRating',
+        'averageRating=$averageRating, '
+        'bookingStats=$bookingStats',
         name: 'CoachProfileScreen',
       );
 
@@ -145,8 +171,9 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         availabilityLabel = availabilityText;
         certificationLabel = certificationText;
         totalReviewsValue = totalReviews.toString();
-        yearsExperienceValue = experienceYears.toString();
-        availableDaysValue = availabilityDays.length.toString();
+        totalClientsValue = bookingStats.totalClients.toString();
+        totalSessionsValue = bookingStats.totalSessions.toString();
+        pendingRequestsValue = bookingStats.pendingRequests.toString();
         imageUrl = (coachProfile.profilePictureUrl?.trim().isNotEmpty ?? false)
             ? coachProfile.profilePictureUrl
             : user.profilePicture;
@@ -174,6 +201,59 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         return null;
       }
     }
+  }
+
+  Future<List<BookingModel>> _loadCoachBookingsFallback() async {
+    try {
+      return await _bookingsRepository.getCoachBookings();
+    } catch (error, stackTrace) {
+      developer.log(
+        'CoachProfileScreen failed to load coach bookings',
+        name: 'CoachProfileScreen',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return const <BookingModel>[];
+    }
+  }
+
+  _CoachBookingStats _buildBookingStats(List<BookingModel> bookings) {
+    final activeOrCompleted = bookings
+        .where(
+          (booking) =>
+              isPendingBookingStatus(booking.status) ||
+              isConfirmedBookingStatus(booking.status) ||
+              isCompletedBookingStatus(booking.status),
+        )
+        .toList(growable: false);
+    final uniqueClientIds = <int>{};
+    var fallbackNamedClients = 0;
+
+    for (final booking in activeOrCompleted) {
+      final client = booking.client;
+      if (client != null && client.userID > 0) {
+        uniqueClientIds.add(client.userID);
+      } else if ((client?.name.trim().isNotEmpty ?? false) &&
+          client!.name != 'Client') {
+        fallbackNamedClients++;
+      }
+    }
+
+    return _CoachBookingStats(
+      totalClients: uniqueClientIds.isNotEmpty
+          ? uniqueClientIds.length
+          : fallbackNamedClients,
+      totalSessions: activeOrCompleted
+          .where(
+            (booking) =>
+                isConfirmedBookingStatus(booking.status) ||
+                isCompletedBookingStatus(booking.status),
+          )
+          .length,
+      pendingRequests: activeOrCompleted
+          .where((booking) => isPendingBookingStatus(booking.status))
+          .length,
+    );
   }
 
   String _formatPrice(double? value) {
@@ -474,22 +554,22 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           _buildStatCard(
             icon: Icons.people,
             iconColor: Colors.purple,
-            value: totalReviewsValue,
-            label: 'Total Reviews',
+            value: totalClientsValue,
+            label: 'Clients',
           ),
           const SizedBox(width: 12),
           _buildStatCard(
             icon: Icons.gps_fixed,
             iconColor: Colors.red,
-            value: yearsExperienceValue,
-            label: 'Years Exp.',
+            value: totalSessionsValue,
+            label: 'Sessions',
           ),
           const SizedBox(width: 12),
           _buildStatCard(
             icon: Icons.timer,
             iconColor: Colors.blue,
-            value: availableDaysValue,
-            label: 'Available Days',
+            value: pendingRequestsValue,
+            label: 'Pending',
           ),
         ],
       ),
@@ -721,5 +801,22 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         ),
       ],
     );
+  }
+}
+
+class _CoachBookingStats {
+  final int totalClients;
+  final int totalSessions;
+  final int pendingRequests;
+
+  const _CoachBookingStats({
+    required this.totalClients,
+    required this.totalSessions,
+    required this.pendingRequests,
+  });
+
+  @override
+  String toString() {
+    return '{totalClients: $totalClients, totalSessions: $totalSessions, pendingRequests: $pendingRequests}';
   }
 }

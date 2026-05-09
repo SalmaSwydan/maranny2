@@ -5,18 +5,27 @@ import '../../../notifications/presentation/screens/notifications_screen.dart';
 class CoachHomeHeader extends StatelessWidget {
   final VoidCallback? onMenuTap;
   final String userName;
+  final int todaySessionsCount;
+  final int pendingRequestsCount;
+  final int recentReviewsCount;
+  final bool isVerified;
 
   const CoachHomeHeader({
     super.key,
     this.onMenuTap,
     required this.userName,
+    this.todaySessionsCount = 0,
+    this.pendingRequestsCount = 0,
+    this.recentReviewsCount = 0,
+    this.isVerified = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    final firstName =
-    userName.trim().isEmpty ? 'Coach' : userName.trim().split(' ').first;
+    final firstName = userName.trim().isEmpty
+        ? 'Coach'
+        : userName.trim().split(' ').first;
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, topPadding + 16, 16, 20),
@@ -54,8 +63,11 @@ class CoachHomeHeader extends StatelessWidget {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const Icon(Icons.notifications_none,
-                        color: Colors.white, size: 28),
+                    const Icon(
+                      Icons.notifications_none,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                     Positioned(
                       right: -2,
                       top: -2,
@@ -85,7 +97,9 @@ class CoachHomeHeader extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'you have 2 sessions scheduled today',
+            todaySessionsCount == 0
+                ? 'no confirmed sessions scheduled today'
+                : 'you have $todaySessionsCount confirmed session${todaySessionsCount == 1 ? '' : 's'} today',
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 14,
@@ -93,13 +107,29 @@ class CoachHomeHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              StatCard(icon: Icons.calendar_today, value: '2', label: 'Today'),
-              StatCard(icon: Icons.bar_chart, value: '450 LE', label: 'This week'),
-              StatCard(icon: Icons.people, value: '28', label: 'Clients'),
-              StatCard(icon: Icons.star, value: '4.9', label: 'Rating'),
+              StatCard(
+                icon: Icons.calendar_today,
+                value: '$todaySessionsCount',
+                label: 'Today',
+              ),
+              StatCard(
+                icon: Icons.pending_actions,
+                value: '$pendingRequestsCount',
+                label: 'Pending',
+              ),
+              StatCard(
+                icon: Icons.rate_review,
+                value: '$recentReviewsCount',
+                label: 'Reviews',
+              ),
+              StatCard(
+                icon: Icons.verified,
+                value: isVerified ? 'Yes' : 'No',
+                label: 'Verified',
+              ),
             ],
           ),
         ],

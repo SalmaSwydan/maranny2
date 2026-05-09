@@ -16,6 +16,7 @@ class SessionModel {
   final int? pendingBookings;
   final int? confirmedBookings;
   final CoachSummary? coach;
+  final double? price;
 
   const SessionModel({
     required this.sessionID,
@@ -35,6 +36,7 @@ class SessionModel {
     this.pendingBookings,
     this.confirmedBookings,
     this.coach,
+    this.price,
   });
 
   factory SessionModel.fromJson(Map<String, dynamic> json) => SessionModel(
@@ -75,6 +77,12 @@ class SessionModel {
     coach: _asMap(json['coach']) != null
         ? CoachSummary.fromJson(_asMap(json['coach'])!)
         : null,
+    price: _asNullableDouble(
+      json['price'] ??
+          json['totalPrice'] ??
+          json['sessionPrice'] ??
+          json['amount'],
+    ),
   );
 }
 
@@ -185,40 +193,42 @@ class CoachAvailabilityModel {
     required this.sessions,
   });
 
-  factory CoachAvailabilityModel.fromJson(Map<String, dynamic> json) =>
-      CoachAvailabilityModel(
-        coachId: _asInt(
-          json['coachId'] ?? json['coachID'] ?? json['CoachId'] ?? json['id'],
-        ),
-        availableDays: _stringList(
-          json['availableDays'] ?? json['AvailableDays'],
-        ),
-        availableHours: _stringList(
-          json['availableHours'] ?? json['AvailableHours'],
-        ),
-        dayHourSlots: _availabilityDateList(
-          json['dayHourSlots'] ?? json['DayHourSlots'],
-        ),
-        upcomingAvailableDates: _availabilityDateList(
-          json['upcomingAvailableDates'] ?? json['UpcomingAvailableDates'],
-        ),
-        weeklySlotStatuses: ((json['weeklySlotStatuses'] as List<dynamic>?) ??
-                const [])
+  factory CoachAvailabilityModel.fromJson(
+    Map<String, dynamic> json,
+  ) => CoachAvailabilityModel(
+    coachId: _asInt(
+      json['coachId'] ?? json['coachID'] ?? json['CoachId'] ?? json['id'],
+    ),
+    availableDays: _stringList(json['availableDays'] ?? json['AvailableDays']),
+    availableHours: _stringList(
+      json['availableHours'] ?? json['AvailableHours'],
+    ),
+    dayHourSlots: _availabilityDateList(
+      json['dayHourSlots'] ?? json['DayHourSlots'],
+    ),
+    upcomingAvailableDates: _availabilityDateList(
+      json['upcomingAvailableDates'] ?? json['UpcomingAvailableDates'],
+    ),
+    weeklySlotStatuses:
+        ((json['weeklySlotStatuses'] as List<dynamic>?) ?? const [])
             .whereType<Map>()
-            .map((e) => CoachWeeklySlotStatus.fromJson(Map<String, dynamic>.from(e)))
+            .map(
+              (e) =>
+                  CoachWeeklySlotStatus.fromJson(Map<String, dynamic>.from(e)),
+            )
             .toList(),
-        locations: _stringList(json['locations']),
-        sports: _stringList(json['sports']),
-        hasProfileAvailability: _asBool(
-          json['hasProfileAvailability'],
-          fallback: false,
-        ),
-        hasRealSessions: _asBool(json['hasRealSessions'], fallback: false),
-        sessions: ((json['sessions'] as List<dynamic>?) ?? const [])
-            .whereType<Map>()
-            .map((e) => SessionModel.fromJson(Map<String, dynamic>.from(e)))
-            .toList(),
-      );
+    locations: _stringList(json['locations']),
+    sports: _stringList(json['sports']),
+    hasProfileAvailability: _asBool(
+      json['hasProfileAvailability'],
+      fallback: false,
+    ),
+    hasRealSessions: _asBool(json['hasRealSessions'], fallback: false),
+    sessions: ((json['sessions'] as List<dynamic>?) ?? const [])
+        .whereType<Map>()
+        .map((e) => SessionModel.fromJson(Map<String, dynamic>.from(e)))
+        .toList(),
+  );
 }
 
 class CoachWeeklySlotStatus {
@@ -487,6 +497,14 @@ double _asDouble(dynamic value, {double fallback = 0}) {
   return fallback;
 }
 
+double? _asNullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
 String _asString(dynamic value, {String fallback = ''}) {
   if (value == null) return fallback;
   final stringValue = value.toString();
@@ -620,17 +638,30 @@ String _formattedDateFromDate(String value) {
 }
 
 String normalizeBookingStatus(String raw) {
-  final normalized = raw.trim().toLowerCase();
+  final normalized = raw
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[_-]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ');
   if (normalized.isEmpty) {
     return 'pending';
   }
-  if (normalized == 'pending') {
+  if (normalized == 'pending' ||
+      normalized == 'requested' ||
+      normalized == 'request' ||
+      normalized == 'waiting' ||
+      normalized == 'awaiting approval' ||
+      normalized == 'pending approval' ||
+      normalized == 'pending coach approval' ||
+      normalized == 'waiting coach approval') {
     return 'pending';
   }
   if (normalized == 'accepted' ||
       normalized == 'approved' ||
       normalized == 'confirmed' ||
-      normalized == 'upcoming') {
+      normalized == 'upcoming' ||
+      normalized == 'booked' ||
+      normalized == 'reserved') {
     return 'confirmed';
   }
   if (normalized == 'completed' || normalized == 'done') {

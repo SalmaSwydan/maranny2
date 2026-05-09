@@ -162,12 +162,6 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
       isConfirmedBookingStatus(booking.status) ||
       isCompletedBookingStatus(booking.status);
 
-  bool _isPast(BookingModel booking) {
-    final scheduledAt = booking.scheduledDateTime;
-    if (scheduledAt == null) return false;
-    return scheduledAt.isBefore(DateTime.now());
-  }
-
   bool _isToday(BookingModel booking) {
     final scheduledAt = booking.scheduledDateTime;
     if (scheduledAt == null) return false;
@@ -189,14 +183,11 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
         });
 
   List<BookingModel> get _pendingRequests =>
-      _coachBookings
-          .where((booking) => _isPending(booking) && !_isPast(booking))
-          .toList()
-        ..sort((a, b) {
-          final first = a.scheduledDateTime ?? DateTime.now();
-          final second = b.scheduledDateTime ?? DateTime.now();
-          return first.compareTo(second);
-        });
+      _coachBookings.where(_isPending).toList()..sort((a, b) {
+        final first = a.scheduledDateTime ?? DateTime.now();
+        final second = b.scheduledDateTime ?? DateTime.now();
+        return first.compareTo(second);
+      });
 
   String _formatReviewTime(String raw) {
     final parsed = DateTime.tryParse(raw);
@@ -335,6 +326,10 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
               CoachHomeHeader(
                 userName: _userName,
                 onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+                todaySessionsCount: _todaysSchedule.length,
+                pendingRequestsCount: _pendingRequests.length,
+                recentReviewsCount: _recentReviews.length,
+                isVerified: !_shouldShowVerificationNotice,
               ),
               if (_shouldShowVerificationNotice)
                 const _CoachVerificationNotice(),
