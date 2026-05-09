@@ -39,6 +39,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   String sportsLabel = 'Coach';
   String verificationStatus = 'Pending';
   String experienceLabel = 'Not added yet';
+  String genderLabel = 'Not added yet';
+  String ageLabel = 'Not added yet';
   String availabilityLabel = 'Not added yet';
   String certificationLabel = 'No certifications yet';
   String totalReviewsValue = '0';
@@ -117,6 +119,10 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           .toSet()
           .join(' | ');
       final experienceYears = coachSetup.experienceYears ?? 0;
+      final resolvedGender = _formatGender(
+        coachSetup.gender ?? coachProfile.gender,
+      );
+      final resolvedAge = coachSetup.age ?? coachProfile.age;
       final availabilityDays = coachSetup.availableDays
           .map((day) => day.trim())
           .where((day) => day.isNotEmpty)
@@ -167,6 +173,10 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         verificationStatus = coachSetup.verificationStatus;
         experienceLabel = experienceYears > 0
             ? '$experienceYears year${experienceYears == 1 ? '' : 's'} experience'
+            : 'Not added yet';
+        genderLabel = resolvedGender;
+        ageLabel = resolvedAge != null && resolvedAge > 0
+            ? '$resolvedAge years old'
             : 'Not added yet';
         availabilityLabel = availabilityText;
         certificationLabel = certificationText;
@@ -266,6 +276,14 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     }
 
     return '${value.toStringAsFixed(2)} LE';
+  }
+
+  String _formatGender(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return 'Not added yet';
+    }
+    return normalized[0].toUpperCase() + normalized.substring(1).toLowerCase();
   }
 
   String _formatReviewTime(String raw) {
@@ -650,6 +668,10 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
           _achievementText('Verification: $verificationStatus'),
           const SizedBox(height: 6),
           _achievementText('Experience: $experienceLabel'),
+          const SizedBox(height: 6),
+          _achievementText('Gender: $genderLabel'),
+          const SizedBox(height: 6),
+          _achievementText('Age: $ageLabel'),
           const SizedBox(height: 6),
           _achievementText('Availability: $availabilityLabel'),
         ],

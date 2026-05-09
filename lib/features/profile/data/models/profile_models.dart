@@ -99,6 +99,7 @@ class CoachProfileModel {
   final int experienceYears;
   final double avgRating;
   final String? gender;
+  final int? age;
   final String? profilePictureUrl;
   final String? certificateUrl;
   final String verificationStatus;
@@ -132,6 +133,7 @@ class CoachProfileModel {
     this.about,
     this.description,
     this.gender,
+    this.age,
     this.profilePictureUrl,
     this.certificateUrl,
     this.email,
@@ -161,6 +163,7 @@ class CoachProfileModel {
       experienceYears: _asInt(payload['experienceYears']),
       avgRating: _asDouble(payload['avgRating']),
       gender: _asNullableString(payload['gender']),
+      age: _asNullableInt(payload['age']),
       profilePictureUrl: ApiConfig.resolveMediaUrl(
         _asNullableString(
           payload['url'] ??
@@ -227,6 +230,8 @@ class CoachSetupProfileModel {
   final double? sessionPrice;
   final String? bio;
   final int? experienceYears;
+  final String? gender;
+  final int? age;
   final String? certificateUrl;
   final String verificationStatus;
   final List<String> availableDays;
@@ -244,6 +249,8 @@ class CoachSetupProfileModel {
     this.sessionPrice,
     this.bio,
     this.experienceYears,
+    this.gender,
+    this.age,
     this.certificateUrl,
   });
 
@@ -255,6 +262,8 @@ class CoachSetupProfileModel {
       sessionPrice: _asNullableDouble(json['sessionPrice']),
       bio: _asNullableString(json['bio']),
       experienceYears: _asNullableInt(json['experienceYears']),
+      gender: _asNullableString(json['gender']),
+      age: _asNullableInt(json['age']),
       certificateUrl: _asNullableString(json['certificateUrl']),
       verificationStatus: _asString(
         json['verificationStatus'],

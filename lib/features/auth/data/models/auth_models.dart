@@ -77,6 +77,8 @@ class CompleteCoachOnboardingRequest {
   final String password;
   final String fullName;
   final String nationalId;
+  final String gender;
+  final int age;
   final String city;
   final int experienceYears;
   final double sessionPrice;
@@ -92,6 +94,8 @@ class CompleteCoachOnboardingRequest {
     required this.password,
     required this.fullName,
     required this.nationalId,
+    required this.gender,
+    required this.age,
     required this.city,
     required this.experienceYears,
     required this.sessionPrice,
@@ -108,6 +112,8 @@ class CompleteCoachOnboardingRequest {
     'password': password,
     'fullName': fullName,
     'nationalId': nationalId,
+    'gender': gender,
+    'age': age,
     'city': city,
     'experienceYears': experienceYears,
     'sessionPrice': sessionPrice,

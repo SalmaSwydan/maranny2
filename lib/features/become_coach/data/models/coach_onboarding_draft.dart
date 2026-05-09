@@ -6,6 +6,8 @@ class CoachOnboardingDraft {
     required this.password,
     this.fullName = '',
     this.nationalId = '',
+    this.gender = '',
+    this.age,
     this.city = '',
     this.experienceYears = 0,
     this.sessionPrice = 0,
@@ -22,6 +24,8 @@ class CoachOnboardingDraft {
   final String password;
   final String fullName;
   final String nationalId;
+  final String gender;
+  final int? age;
   final String city;
   final int experienceYears;
   final double sessionPrice;
@@ -45,6 +49,8 @@ class CoachOnboardingDraft {
     String? password,
     String? fullName,
     String? nationalId,
+    String? gender,
+    int? age,
     String? city,
     int? experienceYears,
     double? sessionPrice,
@@ -59,6 +65,8 @@ class CoachOnboardingDraft {
       password: password ?? this.password,
       fullName: fullName ?? this.fullName,
       nationalId: nationalId ?? this.nationalId,
+      gender: gender ?? this.gender,
+      age: age ?? this.age,
       city: city ?? this.city,
       experienceYears: experienceYears ?? this.experienceYears,
       sessionPrice: sessionPrice ?? this.sessionPrice,
@@ -137,6 +145,8 @@ class CoachOnboardingDraft {
       password: password,
       fullName: fullName,
       nationalId: nationalId,
+      gender: gender,
+      age: age ?? 0,
       city: city,
       experienceYears: experienceYears,
       sessionPrice: sessionPrice,

@@ -31,7 +31,15 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
   final _priceController = TextEditingController();
   final Set<String> _selectedLocations = <String>{};
 
+  String? _selectedGender;
+  String? _selectedAge;
   String? _selectedYears;
+
+  final List<String> _genderOptions = const ['Male', 'Female'];
+  final List<String> _ageOptions = List.generate(
+    31,
+    (index) => '${20 + index}',
+  );
 
   final List<String> _yearsOptions = [
     'Less than 1 year',
@@ -66,6 +74,8 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
       password: widget.password,
       fullName: _fullNameController.text.trim(),
       nationalId: _nationalIdController.text.trim(),
+      gender: _selectedGender!,
+      age: int.parse(_selectedAge!),
       city: _selectedLocations.join(', '),
       experienceYears: _mapYearsToInt(_selectedYears!),
       sessionPrice: double.parse(_priceController.text.trim()),
@@ -136,6 +146,42 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
                         validator: (value) {
                           if (!ProfileValidators.isValidName(value ?? '')) {
                             return 'Enter your real full name using letters only';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildDropdownField(
+                        label: 'Gender',
+                        value: _selectedGender,
+                        items: _genderOptions,
+                        placeholder: 'Select gender',
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedGender = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select your gender';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildDropdownField(
+                        label: 'Age',
+                        value: _selectedAge,
+                        items: _ageOptions,
+                        placeholder: 'Select age',
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedAge = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select your age';
                           }
                           return null;
                         },
@@ -383,7 +429,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           items: items
               .map(
                 (item) => DropdownMenuItem<String>(
@@ -543,7 +589,7 @@ class _CoachInfoScreenState extends State<CoachInfoScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
