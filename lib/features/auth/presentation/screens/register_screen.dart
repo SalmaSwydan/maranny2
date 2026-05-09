@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import '../../../auth/data/models/auth_models.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../become_coach/presentation/screens/coach_info_screen.dart';
+import '../../../onboarding/presentation/screens/sports_selection_screen.dart';
 import '../../../../core/utils/profile_validators.dart';
-import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String userType;
@@ -105,22 +105,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
           (route) => false,
         );
       } else {
-        await AwesomeDialog(
-          context: context,
-          dialogType: DialogType.success,
-          animType: AnimType.rightSlide,
-          title: 'Success',
-          desc:
-              'Registration successful. Please confirm your email, then log in.',
-          btnOkOnPress: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const LoginScreen(userType: 'trainee'),
-              ),
-            );
-          },
-        ).show();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SportsSelectionScreen(
+              pendingEmail: email,
+              returnToLoginAfterSave: true,
+            ),
+          ),
+        );
       }
     } on ApiError catch (e) {
       if (!mounted) return;

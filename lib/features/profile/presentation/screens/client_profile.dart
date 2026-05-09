@@ -155,7 +155,6 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
             const SizedBox(height: 20),
             _ProfileCompletionCard(
               missing: ProfileValidators.missingClientProfileFields(
-                profilePicture: profilePicture,
                 phone: phone,
                 location: city,
                 sports: sports == 'No sports yet'

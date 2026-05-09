@@ -8,20 +8,23 @@ import '../features/profile/presentation/screens/client_profile.dart';
 import '../features/messages/data/repositories/messages_repository.dart';
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+  final int initialIndex;
+
+  const MainLayout({super.key, this.initialIndex = 0});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   final MessagesRepository _messagesRepository = MessagesRepository();
   int _unreadMessages = 0;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex.clamp(0, 4);
     _loadUnreadMessages();
   }
 

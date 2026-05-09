@@ -70,15 +70,11 @@ class ProfileValidators {
       wordCount(value) >= minimum;
 
   static List<String> missingClientProfileFields({
-    required String? profilePicture,
     required String? phone,
     required String? location,
     List<String> sports = const [],
   }) {
     final missing = <String>[];
-    if ((profilePicture ?? '').trim().isEmpty) {
-      missing.add('profile photo');
-    }
     if (!isValidEgyptPhone(phone ?? '')) {
       missing.add('valid Egyptian phone number');
     }

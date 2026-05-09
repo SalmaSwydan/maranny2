@@ -8,6 +8,7 @@ import '../../../../core/utils/profile_validators.dart';
 import '../../../../core/utils/user_preferences_storage.dart';
 import '../../data/models/profile_models.dart';
 import '../../data/repositories/profile_repository.dart';
+import '../../../onboarding/presentation/screens/client_preferences_screen.dart';
 import '../../../sports/data/repositories/sports_repository.dart';
 
 class ClientEditProfileScreen extends StatefulWidget {
@@ -46,7 +47,6 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
 
   String? _profileImagePath;
   String? _profileImageUrl;
-  int _yearsOfExperience = 1;
   bool _isSaving = false;
   List<String> _availableSports = const [
     'Football',
@@ -282,8 +282,8 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                     // ── Sports Background (matches coach "Professional Info") ──
                     _buildSectionTitle('Sports Background'),
                     _buildSportsPicker(),
-                    const SizedBox(height: 12),
-                    _buildYearsDropdown(),
+                    const SizedBox(height: 16),
+                    _buildEditPreferencesCard(),
 
                     const SizedBox(height: 32),
 
@@ -452,7 +452,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
         : null;
 
     return DropdownButtonFormField<String>(
-      value: currentValue,
+      initialValue: currentValue,
       isExpanded: true,
       items: allAreas
           .map(
@@ -566,33 +566,89 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
   }
 
   // ── Years dropdown (same style as coach) ─────────
-  Widget _buildYearsDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.5)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          value: _yearsOfExperience,
-          isExpanded: true,
-          items: List.generate(20, (i) => i + 1)
-              .map(
-                (v) => DropdownMenuItem(
-                  value: v,
-                  child: Text('$v year${v > 1 ? 's' : ''} experience'),
+  Widget _buildEditPreferencesCard() {
+    return InkWell(
+      onTap: _isSaving
+          ? null
+          : () {
+              if (_selectedSports.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Please choose at least one sport before editing preferences.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ClientPreferencesScreen(
+                    selectedSports: _selectedSports.toList(),
+                  ),
                 ),
-              )
-              .toList(),
-          onChanged: (v) => setState(() => _yearsOfExperience = v ?? 1),
+              );
+            },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.primaryBlue.withValues(alpha: 0.35),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: Color(0xFFE8F4FD),
+              child: Icon(Icons.tune, color: AppColors.primaryBlue, size: 20),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Edit Recommendation Preferences',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Update budget, location, coach gender, age, and certification filters.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: AppColors.primaryBlue,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ── Same save button as coach ─────────────────────
   Widget _buildSaveButton() {
     return SizedBox(
       height: 52,

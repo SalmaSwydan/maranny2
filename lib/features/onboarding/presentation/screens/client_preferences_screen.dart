@@ -5,13 +5,21 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/egypt_locations.dart';
 import '../../../../core/utils/user_preferences_storage.dart';
 import '../../../../layout/main_layout.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../profile/data/models/profile_models.dart';
 import '../../../profile/data/repositories/profile_repository.dart';
 
 class ClientPreferencesScreen extends StatefulWidget {
   final List<String> selectedSports;
+  final String? pendingEmail;
+  final bool returnToLoginAfterSave;
 
-  const ClientPreferencesScreen({super.key, required this.selectedSports});
+  const ClientPreferencesScreen({
+    super.key,
+    required this.selectedSports,
+    this.pendingEmail,
+    this.returnToLoginAfterSave = false,
+  });
 
   @override
   State<ClientPreferencesScreen> createState() =>
@@ -32,6 +40,16 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
   bool _certifiedOnly = false;
   bool _isSaving = false;
 
+  bool get _hasPendingRegistration => widget.pendingEmail != null;
+
+  bool get _canFinish =>
+      widget.selectedSports.isNotEmpty &&
+      _ratingPreference != null &&
+      _locationPreference != null &&
+      (_locationPreference != 'My city' || _selectedCity != null) &&
+      _coachGender != null &&
+      _coachAgeRange != null;
+
   List<String> get _areasForCity => EgyptLocations.areasForCity(_selectedCity);
 
   double? get _maxDistance {
@@ -42,48 +60,75 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
 
   Future<void> _finish() async {
     if (_isSaving) return;
+    if (!_canFinish) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please complete your preferences before continuing.'),
+        ),
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
     String? remoteWarning;
 
-    try {
-      await _profileRepository.updatePreferences(
-        UpdatePreferencesRequest(
-          sports: widget.selectedSports,
-          budgetMin: _minPrice,
-          budgetMax: _maxPrice,
-          maxDistance: _maxDistance,
-          city: _selectedCity,
-          area: _selectedArea,
-          locationPreference: _locationPreference,
-          ratingPreference: _ratingPreference,
-          coachGender: _coachGender,
-          coachAgeRange: _coachAgeRange,
-          certifiedOnly: _certifiedOnly,
-        ),
-      );
-    } on DioException catch (e) {
-      final data = e.response?.data;
-      if (data is Map<String, dynamic>) {
-        remoteWarning = (data['error'] ?? data['message']) as String?;
+    if (!_hasPendingRegistration) {
+      try {
+        await _profileRepository.updatePreferences(
+          UpdatePreferencesRequest(
+            sports: widget.selectedSports,
+            budgetMin: _minPrice,
+            budgetMax: _maxPrice,
+            maxDistance: _maxDistance,
+            city: _selectedCity,
+            area: _selectedArea,
+            locationPreference: _locationPreference,
+            ratingPreference: _ratingPreference,
+            coachGender: _coachGender,
+            coachAgeRange: _coachAgeRange,
+            certifiedOnly: _certifiedOnly,
+          ),
+        );
+      } on DioException catch (e) {
+        final data = e.response?.data;
+        if (data is Map<String, dynamic>) {
+          remoteWarning = (data['error'] ?? data['message']) as String?;
+        }
+        remoteWarning ??= 'Preferences were saved on this device only.';
+      } catch (_) {
+        remoteWarning = 'Preferences were saved on this device only.';
       }
-      remoteWarning ??= 'Preferences were saved on this device only.';
-    } catch (_) {
-      remoteWarning = 'Preferences were saved on this device only.';
     }
 
-    await UserPreferencesStorage.save(
-      sports: widget.selectedSports,
-      budgetMin: _minPrice,
-      budgetMax: _maxPrice,
-      city: _selectedCity,
-      area: _selectedArea,
-      locationPreference: _locationPreference,
-      ratingPreference: _ratingPreference,
-      coachGender: _coachGender,
-      coachAgeRange: _coachAgeRange,
-      certifiedOnly: _certifiedOnly,
-    );
+    final pendingEmail = widget.pendingEmail;
+    if (pendingEmail != null) {
+      await UserPreferencesStorage.saveForEmail(
+        email: pendingEmail,
+        sports: widget.selectedSports,
+        budgetMin: _minPrice,
+        budgetMax: _maxPrice,
+        city: _selectedCity,
+        area: _selectedArea,
+        locationPreference: _locationPreference,
+        ratingPreference: _ratingPreference,
+        coachGender: _coachGender,
+        coachAgeRange: _coachAgeRange,
+        certifiedOnly: _certifiedOnly,
+      );
+    } else {
+      await UserPreferencesStorage.save(
+        sports: widget.selectedSports,
+        budgetMin: _minPrice,
+        budgetMax: _maxPrice,
+        city: _selectedCity,
+        area: _selectedArea,
+        locationPreference: _locationPreference,
+        ratingPreference: _ratingPreference,
+        coachGender: _coachGender,
+        coachAgeRange: _coachAgeRange,
+        certifiedOnly: _certifiedOnly,
+      );
+    }
 
     if (!mounted) return;
 
@@ -93,11 +138,28 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
       ).showSnackBar(SnackBar(content: Text(remoteWarning)));
     }
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const MainLayout()),
-      (route) => false,
-    );
+    if (widget.returnToLoginAfterSave) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Preferences saved. Please confirm your email, then log in.',
+          ),
+        ),
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LoginScreen(userType: 'trainee'),
+        ),
+        (route) => false,
+      );
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainLayout()),
+        (route) => false,
+      );
+    }
   }
 
   @override
@@ -130,6 +192,40 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
                     const Text(
                       'Help us find the best coaches for you.',
                       style: TextStyle(fontSize: 13, color: Colors.white70),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.white,
+                            size: 17,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Please fill all preference sections before continuing.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Wrap(
@@ -350,54 +446,18 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
                   const SizedBox(height: 20),
                   _sectionTitle('Coach certification'),
                   const SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: () =>
-                        setState(() => _certifiedOnly = !_certifiedOnly),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: _certifiedOnly
-                            ? AppColors.primaryBlue.withValues(alpha: 0.1)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _certifiedOnly
-                              ? AppColors.primaryBlue
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _certifiedOnly
-                                ? Icons.check_circle
-                                : Icons.circle_outlined,
-                            color: _certifiedOnly
-                                ? AppColors.primaryBlue
-                                : Colors.grey,
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Certified coaches only',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                Text(
-                                  'Only show coaches with verified certifications',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  _certificationOption(
+                    title: 'Any coaches',
+                    subtitle: 'Show both certified and non-certified coaches',
+                    selected: !_certifiedOnly,
+                    onTap: () => setState(() => _certifiedOnly = false),
+                  ),
+                  const SizedBox(height: 10),
+                  _certificationOption(
+                    title: 'Certified coaches only',
+                    subtitle: 'Only show coaches with verified certifications',
+                    selected: _certifiedOnly,
+                    onTap: () => setState(() => _certifiedOnly = true),
                   ),
                   const SizedBox(height: 32),
                   SizedBox(
@@ -416,7 +476,7 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
                         ],
                       ),
                       child: ElevatedButton(
-                        onPressed: _isSaving ? null : _finish,
+                        onPressed: _isSaving || !_canFinish ? null : _finish,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -485,6 +545,57 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
             fontWeight: FontWeight.w500,
             color: selected ? Colors.white : Colors.black87,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _certificationOption({
+    required String title,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primaryBlue.withValues(alpha: 0.1)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.primaryBlue : Colors.grey.shade300,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: selected ? AppColors.primaryBlue : Colors.grey,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -50,6 +50,11 @@ class AuthRepository {
       );
       await ClientProfileStorage.clearLegacy();
       await UserPreferencesStorage.clearLegacy();
+      if (loginResponse.user.userType.toLowerCase() == 'client') {
+        await UserPreferencesStorage.migratePendingForEmail(
+          loginResponse.user.email,
+        );
+      }
       return loginResponse;
     } on DioException catch (e) {
       throw _handleError(e);

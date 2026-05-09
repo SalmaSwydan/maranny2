@@ -8,6 +8,7 @@ import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../../core/utils/client_profile_storage.dart';
 import '../../../../core/utils/profile_validators.dart';
 import '../../../../core/utils/user_preferences_storage.dart';
+import '../../../../layout/main_layout.dart';
 
 class BookSessionSheet extends StatefulWidget {
   final int? coachId;
@@ -740,9 +741,6 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       final prefs = await UserPreferencesStorage.load();
       final cache = await ClientProfileStorage.load();
       final missing = ProfileValidators.missingClientProfileFields(
-        profilePicture: (user.profilePicture?.trim().isNotEmpty ?? false)
-            ? user.profilePicture
-            : cache.imageUrl,
         phone: (user.phoneNumber?.trim().isNotEmpty ?? false)
             ? user.phoneNumber
             : cache.phone,
@@ -755,10 +753,16 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       if (!mounted) {
         return false;
       }
-      await showDialog<void>(
+      final shouldGoToProfile = await showDialog<bool>(
         context: context,
         builder: (context) => _ProfileRequiredDialog(missing: missing),
       );
+      if (shouldGoToProfile == true && mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainLayout(initialIndex: 4)),
+          (route) => false,
+        );
+      }
       return false;
     } catch (_) {
       if (!mounted) {
@@ -1460,11 +1464,6 @@ class _ProfileRequiredDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <_ProfileRequirement>[
       _ProfileRequirement(
-        key: 'profile photo',
-        label: 'Profile photo',
-        icon: Icons.account_circle_outlined,
-      ),
-      _ProfileRequirement(
         key: 'valid Egyptian phone number',
         label: 'Phone number',
         icon: Icons.phone_iphone_outlined,
@@ -1540,7 +1539,7 @@ class _ProfileRequiredDialog extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1F3A93),
               foregroundColor: Colors.white,

@@ -47,6 +47,65 @@ class UserPreferencesStorage {
     final scope = await _currentUserScope();
     if (scope == null) return;
 
+    await _saveForScope(
+      scope: scope,
+      sports: sports,
+      budgetMin: budgetMin,
+      budgetMax: budgetMax,
+      city: city,
+      area: area,
+      locationPreference: locationPreference,
+      ratingPreference: ratingPreference,
+      coachGender: coachGender,
+      coachAgeRange: coachAgeRange,
+      certifiedOnly: certifiedOnly,
+    );
+  }
+
+  static Future<void> saveForEmail({
+    required String email,
+    List<String>? sports,
+    double? budgetMin,
+    double? budgetMax,
+    String? city,
+    String? area,
+    String? locationPreference,
+    String? ratingPreference,
+    String? coachGender,
+    String? coachAgeRange,
+    bool certifiedOnly = false,
+  }) async {
+    final scope = _pendingEmailScope(email);
+    if (scope == null) return;
+
+    await _saveForScope(
+      scope: scope,
+      sports: sports,
+      budgetMin: budgetMin,
+      budgetMax: budgetMax,
+      city: city,
+      area: area,
+      locationPreference: locationPreference,
+      ratingPreference: ratingPreference,
+      coachGender: coachGender,
+      coachAgeRange: coachAgeRange,
+      certifiedOnly: certifiedOnly,
+    );
+  }
+
+  static Future<void> _saveForScope({
+    required String scope,
+    List<String>? sports,
+    double? budgetMin,
+    double? budgetMax,
+    String? city,
+    String? area,
+    String? locationPreference,
+    String? ratingPreference,
+    String? coachGender,
+    String? coachAgeRange,
+    bool certifiedOnly = false,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     if (sports != null) {
       await prefs.setString(_scopedKey(_kSports, scope), sports.join(','));
@@ -78,6 +137,34 @@ class UserPreferencesStorage {
     final scope = await _currentUserScope();
     if (scope == null) return const UserPreferences(sports: <String>[]);
 
+    return _loadForScope(scope);
+  }
+
+  static Future<void> migratePendingForEmail(String email) async {
+    final pendingScope = _pendingEmailScope(email);
+    final currentScope = await _currentUserScope();
+    if (pendingScope == null || currentScope == null) return;
+
+    final pending = await _loadForScope(pendingScope);
+    if (!pending.hasPreferences) return;
+
+    await _saveForScope(
+      scope: currentScope,
+      sports: pending.sports,
+      budgetMin: pending.budgetMin,
+      budgetMax: pending.budgetMax,
+      city: pending.city,
+      area: pending.area,
+      locationPreference: pending.locationPreference,
+      ratingPreference: pending.ratingPreferenceLabel,
+      coachGender: pending.coachGender,
+      coachAgeRange: pending.coachAgeRange,
+      certifiedOnly: pending.certifiedOnly,
+    );
+    await _clearScope(pendingScope);
+  }
+
+  static Future<UserPreferences> _loadForScope(String scope) async {
     final prefs = await SharedPreferences.getInstance();
     final sportsStr = prefs.getString(_scopedKey(_kSports, scope));
     final sports = sportsStr != null && sportsStr.isNotEmpty
@@ -113,12 +200,9 @@ class UserPreferencesStorage {
   }
 
   static Future<void> clear() async {
-    final prefs = await SharedPreferences.getInstance();
     final scope = await _currentUserScope();
     if (scope != null) {
-      for (final key in _keys) {
-        await prefs.remove(_scopedKey(key, scope));
-      }
+      await _clearScope(scope);
     }
     await clearLegacy();
   }
@@ -143,6 +227,20 @@ class UserPreferencesStorage {
     }
 
     return null;
+  }
+
+  static String? _pendingEmailScope(String email) {
+    final normalized = email.trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    final safeEmail = normalized.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+    return 'pending_email_$safeEmail';
+  }
+
+  static Future<void> _clearScope(String scope) async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in _keys) {
+      await prefs.remove(_scopedKey(key, scope));
+    }
   }
 
   static String _scopedKey(String key, String scope) => '${key}_$scope';
@@ -178,4 +276,11 @@ class UserPreferences {
       budgetMin != null ||
       city != null ||
       minRating != null;
+
+  String? get ratingPreferenceLabel {
+    if (minRating == 4.5) return '4.5+';
+    if (minRating == 4.0) return '4.0+';
+    if (minRating == 3.0) return '3.0+';
+    return null;
+  }
 }
