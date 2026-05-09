@@ -107,11 +107,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (_) => SportsSelectionScreen(
+          PageRouteBuilder(
+            pageBuilder: (_, animation, __) => SportsSelectionScreen(
               pendingEmail: email,
               returnToLoginAfterSave: true,
             ),
+            transitionsBuilder: (_, animation, __, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position:
+                      Tween<Offset>(
+                        begin: const Offset(0.06, 0),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
+                  child: child,
+                ),
+              );
+            },
           ),
         );
       }
@@ -211,6 +229,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (!_isCoach) ...[
+                              const _OnboardingProgressHeader(
+                                step: 1,
+                                totalSteps: 3,
+                                title: 'Create your account',
+                                subtitle:
+                                    'A few details first, then we personalize Maranny for you.',
+                              ),
+                              const SizedBox(height: 22),
+                            ],
                             if (_isCoach) ...[
                               Container(
                                 width: double.infinity,
@@ -360,7 +388,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     : Text(
                                         _isCoach
                                             ? 'REGISTER & CONTINUE'
-                                            : 'REGISTER',
+                                            : 'CREATE ACCOUNT',
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
@@ -403,6 +431,75 @@ class _RegisterScreenState extends State<RegisterScreen> {
         borderSide: const BorderSide(color: Color(0xFF303F9F), width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+    );
+  }
+}
+
+class _OnboardingProgressHeader extends StatelessWidget {
+  final int step;
+  final int totalSteps;
+  final String title;
+  final String subtitle;
+
+  const _OnboardingProgressHeader({
+    required this.step,
+    required this.totalSteps,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'STEP $step OF $totalSteps',
+          style: const TextStyle(
+            color: Color(0xFF8FA2C7),
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: List.generate(totalSteps, (index) {
+            final active = index < step;
+            return Expanded(
+              child: Container(
+                height: 5,
+                margin: EdgeInsets.only(right: index == totalSteps - 1 ? 0 : 7),
+                decoration: BoxDecoration(
+                  color: active
+                      ? const Color(0xFF303F9F)
+                      : const Color(0xFFE4EAF7),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF142450),
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            color: Color(0xFF65789E),
+            fontSize: 13,
+            height: 1.35,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

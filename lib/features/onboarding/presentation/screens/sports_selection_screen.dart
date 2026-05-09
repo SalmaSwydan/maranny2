@@ -47,12 +47,30 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
   void _continue() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => ClientPreferencesScreen(
+      PageRouteBuilder(
+        pageBuilder: (_, animation, __) => ClientPreferencesScreen(
           selectedSports: _selected.toList(),
           pendingEmail: widget.pendingEmail,
           returnToLoginAfterSave: widget.returnToLoginAfterSave,
         ),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position:
+                  Tween<Offset>(
+                    begin: const Offset(0.06, 0),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ),
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }
@@ -88,22 +106,18 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
                   height: 92,
                   fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Choose your sport',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                const SizedBox(height: 10),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: _StepProgressHeader(
+                    step: 2,
+                    totalSteps: 3,
+                    title: 'Choose your sports',
+                    subtitle:
+                        'Pick at least one sport you care about. We will tune coach matches around it.',
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Pick at least one sport so we can personalize your recommendations.',
-                  style: TextStyle(fontSize: 14, color: Colors.white70),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 Expanded(
                   child: FutureBuilder<List<SportModel>>(
                     future: _sportsFuture,
@@ -181,7 +195,9 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
                   child: Column(
                     children: [
                       Text(
-                        'Selected: ${_selected.length} / Minimum: $_minimum',
+                        _selected.isEmpty
+                            ? 'Select at least one sport to unlock recommendations'
+                            : '${_selected.length} sport${_selected.length == 1 ? '' : 's'} selected',
                         style: TextStyle(
                           color: _canContinue ? Colors.white : Colors.white60,
                           fontSize: 13,
@@ -206,8 +222,8 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
                           ),
                           child: Text(
                             _canContinue
-                                ? 'Continue ->'
-                                : 'Select $_minimum sport to continue',
+                                ? 'Continue to preferences ->'
+                                : 'Choose a sport to continue',
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -223,6 +239,76 @@ class _SportsSelectionScreenState extends State<SportsSelectionScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StepProgressHeader extends StatelessWidget {
+  final int step;
+  final int totalSteps;
+  final String title;
+  final String subtitle;
+
+  const _StepProgressHeader({
+    required this.step,
+    required this.totalSteps,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'STEP $step OF $totalSteps',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.75),
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: List.generate(totalSteps, (index) {
+            final active = index < step;
+            return Expanded(
+              child: Container(
+                height: 5,
+                margin: EdgeInsets.only(right: index == totalSteps - 1 ? 0 : 7),
+                decoration: BoxDecoration(
+                  color: active
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            height: 1.05,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.82),
+            height: 1.35,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

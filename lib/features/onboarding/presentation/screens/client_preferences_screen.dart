@@ -142,7 +142,7 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Preferences saved. Please confirm your email, then log in.',
+            'All set. Confirm your email, then log in to start booking.',
           ),
         ),
       );
@@ -180,6 +180,14 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const _StepProgressHeader(
+                      step: 3,
+                      totalSteps: 3,
+                      title: 'Tune your matches',
+                      subtitle:
+                          'These preferences help Maranny recommend coaches that fit your budget, area, and style.',
+                    ),
+                    const SizedBox(height: 18),
                     const Text(
                       'Your Preferences',
                       style: TextStyle(
@@ -190,7 +198,7 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Help us find the best coaches for you.',
+                      'Last step before your account is ready.',
                       style: TextStyle(fontSize: 13, color: Colors.white70),
                     ),
                     const SizedBox(height: 8),
@@ -497,7 +505,7 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
                                 ),
                               )
                             : const Text(
-                                'Start my journey ->',
+                                'Finish setup ->',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -598,6 +606,76 @@ class _ClientPreferencesScreenState extends State<ClientPreferencesScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StepProgressHeader extends StatelessWidget {
+  final int step;
+  final int totalSteps;
+  final String title;
+  final String subtitle;
+
+  const _StepProgressHeader({
+    required this.step,
+    required this.totalSteps,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'STEP $step OF $totalSteps',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.75),
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: List.generate(totalSteps, (index) {
+            final active = index < step;
+            return Expanded(
+              child: Container(
+                height: 5,
+                margin: EdgeInsets.only(right: index == totalSteps - 1 ? 0 : 7),
+                decoration: BoxDecoration(
+                  color: active
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+            height: 1.05,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 13,
+            color: Colors.white.withValues(alpha: 0.82),
+            height: 1.35,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
