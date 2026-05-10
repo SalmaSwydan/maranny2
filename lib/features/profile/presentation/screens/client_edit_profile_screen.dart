@@ -8,7 +8,6 @@ import '../../../../core/utils/profile_validators.dart';
 import '../../../../core/utils/user_preferences_storage.dart';
 import '../../data/models/profile_models.dart';
 import '../../data/repositories/profile_repository.dart';
-import '../../../onboarding/presentation/screens/client_preferences_screen.dart';
 import '../../../sports/data/repositories/sports_repository.dart';
 
 class ClientEditProfileScreen extends StatefulWidget {
@@ -57,6 +56,32 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
     'Padel',
   ];
   late Set<String> _selectedSports;
+  double _minPrice = 100;
+  double _maxPrice = 500;
+  String? _ratingPreference;
+  String? _locationPreference;
+  String? _selectedPreferenceCity;
+  String? _selectedPreferenceArea;
+  String? _coachGender;
+  String? _coachAgeRange;
+  bool _certifiedOnly = false;
+  bool _preferencesExpanded = true;
+
+  bool get _preferencesComplete =>
+      _ratingPreference != null &&
+      _locationPreference != null &&
+      (_locationPreference != 'My city' || _selectedPreferenceCity != null) &&
+      _coachGender != null &&
+      _coachAgeRange != null;
+
+  double? get _maxDistance {
+    if (_locationPreference == 'Anywhere') return 100;
+    if (_locationPreference == 'My city') return 25;
+    return null;
+  }
+
+  List<String> get _preferenceAreas =>
+      EgyptLocations.areasForCity(_selectedPreferenceCity);
 
   @override
   void initState() {
@@ -69,6 +94,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
     _profileImageUrl = widget.imageUrl;
     _selectedSports = widget.sports.toSet();
     _loadSports();
+    _loadPreferences();
   }
 
   Future<void> _loadSports() async {
@@ -82,6 +108,26 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
         setState(() => _availableSports = names);
       }
     } catch (_) {}
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await UserPreferencesStorage.load();
+    if (!mounted) return;
+
+    setState(() {
+      if (_selectedSports.isEmpty && prefs.sports.isNotEmpty) {
+        _selectedSports = prefs.sports.toSet();
+      }
+      _minPrice = prefs.budgetMin ?? _minPrice;
+      _maxPrice = prefs.budgetMax ?? _maxPrice;
+      _ratingPreference = prefs.ratingPreferenceLabel;
+      _locationPreference = prefs.locationPreference;
+      _selectedPreferenceCity = prefs.city;
+      _selectedPreferenceArea = prefs.area;
+      _coachGender = prefs.coachGender;
+      _coachAgeRange = prefs.coachAgeRange;
+      _certifiedOnly = prefs.certifiedOnly;
+    });
   }
 
   @override
@@ -171,6 +217,16 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
       );
       return;
     }
+    if (!_preferencesComplete) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please complete your recommendation preferences.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _preferencesExpanded = true);
+      return;
+    }
 
     setState(() => _isSaving = true);
 
@@ -196,9 +252,32 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
         ),
       );
       await _profileRepository.updatePreferences(
-        UpdatePreferencesRequest(sports: _selectedSports.toList()),
+        UpdatePreferencesRequest(
+          sports: _selectedSports.toList(),
+          budgetMin: _minPrice,
+          budgetMax: _maxPrice,
+          maxDistance: _maxDistance,
+          city: _selectedPreferenceCity,
+          area: _selectedPreferenceArea,
+          locationPreference: _locationPreference,
+          ratingPreference: _ratingPreference,
+          coachGender: _coachGender,
+          coachAgeRange: _coachAgeRange,
+          certifiedOnly: _certifiedOnly,
+        ),
       );
-      await UserPreferencesStorage.save(sports: _selectedSports.toList());
+      await UserPreferencesStorage.save(
+        sports: _selectedSports.toList(),
+        budgetMin: _minPrice,
+        budgetMax: _maxPrice,
+        city: _selectedPreferenceCity,
+        area: _selectedPreferenceArea,
+        locationPreference: _locationPreference,
+        ratingPreference: _ratingPreference,
+        coachGender: _coachGender,
+        coachAgeRange: _coachAgeRange,
+        certifiedOnly: _certifiedOnly,
+      );
       final normalizedPhone = ProfileValidators.normalizeEgyptPhone(phone);
       await ClientProfileStorage.save(
         phone: normalizedPhone,
@@ -283,7 +362,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                     _buildSectionTitle('Sports Background'),
                     _buildSportsPicker(),
                     const SizedBox(height: 16),
-                    _buildEditPreferencesCard(),
+                    _buildPreferencesSettingsCard(),
 
                     const SizedBox(height: 32),
 
@@ -566,70 +645,362 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
   }
 
   // ── Years dropdown (same style as coach) ─────────
-  Widget _buildEditPreferencesCard() {
-    return InkWell(
-      onTap: _isSaving
-          ? null
-          : () {
-              if (_selectedSports.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Please choose at least one sport before editing preferences.',
-                    ),
-                  ),
-                );
-                return;
-              }
-
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ClientPreferencesScreen(
-                    selectedSports: _selectedSports.toList(),
+  Widget _buildPreferencesSettingsCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primaryBlue.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () =>
+                setState(() => _preferencesExpanded = !_preferencesExpanded),
+            borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Color(0xFFE8F4FD),
+                  child: Icon(
+                    Icons.tune,
+                    color: AppColors.primaryBlue,
+                    size: 20,
                   ),
                 ),
-              );
-            },
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.primaryBlue.withValues(alpha: 0.35),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Recommendation Preferences',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'Budget, area, coach style, and certification filters.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  _preferencesExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: AppColors.primaryBlue,
+                ),
+              ],
+            ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+          if (_preferencesExpanded) ...[
+            const SizedBox(height: 16),
+            _buildPreferenceNote(),
+            const SizedBox(height: 16),
+            _buildPreferenceTitle('Budget per session'),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${_minPrice.toInt()} LE',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
+                  ),
+                ),
+                Text(
+                  '${_maxPrice.toInt()} LE',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryBlue,
+                  ),
+                ),
+              ],
+            ),
+            RangeSlider(
+              values: RangeValues(_minPrice, _maxPrice),
+              min: 50,
+              max: 1000,
+              divisions: 19,
+              activeColor: AppColors.primaryBlue,
+              inactiveColor: AppColors.primaryBlue.withValues(alpha: 0.18),
+              labels: RangeLabels(
+                '${_minPrice.toInt()} LE',
+                '${_maxPrice.toInt()} LE',
+              ),
+              onChanged: _isSaving
+                  ? null
+                  : (values) => setState(() {
+                      _minPrice = values.start;
+                      _maxPrice = values.end;
+                    }),
+            ),
+            const SizedBox(height: 14),
+            _buildPreferenceTitle('Minimum coach rating'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ['4.5+', '4.0+', '3.0+', "Doesn't Matter"].map((opt) {
+                return _settingsChip(
+                  opt,
+                  _ratingPreference == opt,
+                  () => setState(() => _ratingPreference = opt),
+                  icon: opt == "Doesn't Matter" ? null : Icons.star,
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 18),
+            _buildPreferenceTitle('Location preference'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ['Anywhere', 'My city'].map((opt) {
+                return _settingsChip(opt, _locationPreference == opt, () {
+                  setState(() {
+                    _locationPreference = opt;
+                    _selectedPreferenceCity = null;
+                    _selectedPreferenceArea = null;
+                  });
+                });
+              }).toList(),
+            ),
+            if (_locationPreference == 'My city') ...[
+              const SizedBox(height: 14),
+              _buildPreferenceTitle('City'),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: EgyptLocations.cities.map((city) {
+                  final selected = _selectedPreferenceCity == city;
+                  return _settingsChip(city, selected, () {
+                    setState(() {
+                      _selectedPreferenceCity = selected ? null : city;
+                      _selectedPreferenceArea = null;
+                    });
+                  });
+                }).toList(),
+              ),
+              if (_selectedPreferenceCity != null &&
+                  _preferenceAreas.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                _buildPreferenceTitle('Area'),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _preferenceAreas.map((area) {
+                    final selected = _selectedPreferenceArea == area;
+                    return _settingsChip(area, selected, () {
+                      setState(
+                        () => _selectedPreferenceArea = selected ? null : area,
+                      );
+                    });
+                  }).toList(),
+                ),
+              ],
+            ],
+            const SizedBox(height: 18),
+            _buildPreferenceTitle('Preferred coach gender'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ['Male', 'Female', 'No Preference'].map((opt) {
+                return _settingsChip(
+                  opt,
+                  _coachGender == opt,
+                  () => setState(() => _coachGender = opt),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 18),
+            _buildPreferenceTitle('Preferred coach age range'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ['20-30', '30-40', '40+', 'No Preference'].map((opt) {
+                return _settingsChip(
+                  opt,
+                  _coachAgeRange == opt,
+                  () => setState(() => _coachAgeRange = opt),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 18),
+            _buildPreferenceTitle('Coach certification'),
+            const SizedBox(height: 10),
+            _settingsRadioTile(
+              title: 'Any coaches',
+              subtitle: 'Show both certified and non-certified coaches',
+              selected: !_certifiedOnly,
+              onTap: () => setState(() => _certifiedOnly = false),
+            ),
+            const SizedBox(height: 10),
+            _settingsRadioTile(
+              title: 'Certified coaches only',
+              subtitle: 'Only show coaches with verified certifications',
+              selected: _certifiedOnly,
+              onTap: () => setState(() => _certifiedOnly = true),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreferenceNote() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF8FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBDEEFF)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 18),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Fill these preferences so recommendations match your budget and location.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreferenceTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textPrimary,
+      ),
+    );
+  }
+
+  Widget _settingsChip(
+    String label,
+    bool selected,
+    VoidCallback onTap, {
+    IconData? icon,
+  }) {
+    return GestureDetector(
+      onTap: _isSaving ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryBlue : const Color(0xFFF7F9FF),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? AppColors.primaryBlue
+                : AppColors.primaryBlue.withValues(alpha: 0.18),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 14,
+                color: selected ? Colors.white : Colors.amber,
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
             ),
           ],
         ),
-        child: const Row(
+      ),
+    );
+  }
+
+  Widget _settingsRadioTile({
+    required String title,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: _isSaving ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primaryBlue.withValues(alpha: 0.08)
+              : const Color(0xFFF7F9FF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected
+                ? AppColors.primaryBlue
+                : AppColors.primaryBlue.withValues(alpha: 0.16),
+          ),
+        ),
+        child: Row(
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: Color(0xFFE8F4FD),
-              child: Icon(Icons.tune, color: AppColors.primaryBlue, size: 20),
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+              color: selected ? AppColors.primaryBlue : Colors.grey,
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Edit Recommendation Preferences',
-                    style: TextStyle(
+                    title,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   Text(
-                    'Update budget, location, coach gender, age, and certification filters.',
-                    style: TextStyle(
+                    subtitle,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                       height: 1.25,
@@ -637,11 +1008,6 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                   ),
                 ],
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: AppColors.primaryBlue,
             ),
           ],
         ),
