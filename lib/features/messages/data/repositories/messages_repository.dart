@@ -105,6 +105,32 @@ class MessagesRepository {
     await _dio.put(ApiConfig.markConversationRead(otherUserId));
   }
 
+  Future<void> setReaction({
+    required int messageId,
+    required String reaction,
+  }) async {
+    try {
+      final endpoint = ApiConfig.messageReaction(messageId);
+      developer.log(
+        'Set reaction -> endpoint=$endpoint messageId=$messageId reaction=$reaction',
+        name: 'MessagesRepository',
+      );
+      final response = await _dio.post(endpoint, data: {'reaction': reaction});
+      developer.log(
+        'Set reaction success -> status=${response.statusCode} data=${response.data}',
+        name: 'MessagesRepository',
+      );
+    } on DioException catch (error) {
+      developer.log(
+        'Set reaction failed -> status=${error.response?.statusCode} data=${error.response?.data}',
+        name: 'MessagesRepository',
+        error: error,
+        stackTrace: error.stackTrace,
+      );
+      rethrow;
+    }
+  }
+
   Future<int> getUnreadCount({int? fromUserId}) async {
     final response = await _dio.get(
       ApiConfig.chatUnreadCount,

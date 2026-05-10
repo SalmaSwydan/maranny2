@@ -5,7 +5,7 @@
 class ApiConfig {
   ApiConfig._();
   // ✅ Dev tunnel URL — works for everyone on any device
-  static const String baseUrl = 'https://rjcmwpvz-7112.uks1.devtunnels.ms/api';
+  static const String baseUrl = 'https://878c3slg-7112.uks1.devtunnels.ms/api';
 
   static String get publicBaseUrl => baseUrl.endsWith('/api')
       ? baseUrl.substring(0, baseUrl.length - 4)
@@ -89,6 +89,8 @@ class ApiConfig {
       '/chat/conversation/$otherUserId';
   static String markConversationRead(int otherUserId) =>
       '/chat/conversation/$otherUserId/read';
+  static String messageReaction(int messageId) =>
+      '/chat/messages/$messageId/reaction';
   static const String chatUnreadCount = '/chat/unread-count';
 
   // ── Marketplace endpoints ─────────────────────────────────

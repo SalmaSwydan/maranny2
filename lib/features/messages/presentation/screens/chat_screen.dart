@@ -36,7 +36,6 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isSending = false;
   String? _error;
   List<MessageModel> _messages = [];
-  final Map<int, String> _reactions = <int, String>{};
 
   @override
   void initState() {
@@ -195,8 +194,8 @@ class _ChatScreenState extends State<ChatScreen> {
                             longitude: msg.longitude,
                             isMine: msg.isMine,
                             isRead: msg.isRead || msg.readAt != null,
-                            reaction: _reactions[msg.messageID],
-                            onReact: _showReactionPicker,
+                            reaction: msg.reaction,
+                            onReact: _showPersistedReactionPicker,
                           ),
                         ],
                       );
@@ -336,7 +335,7 @@ class _ChatScreenState extends State<ChatScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _showReactionPicker(int messageId) {
+  void _showPersistedReactionPicker(int messageId) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -349,19 +348,62 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: ['❤️', '👍', '😂', '🔥', '👏'].map((emoji) {
-              return ActionChip(
-                label: Text(emoji, style: const TextStyle(fontSize: 22)),
-                onPressed: () {
-                  setState(() => _reactions[messageId] = emoji);
-                  Navigator.of(context).pop();
-                },
-              );
-            }).toList(),
+            children:
+                const [
+                  '\u{2764}\u{FE0F}',
+                  '\u{1F44D}',
+                  '\u{1F602}',
+                  '\u{1F525}',
+                  '\u{1F44F}',
+                ].map((emoji) {
+                  return ActionChip(
+                    label: Text(emoji, style: const TextStyle(fontSize: 22)),
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                      await _setReaction(messageId, emoji);
+                    },
+                  );
+                }).toList(),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _setReaction(int messageId, String emoji) async {
+    try {
+      await _repo.setReaction(messageId: messageId, reaction: emoji);
+      await _loadMessages();
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      final data = e.response?.data;
+      final message = data is Map<String, dynamic>
+          ? (data['error'] ?? data['message'] ?? '').toString().trim()
+          : '';
+      if (status == 404) {
+        await _sendReactionAsMessage(emoji);
+        return;
+      }
+      _showSnack(
+        message.isNotEmpty
+            ? message
+            : 'Could not add reaction${status == null ? '' : ' ($status)'}.',
+      );
+    } catch (_) {
+      _showSnack('Could not add reaction right now.');
+    }
+  }
+
+  Future<void> _sendReactionAsMessage(String emoji) async {
+    try {
+      await _repo.sendMessage(
+        SendMessageRequest(receiverId: widget.otherUserId, content: emoji),
+      );
+      await _loadMessages();
+      _showSnack('Reaction sent as a message until backend is restarted.');
+    } catch (_) {
+      _showSnack('Could not add reaction right now.');
+    }
   }
 }
 
@@ -746,6 +788,11 @@ class _MessageText extends StatelessWidget {
         fontSize: 14,
         height: 1.35,
         fontWeight: FontWeight.w600,
+        fontFamilyFallback: [
+          'Noto Color Emoji',
+          'Segoe UI Emoji',
+          'Apple Color Emoji',
+        ],
       ),
     );
   }
@@ -783,6 +830,13 @@ class _MessageComposer extends StatelessWidget {
                 controller: controller,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSend(),
+                style: const TextStyle(
+                  fontFamilyFallback: [
+                    'Noto Color Emoji',
+                    'Segoe UI Emoji',
+                    'Apple Color Emoji',
+                  ],
+                ),
                 decoration: InputDecoration(
                   hintText: 'Message...',
                   hintStyle: const TextStyle(

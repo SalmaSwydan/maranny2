@@ -25,6 +25,7 @@ class MessageModel {
   final String sentAt;
   final bool isRead;
   final String? readAt;
+  final String? reaction;
   final bool isMine;
 
   const MessageModel({
@@ -40,6 +41,7 @@ class MessageModel {
     this.latitude,
     this.longitude,
     this.readAt,
+    this.reaction,
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) => MessageModel(
@@ -64,6 +66,7 @@ class MessageModel {
     isRead: _asBool(json['isRead'] ?? json['read']),
     isMine: _asBool(json['isMine'] ?? json['mine']),
     readAt: _asNullableString(json['readAt']),
+    reaction: _asNullableString(json['reaction']),
   );
 }
 
