@@ -1,7 +1,5 @@
-/// ─────────────────────────────────────────────────────────────
-/// MESSAGES MODELS
-/// ⚠️ Use userId (from AspNetUsers), NOT clientID or coachID
-/// ─────────────────────────────────────────────────────────────
+// MESSAGES MODELS
+// Use userId (from AspNetUsers), NOT clientID or coachID.
 
 class SendMessageRequest {
   final int receiverId;
@@ -51,6 +49,7 @@ class MessageModel {
 class ConversationModel {
   final int userId;
   final String name;
+  final String? imageUrl;
   final String lastMessage;
   final String lastMessageTime;
   final int unreadCount;
@@ -63,12 +62,21 @@ class ConversationModel {
     required this.lastMessageTime,
     required this.unreadCount,
     required this.isOnline,
+    this.imageUrl,
   });
 
   factory ConversationModel.fromJson(Map<String, dynamic> json) =>
       ConversationModel(
         userId: _asInt(json['userId'] ?? json['otherUserId'] ?? json['id']),
         name: _asString(json['name'] ?? json['fullName'], fallback: 'User'),
+        imageUrl: _asNullableString(
+          json['imageUrl'] ??
+              json['profilePictureUrl'] ??
+              json['profilePicture'] ??
+              json['photoUrl'] ??
+              json['avatarUrl'] ??
+              json['url'],
+        ),
         lastMessage: _asString(json['lastMessage']),
         lastMessageTime: _asString(json['lastMessageTime'] ?? json['sentAt']),
         unreadCount: _asInt(json['unreadCount']),
