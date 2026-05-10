@@ -5,10 +5,11 @@
 class ApiConfig {
   ApiConfig._();
   // ✅ Dev tunnel URL — works for everyone on any device
-  static const String baseUrl = 'https://7lxl9rvp-7112.uks1.devtunnels.ms/api';
+  static const String baseUrl = 'https://rjcmwpvz-7112.uks1.devtunnels.ms/api';
 
-  static String get publicBaseUrl =>
-      baseUrl.endsWith('/api') ? baseUrl.substring(0, baseUrl.length - 4) : baseUrl;
+  static String get publicBaseUrl => baseUrl.endsWith('/api')
+      ? baseUrl.substring(0, baseUrl.length - 4)
+      : baseUrl;
 
   static String resolveMediaUrl(String? rawPath) {
     final value = rawPath?.trim() ?? '';
@@ -26,6 +27,7 @@ class ApiConfig {
     }
     return '$publicBaseUrl/$value';
   }
+
   // ── Auth endpoints ────────────────────────────────────────
   static const String register = '/auth/register';
   static const String completeCoachOnboarding =
@@ -81,6 +83,7 @@ class ApiConfig {
   // ── Chat endpoints ────────────────────────────────────────
   // ── Chat endpoints ────────────────────────────────────────
   static const String sendMessage = '/chat/send';
+  static const String sendChatAttachment = '/chat/send-attachment';
   static const String conversations = '/chat/conversations';
   static String conversation(int otherUserId) =>
       '/chat/conversation/$otherUserId';

@@ -18,6 +18,10 @@ class MessageModel {
   final int senderID;
   final int receiverID;
   final String content;
+  final String messageType;
+  final String? attachmentUrl;
+  final double? latitude;
+  final double? longitude;
   final String sentAt;
   final bool isRead;
   final String? readAt;
@@ -28,9 +32,13 @@ class MessageModel {
     required this.senderID,
     required this.receiverID,
     required this.content,
+    required this.messageType,
     required this.sentAt,
     required this.isRead,
     required this.isMine,
+    this.attachmentUrl,
+    this.latitude,
+    this.longitude,
     this.readAt,
   });
 
@@ -39,6 +47,19 @@ class MessageModel {
     senderID: _asInt(json['senderID'] ?? json['senderId']),
     receiverID: _asInt(json['receiverID'] ?? json['receiverId']),
     content: _asString(json['content'] ?? json['message']),
+    messageType: _asString(
+      json['messageType'] ?? json['type'],
+      fallback: 'text',
+    ).toLowerCase(),
+    attachmentUrl: _asNullableString(
+      json['attachmentUrl'] ??
+          json['attachmentURL'] ??
+          json['mediaUrl'] ??
+          json['imageUrl'] ??
+          json['fileUrl'],
+    ),
+    latitude: _asNullableDouble(json['latitude'] ?? json['lat']),
+    longitude: _asNullableDouble(json['longitude'] ?? json['lng']),
     sentAt: _asString(json['sentAt'] ?? json['createdAt']),
     isRead: _asBool(json['isRead'] ?? json['read']),
     isMine: _asBool(json['isMine'] ?? json['mine']),
@@ -108,4 +129,12 @@ String? _asNullableString(dynamic value) {
   if (value == null) return null;
   final text = value.toString();
   return text.trim().isEmpty ? null : text;
+}
+
+double? _asNullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
 }
