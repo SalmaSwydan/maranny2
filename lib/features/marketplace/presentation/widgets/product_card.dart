@@ -1,7 +1,9 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+
 import '../../../../core/network/api_config.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../utils/marketplace_product.dart';
 
 class ProductCard extends StatelessWidget {
@@ -13,88 +15,115 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(22),
       onTap: onTap,
-      child: Card(
-        elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.08),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE0E7F4)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryBlue.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(14)),
+                top: Radius.circular(22),
+              ),
               child: AspectRatio(
                 aspectRatio: 16 / 12,
                 child: _buildProductImage(product),
               ),
             ),
             Padding(
-              // ✅ reduced top padding 8→5 to fix overflow
-              padding: const EdgeInsets.fromLTRB(10, 5, 10, 2),
-              child: Text(product.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: AppColors.textPrimary)),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(product.condition,
-                  style: TextStyle(
-                      color: Colors.grey.shade600, fontSize: 12)),
-            ),
-            Padding(
-              // ✅ reduced vertical padding 4/6→2/4 to fix overflow
-              padding: const EdgeInsets.fromLTRB(10, 2, 10, 4),
+              padding: const EdgeInsets.fromLTRB(12, 9, 12, 2),
               child: Text(
-                '${product.price.toStringAsFixed(0)} LE',
+                product.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: AppColors.primaryBlue),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  color: Color(0xFF24345D),
+                ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                product.condition,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.blueGrey.shade400,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 5),
+              child: Text(
+                '${product.price.toStringAsFixed(0)} LE',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(20)),
+                  color: const Color(0xFFF3F7FF),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.store_outlined,
-                        size: 16, color: Colors.grey.shade700),
+                    Icon(
+                      Icons.store_outlined,
+                      size: 15,
+                      color: Colors.blueGrey.shade500,
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
-                      child: Text(product.sellerName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade700)),
-                    ),
-                    Icon(Icons.star,
-                        size: 14, color: Colors.amber.shade700),
-                    const SizedBox(width: 2),
-                    Text(product.sellerRating.toString(),
+                      child: Text(
+                        product.sellerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade700)),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.blueGrey.shade500,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.star, size: 13, color: Colors.amber.shade700),
+                    const SizedBox(width: 2),
+                    Text(
+                      product.sellerRating.toString(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.blueGrey.shade500,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-            // ✅ removed SizedBox(height:6) to save space
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
               child: SizedBox(
                 height: 32,
                 child: ElevatedButton.icon(
@@ -102,12 +131,16 @@ class ProductCard extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue,
                     foregroundColor: Colors.white,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                  icon: const Icon(Icons.chat_bubble_outline,
-                      size: 18),
-                  label: const Text('Contact seller'),
+                  icon: const Icon(Icons.info_outline_rounded, size: 17),
+                  label: const Text(
+                    'More info',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
                 ),
               ),
             ),
@@ -119,35 +152,50 @@ class ProductCard extends StatelessWidget {
 
   Widget _buildProductImage(MarketplaceProduct product) {
     Widget placeholder() => Container(
-        color: Colors.grey.shade200,
-        child: const Icon(Icons.image_not_supported, size: 40));
+      color: const Color(0xFFEAF0FB),
+      child: const Icon(
+        Icons.image_not_supported_outlined,
+        size: 40,
+        color: Color(0xFF8D99B5),
+      ),
+    );
 
     final resolvedImageUrl = ApiConfig.resolveMediaUrl(product.imageAsset);
-    debugPrint('[Marketplace][ProductCard] final image url -> $resolvedImageUrl');
+    debugPrint(
+      '[Marketplace][ProductCard] final image url -> $resolvedImageUrl',
+    );
 
     if (resolvedImageUrl.isEmpty) return placeholder();
     final isNetworkImage =
         resolvedImageUrl.startsWith('http://') ||
         resolvedImageUrl.startsWith('https://');
-    final isFilePath = resolvedImageUrl.startsWith('file:') ||
+    final isFilePath =
+        resolvedImageUrl.startsWith('file:') ||
         RegExp(r'^[A-Za-z]:[\/]').hasMatch(resolvedImageUrl);
+
     if (isNetworkImage) {
       return Image.network(
         resolvedImageUrl,
         fit: BoxFit.cover,
-        errorBuilder: (_, error, stackTrace) {
-          debugPrint('[Marketplace][ProductCard] image load error -> url=$resolvedImageUrl error=$error');
+        errorBuilder: (_, error, __) {
+          debugPrint(
+            '[Marketplace][ProductCard] image load error -> url=$resolvedImageUrl error=$error',
+          );
           return placeholder();
         },
       );
     }
+
     if (isFilePath) {
       final file = File(resolvedImageUrl);
       if (!file.existsSync()) return placeholder();
       return Image.file(file, fit: BoxFit.cover);
     }
-    return Image.asset(resolvedImageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => placeholder());
+
+    return Image.asset(
+      resolvedImageUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => placeholder(),
+    );
   }
 }
