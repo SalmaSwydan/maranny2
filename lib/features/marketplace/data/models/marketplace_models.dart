@@ -16,6 +16,7 @@ class ProductModel {
   final String sellerPhone;
   final bool showPhoneNumber;
   final String location;
+  final String pickupLocation;
   final double rating;
   final int reviewsCount;
   final String createdAt;
@@ -34,6 +35,7 @@ class ProductModel {
     required this.sellerPhone,
     required this.showPhoneNumber,
     required this.location,
+    required this.pickupLocation,
     required this.rating,
     required this.reviewsCount,
     required this.createdAt,
@@ -114,8 +116,11 @@ class ProductModel {
       ),
       location:
           _firstNonEmptyString([
-            _asNullableString(json['sellerLocation']),
+            _asNullableString(json['listingLocation']),
+            _asNullableString(json['pickupLocation']),
+            _asNullableString(json['productLocation']),
             _asNullableString(json['location']),
+            _asNullableString(json['sellerLocation']),
             _asNullableString(json['city']),
             _asNullableString(json['address']),
             _asNullableString(seller?['location']),
@@ -123,6 +128,13 @@ class ProductModel {
             _asNullableString(seller?['address']),
           ]) ??
           'Unknown',
+      pickupLocation:
+          _firstNonEmptyString([
+            _asNullableString(json['listingLocation']),
+            _asNullableString(json['pickupLocation']),
+            _asNullableString(json['productLocation']),
+          ]) ??
+          '',
       rating: _asDouble(
         json['rating'] ?? json['sellerRating'] ?? json['avgRating'],
       ),
@@ -233,6 +245,8 @@ class CreateProductRequest {
     'sellerPhone': showPhoneNumber ? sellerPhone : null,
     'phoneNumber': showPhoneNumber ? sellerPhone : null,
     'contactPhone': showPhoneNumber ? sellerPhone : null,
+    'listingLocation': location,
+    'pickupLocation': location,
     'location': location,
     'sellerLocation': location,
     'city': location,

@@ -142,7 +142,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       fallback: 'No description available yet.',
     );
     final displayLocation = _normalizeText(
-      product.location,
+      product.pickupLocation,
       fallback: 'Not specified',
     );
     final displayCondition = _normalizeText(

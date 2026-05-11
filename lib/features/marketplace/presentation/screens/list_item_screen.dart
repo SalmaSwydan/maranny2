@@ -33,7 +33,6 @@ class _ListItemScreenState extends State<ListItemScreen> {
   String? _imagePath;
   String _category = 'Equipment';
   String _condition = 'New';
-  bool _showPhoneNumber = true;
   bool _isSubmitting = false;
 
   static const _categories = ['Equipment', 'Clothing', 'Accessories'];
@@ -93,11 +92,11 @@ class _ListItemScreenState extends State<ListItemScreen> {
       _showMessage('Please enter the seller or store name');
       return;
     }
-    if (_showPhoneNumber && sellerPhone.isEmpty) {
+    if (sellerPhone.isEmpty) {
       _showMessage('Please enter your contact number');
       return;
     }
-    if (_showPhoneNumber && !_isValidMarketplacePhone(sellerPhone)) {
+    if (!_isValidMarketplacePhone(sellerPhone)) {
       _showMessage('Please enter a valid Egyptian mobile number.');
       return;
     }
@@ -109,6 +108,10 @@ class _ListItemScreenState extends State<ListItemScreen> {
       _showMessage('Please choose a valid Cairo/Giza area');
       return;
     }
+    if (_imagePath == null || _imagePath!.isEmpty) {
+      _showMessage('Please attach a product photo');
+      return;
+    }
 
     final request = CreateProductRequest(
       title: title,
@@ -117,10 +120,8 @@ class _ListItemScreenState extends State<ListItemScreen> {
       condition: _condition,
       description: description,
       sellerName: sellerName,
-      sellerPhone: _showPhoneNumber
-          ? ProfileValidators.normalizeEgyptPhone(sellerPhone)
-          : '',
-      showPhoneNumber: _showPhoneNumber,
+      sellerPhone: ProfileValidators.normalizeEgyptPhone(sellerPhone),
+      showPhoneNumber: true,
       location: sellerLocation,
       imageFile: _imagePath != null && _imagePath!.isNotEmpty
           ? File(_imagePath!)
@@ -173,6 +174,7 @@ class _ListItemScreenState extends State<ListItemScreen> {
               sellerRating: 0,
               reviewers: 0,
               location: request.location,
+              pickupLocation: request.location,
               whatsapp: request.sellerPhone,
               showPhoneNumber: request.showPhoneNumber,
               description: request.description,
@@ -496,8 +498,6 @@ class _ListItemScreenState extends State<ListItemScreen> {
                       hint: 'Store or seller name',
                     ),
                     const SizedBox(height: 12),
-                    _buildPhoneVisibilityOptions(),
-                    const SizedBox(height: 12),
                     _buildTextField(
                       controller: _sellerPhoneController,
                       hint: 'Your phone number (e.g. +20 100 123 4567)',
@@ -619,38 +619,6 @@ class _ListItemScreenState extends State<ListItemScreen> {
     ),
   );
 
-  Widget _buildPhoneVisibilityOptions() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.6)),
-      ),
-      child: Column(
-        children: [
-          _PhoneVisibilityOption(
-            selected: _showPhoneNumber,
-            title: 'Show phone number to buyers',
-            onTap: _isSubmitting
-                ? null
-                : () => setState(() => _showPhoneNumber = true),
-          ),
-          Divider(
-            height: 1,
-            color: AppColors.primaryBlue.withValues(alpha: 0.12),
-          ),
-          _PhoneVisibilityOption(
-            selected: !_showPhoneNumber,
-            title: 'Hide phone number from buyers',
-            onTap: _isSubmitting
-                ? null
-                : () => setState(() => _showPhoneNumber = false),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLocationDropdown() {
     final areas = EgyptLocations.allAreas;
     final value = areas.contains(_sellerLocationController.text.trim())
@@ -681,70 +649,6 @@ class _ListItemScreenState extends State<ListItemScreen> {
                   if (v == null) return;
                   setState(() => _sellerLocationController.text = v);
                 },
-        ),
-      ),
-    );
-  }
-}
-
-class _PhoneVisibilityOption extends StatelessWidget {
-  final bool selected;
-  final String title;
-  final VoidCallback? onTap;
-
-  const _PhoneVisibilityOption({
-    required this.selected,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected
-                      ? AppColors.primaryBlue
-                      : AppColors.primaryBlue.withValues(alpha: 0.35),
-                  width: 2,
-                ),
-              ),
-              child: selected
-                  ? Center(
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primaryBlue,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

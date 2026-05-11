@@ -228,6 +228,8 @@ class MarketplaceRepository {
       'sellerPhone': request.showPhoneNumber ? request.sellerPhone : null,
       'phoneNumber': request.showPhoneNumber ? request.sellerPhone : null,
       'contactPhone': request.showPhoneNumber ? request.sellerPhone : null,
+      'listingLocation': request.location,
+      'pickupLocation': request.location,
       'location': request.location,
       'sellerLocation': request.location,
       'city': request.location,

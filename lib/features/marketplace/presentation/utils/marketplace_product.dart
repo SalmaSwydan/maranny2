@@ -11,6 +11,7 @@ class MarketplaceProduct {
   final double sellerRating;
   final int reviewers;
   final String location;
+  final String pickupLocation;
   final String whatsapp;
   final bool showPhoneNumber;
   final String description;
@@ -27,6 +28,7 @@ class MarketplaceProduct {
     required this.sellerRating,
     required this.reviewers,
     required this.location,
+    this.pickupLocation = '',
     required this.whatsapp,
     this.showPhoneNumber = true,
     required this.description,
@@ -45,6 +47,7 @@ class MarketplaceProduct {
       sellerRating: model.rating,
       reviewers: model.reviewsCount,
       location: model.location,
+      pickupLocation: model.pickupLocation,
       whatsapp: model.sellerPhone,
       showPhoneNumber: model.showPhoneNumber,
       description: model.description,
