@@ -14,6 +14,7 @@ class MarketplaceProduct {
   final String whatsapp;
   final bool showPhoneNumber;
   final String description;
+  final int? sellerUserId;
 
   const MarketplaceProduct({
     required this.id,
@@ -29,6 +30,7 @@ class MarketplaceProduct {
     required this.whatsapp,
     this.showPhoneNumber = true,
     required this.description,
+    this.sellerUserId,
   });
 
   factory MarketplaceProduct.fromApi(ProductModel model) {
@@ -46,6 +48,7 @@ class MarketplaceProduct {
       whatsapp: model.sellerPhone,
       showPhoneNumber: model.showPhoneNumber,
       description: model.description,
+      sellerUserId: model.ownerId ?? model.sellerId,
     );
   }
 }

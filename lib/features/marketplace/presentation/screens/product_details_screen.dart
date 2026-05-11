@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_config.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../messages/presentation/screens/chat_screen.dart';
 import '../../data/repositories/marketplace_repository.dart';
 import '../utils/marketplace_product.dart';
 
@@ -121,7 +122,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       product.description,
       fallback: 'No description available yet.',
     );
-    final displayLocation = _normalizeText(product.location, fallback: 'Cairo');
+    final displayLocation = _normalizeText(
+      product.location,
+      fallback: 'Not specified',
+    );
     final displayCondition = _normalizeText(
       product.condition,
       fallback: 'Available',
@@ -200,7 +204,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   ),
                                   const SizedBox(width: 14),
                                   Text(
-                                    product.price.toStringAsFixed(0),
+                                    '${product.price.toStringAsFixed(0)} LE',
                                     style: const TextStyle(
                                       color: Color(0xFF60D9EF),
                                       fontSize: 29,
@@ -213,7 +217,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               const SizedBox(height: 16),
                               _SellerCard(
                                 sellerName: product.sellerName,
-                                onMessage: _showMessageUnavailable,
+                                onMessage: () => _openSellerChat(product),
                               ),
                               const SizedBox(height: 24),
                               const _SectionLabel('DESCRIPTION'),
@@ -301,9 +305,27 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
+  void _openSellerChat(MarketplaceProduct product) {
+    final sellerUserId = product.sellerUserId;
+    if (sellerUserId == null || sellerUserId <= 0) {
+      _showMessageUnavailable();
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          otherUserId: sellerUserId,
+          name: product.sellerName,
+          isOnline: false,
+        ),
+      ),
+    );
+  }
+
   void _showMessageUnavailable() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Open Messages to chat with this seller.')),
+      const SnackBar(content: Text('Seller chat is not available yet.')),
     );
   }
 
