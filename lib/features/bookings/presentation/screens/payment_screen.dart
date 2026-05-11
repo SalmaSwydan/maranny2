@@ -49,6 +49,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   String get _paymentMethodLabel => 'PayOnArrival';
 
+  String get _selectedLocation {
+    final value = widget.location?.trim() ?? '';
+    return value.isEmpty ? 'Coach location' : value;
+  }
+
   Future<void> _confirmBooking() async {
     if (_isBooking) return;
 
@@ -221,27 +226,37 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF3F7FF),
       appBar: AppBar(
-        title: const Text('Payment'),
+        backgroundColor: const Color(0xFFF3F7FF),
+        elevation: 0,
+        title: const Text(
+          'Payment',
+          style: TextStyle(
+            color: Color(0xFF101B3F),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFDDE5F4)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
@@ -250,7 +265,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 children: [
                   const Text(
                     'Booking Summary',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      color: Color(0xFF101B3F),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -285,7 +304,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             Text(
                               widget.coachName,
                               style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF101B3F),
+                                fontWeight: FontWeight.w900,
                                 fontSize: 15,
                               ),
                             ),
@@ -305,6 +325,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const Divider(),
                   const SizedBox(height: 10),
                   _summaryRow('Date & Time', '${widget.day}, ${widget.time}'),
+                  const SizedBox(height: 8),
+                  _summaryRow('Place', _selectedLocation),
                   const SizedBox(height: 8),
                   _summaryRow('Session Price', '${widget.coachPrice} LE'),
                   const SizedBox(height: 8),
@@ -330,18 +352,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
               'Pay on Arrival',
               Icons.store_outlined,
             ),
+            const SizedBox(height: 20),
+            const _BookingPolicyNotice(),
             const Spacer(),
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 56,
               child: ElevatedButton(
                 onPressed: _isBooking ? null : _confirmBooking,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF303F9F),
+                  backgroundColor: const Color(0xFF304FFE),
                   disabledBackgroundColor: Colors.grey.shade300,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
+                  elevation: 7,
+                  shadowColor: const Color(0xFF304FFE).withValues(alpha: 0.32),
                 ),
                 child: _isBooking
                     ? const SizedBox(
@@ -433,6 +459,95 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BookingPolicyNotice extends StatelessWidget {
+  const _BookingPolicyNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF8FF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFB9E6FE)),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFF1570EF), size: 20),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Before confirming',
+                  style: TextStyle(
+                    color: Color(0xFF175CD3),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          _PolicyBullet(
+            text:
+                'By tapping Confirm Booking, you agree to Maranny’s booking terms and conditions.',
+          ),
+          SizedBox(height: 8),
+          _PolicyBullet(
+            text:
+                'If you need to cancel, please contact your coach at least 24 hours before the session starts.',
+          ),
+          SizedBox(height: 8),
+          _PolicyBullet(
+            text:
+                'Late cancellation or not attending without notice may result in an account warning.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PolicyBullet extends StatelessWidget {
+  final String text;
+
+  const _PolicyBullet({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          margin: const EdgeInsets.only(top: 6),
+          decoration: const BoxDecoration(
+            color: Color(0xFF1570EF),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Color(0xFF175CD3),
+              fontSize: 12.5,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
