@@ -29,6 +29,7 @@ class CoachData {
   final String sport;
   final int? sportId;
   final String location;
+  final List<String> locations;
   final String image;
   final List<String> availableDays;
   final double rating;
@@ -46,6 +47,7 @@ class CoachData {
     required this.sport,
     this.sportId,
     required this.location,
+    this.locations = const [],
     required this.image,
     this.availableDays = const [],
     required this.rating,

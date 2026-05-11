@@ -360,9 +360,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   }
 
   String _coachCity(Map<String, dynamic> coach) {
-    final locations = coach['locations'];
-    if (locations is List && locations.isNotEmpty) {
-      return _firstCleanLocation(locations.first.toString());
+    final locations = _coachLocations(coach);
+    if (locations.isNotEmpty) {
+      return locations.first;
     }
 
     return _firstCleanLocation(
@@ -382,6 +382,35 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
         .map((part) => part.trim())
         .firstWhere((part) => part.isNotEmpty, orElse: () => '');
     return cleaned;
+  }
+
+  List<String> _coachLocations(Map<String, dynamic> coach) {
+    final values = <String>[];
+
+    void addLocation(dynamic raw) {
+      final text = raw?.toString().trim() ?? '';
+      if (text.isEmpty) return;
+      for (final part
+          in text.replaceAll('[', '').replaceAll(']', '').split(',')) {
+        final cleaned = part.trim();
+        if (cleaned.isNotEmpty && !values.contains(cleaned)) {
+          values.add(cleaned);
+        }
+      }
+    }
+
+    final locations = coach['locations'];
+    if (locations is List) {
+      for (final location in locations) {
+        addLocation(location);
+      }
+    }
+
+    addLocation(coach['location']);
+    addLocation(coach['city']);
+    addLocation(coach['area']);
+
+    return values;
   }
 
   int _coachId(Map<String, dynamic> coach) {
@@ -499,6 +528,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       sport: sport,
       sportId: selectedCoachSportId,
       location: location,
+      locations: _coachLocations(coach),
       image: _coachImage(coach),
       availableDays: availableDays,
       rating: _coachRating(coach),
