@@ -133,7 +133,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const BookingConfirmedScreen()),
+        MaterialPageRoute(
+          builder: (_) => BookingConfirmedScreen(
+            coachName: widget.coachName,
+            coachSport: widget.coachSport.replaceAll(' Coach', ''),
+            when: '${widget.day} · ${widget.time}',
+            location: _selectedLocation,
+          ),
+        ),
         (route) => false,
       );
     } on DioException catch (error) {
