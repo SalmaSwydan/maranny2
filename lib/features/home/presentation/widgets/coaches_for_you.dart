@@ -19,12 +19,42 @@ class _CoachesForYouSectionState extends State<CoachesForYouSection> {
   @override
   void initState() {
     super.initState();
-    _coachesFuture = _profileRepository.searchCoachesList(
+    _coachesFuture = _loadRecommendedCoaches();
+  }
+
+  Future<List<Map<String, dynamic>>> _loadRecommendedCoaches() async {
+    final coaches = await _profileRepository.searchCoachesList(
       page: 1,
       pageSize: 6,
       sortBy: 'rating',
       sortOrder: 'desc',
     );
+
+    final recommended = coaches
+        .take(6)
+        .map((coach) => Map<String, dynamic>.from(coach))
+        .toList();
+
+    await Future.wait(
+      recommended.map((coach) async {
+        if (_rawCoachImage(coach).isNotEmpty) return;
+
+        final coachId = _coachId(coach);
+        if (coachId == null) return;
+
+        try {
+          final details = await _profileRepository.getCoachProfile(coachId);
+          final imageUrl = details.profilePictureUrl?.trim() ?? '';
+          if (imageUrl.isNotEmpty) {
+            coach['profilePictureUrl'] = imageUrl;
+          }
+        } catch (_) {
+          // The card still has a safe initials fallback if details are unavailable.
+        }
+      }),
+    );
+
+    return recommended;
   }
 
   void _openSearch() {
@@ -146,14 +176,7 @@ class _CoachCard extends StatelessWidget {
   }
 
   String get _imageUrl {
-    final raw = _firstText([
-      coach['profilePictureUrl'],
-      coach['profilePicture'],
-      coach['imageUrl'],
-      coach['photoUrl'],
-      coach['avatar'],
-    ]);
-    return ApiConfig.resolveMediaUrl(raw);
+    return ApiConfig.resolveMediaUrl(_rawCoachImage(coach));
   }
 
   double get _rating {
@@ -401,4 +424,78 @@ String _firstText(List<dynamic> values, {String fallback = ''}) {
     if (text.isNotEmpty) return text;
   }
   return fallback;
+}
+
+String _nestedText(dynamic source, List<String> keys) {
+  if (source is! Map) return '';
+  for (final key in keys) {
+    final text = source[key]?.toString().trim() ?? '';
+    if (text.isNotEmpty) return text;
+  }
+  return '';
+}
+
+int? _coachId(Map<String, dynamic> coach) {
+  final value =
+      coach['coachID'] ??
+      coach['coachId'] ??
+      coach['id'] ??
+      coach['CoachID'] ??
+      coach['CoachId'];
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
+}
+
+String _rawCoachImage(Map<String, dynamic> coach) {
+  return _firstText([
+    coach['profilePictureUrl'],
+    coach['profilePictureURL'],
+    coach['profileImageUrl'],
+    coach['profileImageURL'],
+    coach['profilePicture'],
+    coach['pictureUrl'],
+    coach['pictureURL'],
+    coach['imageUrl'],
+    coach['imageURL'],
+    coach['image'],
+    coach['photoUrl'],
+    coach['photoURL'],
+    coach['photo'],
+    coach['avatar'],
+    coach['avatarUrl'],
+    coach['avatarURL'],
+    coach['url'],
+    _nestedText(coach['user'], [
+      'profilePictureUrl',
+      'profilePictureURL',
+      'profileImageUrl',
+      'profileImageURL',
+      'profilePicture',
+      'pictureUrl',
+      'pictureURL',
+      'imageUrl',
+      'imageURL',
+      'photoUrl',
+      'photoURL',
+      'avatarUrl',
+      'avatarURL',
+      'url',
+    ]),
+    _nestedText(coach['coach'], [
+      'profilePictureUrl',
+      'profilePictureURL',
+      'profileImageUrl',
+      'profileImageURL',
+      'profilePicture',
+      'pictureUrl',
+      'pictureURL',
+      'imageUrl',
+      'imageURL',
+      'photoUrl',
+      'photoURL',
+      'avatarUrl',
+      'avatarURL',
+      'url',
+    ]),
+  ]);
 }

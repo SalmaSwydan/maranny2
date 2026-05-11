@@ -66,9 +66,9 @@ class _WelcomeRow extends StatelessWidget {
               border: Border.all(color: const Color(0xFFD7E0F2)),
             ),
             child: const Icon(
-              Icons.sports_gymnastics_rounded,
+              Icons.menu_rounded,
               color: AppColors.deepBlue,
-              size: 16,
+              size: 19,
             ),
           ),
         ),
@@ -78,7 +78,7 @@ class _WelcomeRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'CAIRO  ·  24°C  ·  CLEAR',
+                'CAIRO  -  24 C  -  CLEAR',
                 style: TextStyle(
                   color: Color(0xFF9AA9C6),
                   fontSize: 11,

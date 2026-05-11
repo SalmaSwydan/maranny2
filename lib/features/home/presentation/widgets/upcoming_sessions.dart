@@ -155,7 +155,7 @@ class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
         ),
         const SizedBox(height: 10),
         SizedBox(
-          height: 86,
+          height: 100,
           child: FutureBuilder<List<BookingModel>>(
             future: _bookingsFuture,
             builder: (context, snapshot) {
@@ -226,7 +226,7 @@ class UpcomingSessionCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: AppColors.lightBlue,
           borderRadius: BorderRadius.circular(24),
@@ -257,15 +257,16 @@ class UpcomingSessionCard extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     '$sport with $name',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: AppColors.deepBlue,
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
+                      height: 1.05,
                     ),
                   ),
                   Text(
