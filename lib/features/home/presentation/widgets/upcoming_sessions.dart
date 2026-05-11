@@ -13,7 +13,8 @@ class UpcomingSessionsSection extends StatefulWidget {
   const UpcomingSessionsSection({super.key, this.onViewMore});
 
   @override
-  State<UpcomingSessionsSection> createState() => _UpcomingSessionsSectionState();
+  State<UpcomingSessionsSection> createState() =>
+      _UpcomingSessionsSectionState();
 }
 
 class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
@@ -30,22 +31,22 @@ class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
     final bookings = await _bookingsRepository.getMyBookings();
     final now = DateTime.now();
 
-    final upcoming = bookings.where((booking) {
-      final normalizedStatus = booking.normalizedStatus;
-      final isUpcomingStatus =
-          normalizedStatus == 'approved' ||
-          normalizedStatus == 'confirmed' ||
-          normalizedStatus == 'completed';
-      final scheduledAt = booking.scheduledDateTime;
-      return isUpcomingStatus &&
-          scheduledAt != null &&
-          !scheduledAt.isBefore(now);
-    }).toList()
-      ..sort((a, b) {
-        final first = a.scheduledDateTime ?? DateTime.now();
-        final second = b.scheduledDateTime ?? DateTime.now();
-        return first.compareTo(second);
-      });
+    final upcoming =
+        bookings.where((booking) {
+          final normalizedStatus = booking.normalizedStatus;
+          final isUpcomingStatus =
+              normalizedStatus == 'approved' ||
+              normalizedStatus == 'confirmed' ||
+              normalizedStatus == 'completed';
+          final scheduledAt = booking.scheduledDateTime;
+          return isUpcomingStatus &&
+              scheduledAt != null &&
+              !scheduledAt.isBefore(now);
+        }).toList()..sort((a, b) {
+          final first = a.scheduledDateTime ?? DateTime.now();
+          final second = b.scheduledDateTime ?? DateTime.now();
+          return first.compareTo(second);
+        });
 
     return upcoming;
   }
@@ -80,6 +81,7 @@ class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
       sport: bookingDetails.session.sportName,
       sportId: bookingDetails.session.sportID,
       location: bookingDetails.session.location,
+      locations: [bookingDetails.session.location],
       image: '',
       rating: bookingDetails.coach.avgRating,
       reviewCount: 0,
@@ -109,14 +111,6 @@ class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
   }
 
   String _formatDateLabel(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final target = DateTime(date.year, date.month, date.day);
-    final difference = target.difference(today).inDays;
-
-    if (difference == 0) return 'Today';
-    if (difference == 1) return 'Tomorrow';
-
     const months = <String>[
       'JAN',
       'FEB',
@@ -131,7 +125,7 @@ class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
       'NOV',
       'DEC',
     ];
-    return '${months[date.month - 1]} ${date.day}';
+    return '${date.day} ${months[date.month - 1]}';
   }
 
   String _formatTimeLabel(DateTime date, String fallback) {
@@ -150,10 +144,18 @@ class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _header(),
-        const SizedBox(height: 14),
+        const Text(
+          'UP NEXT',
+          style: TextStyle(
+            color: Color(0xFF9AA9C6),
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 3,
+          ),
+        ),
+        const SizedBox(height: 10),
         SizedBox(
-          height: 130,
+          height: 86,
           child: FutureBuilder<List<BookingModel>>(
             future: _bookingsFuture,
             builder: (context, snapshot) {
@@ -178,51 +180,21 @@ class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
                 );
               }
 
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: bookings.length,
-                itemBuilder: (context, index) {
-                  final booking = bookings[index];
-                  final scheduledAt =
-                      booking.scheduledDateTime ??
-                      DateTime.tryParse(booking.session.sessionDate) ??
-                      DateTime.now();
+              final booking = bookings.first;
+              final scheduledAt =
+                  booking.scheduledDateTime ??
+                  DateTime.tryParse(booking.session.sessionDate) ??
+                  DateTime.now();
 
-                  return UpcomingSessionCard(
-                    name: booking.coach.name,
-                    sport: booking.session.sportName,
-                    date: _formatDateLabel(scheduledAt),
-                    time: _formatTimeLabel(
-                      scheduledAt,
-                      booking.session.startTime,
-                    ),
-                    onTap: () => _openBookingDetails(booking),
-                  );
-                },
+              return UpcomingSessionCard(
+                name: booking.coach.name,
+                sport: booking.session.sportName,
+                location: booking.session.location,
+                date: _formatDateLabel(scheduledAt),
+                time: _formatTimeLabel(scheduledAt, booking.session.startTime),
+                onTap: () => _openBookingDetails(booking),
               );
             },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _header() {
-    return Row(
-      children: [
-        const Text(
-          'Upcoming Sessions',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const Spacer(),
-        GestureDetector(
-          onTap: widget.onViewMore,
-          child: const Text(
-            'view more →',
-            style: TextStyle(
-              color: AppColors.primaryBlue,
-              fontWeight: FontWeight.w500,
-            ),
           ),
         ),
       ],
@@ -233,6 +205,7 @@ class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
 class UpcomingSessionCard extends StatelessWidget {
   final String name;
   final String sport;
+  final String location;
   final String date;
   final String time;
   final VoidCallback onTap;
@@ -241,6 +214,7 @@ class UpcomingSessionCard extends StatelessWidget {
     super.key,
     required this.name,
     required this.sport,
+    required this.location,
     required this.date,
     required this.time,
     required this.onTap,
@@ -251,61 +225,66 @@ class UpcomingSessionCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 220,
-        margin: const EdgeInsets.only(right: 14),
+        width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          color: AppColors.lightBlue,
+          borderRadius: BorderRadius.circular(24),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(
-              name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.person, color: AppColors.deepBlue),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$date  -  $time'.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.deepBlue,
+                      fontSize: 12,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$sport with $name',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.deepBlue,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    location.trim().isEmpty ? 'Coach location' : location,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF38607A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              sport,
-              style: const TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-            const SizedBox(height: 10),
-            const Divider(),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(
-                  Icons.calendar_today,
-                  size: 16,
-                  color: AppColors.primaryBlue,
-                ),
-                const SizedBox(width: 6),
-                Text(date),
-                const SizedBox(width: 16),
-                const Icon(
-                  Icons.access_time,
-                  size: 16,
-                  color: AppColors.primaryBlue,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    time,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            const Icon(
+              Icons.arrow_forward_rounded,
+              color: AppColors.deepBlue,
+              size: 24,
             ),
           ],
         ),
@@ -329,44 +308,25 @@ class _StateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(color: const Color(0xFFD7E0F2)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            message,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed: onTap,
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(0, 0),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
+          Expanded(
             child: Text(
-              actionLabel,
+              message,
               style: const TextStyle(
-                color: AppColors.primaryBlue,
-                fontWeight: FontWeight.w600,
+                color: AppColors.deepBlue,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
+          TextButton(onPressed: onTap, child: Text(actionLabel)),
         ],
       ),
     );

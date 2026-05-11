@@ -42,14 +42,18 @@ class _CoachesForYouSectionState extends State<CoachesForYouSection> {
         Row(
           children: [
             const Text(
-              'Coaches for you',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              'For you',
+              style: TextStyle(
+                color: AppColors.deepBlue,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const Spacer(),
             GestureDetector(
               onTap: _openSearch,
               child: const Text(
-                'see more ->',
+                'See all ->',
                 style: TextStyle(
                   color: AppColors.primaryBlue,
                   fontWeight: FontWeight.w500,
@@ -89,14 +93,18 @@ class _CoachesForYouSectionState extends State<CoachesForYouSection> {
             }
 
             return SizedBox(
-              height: 250,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: coaches.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 14),
-                itemBuilder: (context, index) {
-                  return _CoachCard(coach: coaches[index], onTap: _openSearch);
-                },
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: coaches.take(4).length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 0.72,
+                ),
+                itemBuilder: (context, index) =>
+                    _CoachCard(coach: coaches[index], onTap: _openSearch),
               ),
             );
           },
@@ -155,16 +163,12 @@ class _CoachCard extends StatelessWidget {
     return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  int get _reviews {
-    final value =
-        coach['totalReviews'] ?? coach['reviewsCount'] ?? coach['reviewCount'];
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '') ?? 0;
-  }
-
   num? get _price {
     final value =
-        coach['pricePerSession'] ?? coach['sessionPrice'] ?? coach['price'];
+        coach['pricePerSession'] ??
+        coach['sessionPrice'] ??
+        coach['price'] ??
+        _firstSportValue(['pricePerSession', 'sessionPrice', 'price']);
     if (value is num) return value;
     return num.tryParse(value?.toString() ?? '');
   }
@@ -174,24 +178,22 @@ class _CoachCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 190,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CoachImage(imageUrl: _imageUrl, name: _name),
+            Expanded(
+              child: _CoachImage(
+                imageUrl: _imageUrl,
+                name: _name,
+                sport: _sport,
+              ),
+            ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -201,36 +203,41 @@ class _CoachCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      color: AppColors.deepBlue,
+                      fontSize: 15,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    _sport,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 16),
+                      const Icon(
+                        Icons.star,
+                        color: Color(0xFF6C7897),
+                        size: 13,
+                      ),
                       const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '${_rating.toStringAsFixed(1)} - $_locationLabel',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF6C7897),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Text(
-                        '${_rating.toStringAsFixed(1)} ($_reviews reviews)',
-                        style: const TextStyle(fontSize: 12),
+                        _price == null ? '' : '${_price!.round()}',
+                        style: const TextStyle(
+                          color: AppColors.deepBlue,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _price == null
-                        ? 'Price not set'
-                        : '${_price!.round()} LE/hr',
-                    style: const TextStyle(
-                      color: Colors.redAccent,
-                      fontWeight: FontWeight.w600,
-                    ),
                   ),
                 ],
               ),
@@ -240,54 +247,99 @@ class _CoachCard extends StatelessWidget {
       ),
     );
   }
+
+  String get _locationLabel {
+    final locations = coach['locations'] ?? coach['Locations'];
+    if (locations is List && locations.isNotEmpty) {
+      return locations.first.toString().split(',').first.trim();
+    }
+    return _firstText([
+      coach['city'],
+      coach['location'],
+      coach['area'],
+      coach['coachLocation'],
+    ], fallback: 'Nearby');
+  }
+
+  dynamic _firstSportValue(List<String> keys) {
+    final sports = coach['sports'];
+    if (sports is! List || sports.isEmpty || sports.first is! Map) return null;
+    final firstSport = sports.first as Map;
+    for (final key in keys) {
+      final value = firstSport[key];
+      if (value != null && value.toString().trim().isNotEmpty) return value;
+    }
+    return null;
+  }
 }
 
 class _CoachImage extends StatelessWidget {
   final String imageUrl;
   final String name;
+  final String sport;
 
-  const _CoachImage({required this.imageUrl, required this.name});
+  const _CoachImage({
+    required this.imageUrl,
+    required this.name,
+    required this.sport,
+  });
 
   @override
   Widget build(BuildContext context) {
     final initial = name.trim().isEmpty ? 'C' : name.trim()[0].toUpperCase();
 
     return Container(
-      height: 120,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        borderRadius: BorderRadius.circular(18),
         color: AppColors.primaryBlue.withValues(alpha: 0.1),
       ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-        child: imageUrl.isEmpty
-            ? Center(
-                child: Text(
-                  initial,
-                  style: const TextStyle(
-                    color: AppColors.primaryBlue,
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              )
-            : Image.network(
-                imageUrl,
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Center(
-                  child: Text(
-                    initial,
-                    style: const TextStyle(
-                      color: AppColors.primaryBlue,
-                      fontSize: 34,
-                      fontWeight: FontWeight.w800,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: imageUrl.isEmpty
+                ? Center(
+                    child: Text(
+                      initial,
+                      style: const TextStyle(
+                        color: AppColors.primaryBlue,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  )
+                : Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Text(
+                        initial,
+                        style: const TextStyle(
+                          color: AppColors.primaryBlue,
+                          fontSize: 34,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+          ),
+          Positioned(
+            left: 10,
+            top: 10,
+            child: Text(
+              sport.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+                shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
               ),
+            ),
+          ),
+        ],
       ),
     );
   }

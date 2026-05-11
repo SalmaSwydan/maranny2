@@ -14,26 +14,26 @@ class HomeHeaderTwo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 50, 16, 24),
+      padding: const EdgeInsets.fromLTRB(18, 44, 18, 18),
       decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradient,
+        color: Color(0xFFF3F7FF),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(5),
-          bottomRight: Radius.circular(5),
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _WelcomeRow(onMenuTap: onMenuTap, userName: userName),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           GestureDetector(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ClientSearchScreen()),
             ),
             child: const AbsorbPointer(child: HomeSearchBar()),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           const SportsCategoriesTwo(),
         ],
       ),
@@ -58,50 +58,84 @@ class _WelcomeRow extends StatelessWidget {
         GestureDetector(
           onTap: onMenuTap,
           child: Container(
-            width: 40,
-            height: 40,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFD7E0F2)),
             ),
-            child: const Icon(Icons.menu, color: Colors.white, size: 22),
+            child: const Icon(
+              Icons.sports_gymnastics_rounded,
+              color: AppColors.deepBlue,
+              size: 16,
+            ),
           ),
         ),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'welcome back, $firstName!',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'CAIRO  ·  24°C  ·  CLEAR',
+                style: TextStyle(
+                  color: Color(0xFF9AA9C6),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'find coaches, book sessions, and track your progress',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                'Hey $firstName.',
+                style: const TextStyle(
+                  color: AppColors.deepBlue,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+            ],
+          ),
         ),
-        const Spacer(),
         GestureDetector(
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => const ClientNotificationsScreen(),
             ),
           ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              const Icon(
-                Icons.notifications_none,
-                color: Colors.white,
-                size: 26,
-              ),
-            ],
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF0FB),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFD7E0F2)),
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                const Icon(
+                  Icons.notifications_none_rounded,
+                  color: AppColors.deepBlue,
+                  size: 24,
+                ),
+                Positioned(
+                  right: 10,
+                  top: 10,
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF5A5F),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

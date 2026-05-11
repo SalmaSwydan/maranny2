@@ -8,23 +8,18 @@ class SportsCategoriesTwo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const categories = [
-      'All Sports',
-      'Basketball',
+      'All sports',
       'Football',
-      'Gym Training',
       'Padel',
       'Swimming',
+      'Basketball',
+      'Gym',
       'Tennis',
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Sports Categories',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -49,15 +44,20 @@ class _Chip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: selected ? Colors.white : Colors.white24,
-        borderRadius: BorderRadius.circular(20),
+        color: selected ? AppColors.deepBlue : const Color(0xFFEAF0FB),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: selected ? AppColors.deepBlue : const Color(0xFFD7E0F2),
+        ),
       ),
       child: Text(
         text,
         style: TextStyle(
-          color: selected ? AppColors.primaryBlue : Colors.white,
+          color: selected ? Colors.white : AppColors.deepBlue,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
         ),
       ),
     );

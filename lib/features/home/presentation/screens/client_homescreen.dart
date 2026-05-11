@@ -33,8 +33,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     if (!mounted) return;
 
     setState(() {
-      _userName =
-      displayName != null && displayName.trim().isNotEmpty
+      _userName = displayName != null && displayName.trim().isNotEmpty
           ? displayName.trim()
           : 'User';
     });
@@ -44,6 +43,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
+      backgroundColor: const Color(0xFFF3F7FF),
       drawer: AppSideMenu(
         userName: _userName,
         userType: 'client',
@@ -51,7 +51,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-                (route) => false,
+            (route) => false,
           );
         },
       ),
@@ -63,17 +63,15 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: UpcomingSessionsSection(
-                onViewMore: widget.onGoToBookings,
-              ),
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+              child: UpcomingSessionsSection(onViewMore: widget.onGoToBookings),
             ),
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.fromLTRB(18, 18, 18, 0),
               child: CoachesForYouSection(),
             ),
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.fromLTRB(18, 18, 18, 24),
               child: NearbySportsFacilitiesSection(),
             ),
           ],

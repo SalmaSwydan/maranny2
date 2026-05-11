@@ -7,37 +7,38 @@ class HomeSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(6),
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 12,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD7E0F2)),
       ),
       child: Row(
         children: [
-          const SizedBox(width: 8),
-          const Icon(Icons.search, color: Colors.grey),
-          const SizedBox(width: 8),
+          const Icon(Icons.search_rounded, color: Color(0xFF8190AD), size: 22),
+          const SizedBox(width: 10),
           const Expanded(
             child: Text(
-              'Browse coaches by name',
-              style: TextStyle(color: Colors.grey),
+              'Search coaches, sports, areas...',
+              style: TextStyle(
+                color: Color(0xFF8190AD),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
-              color: AppColors.primaryBlue,
-              borderRadius: BorderRadius.circular(24),
+              color: const Color(0xFFEAF0FB),
+              shape: BoxShape.circle,
             ),
-            child: const Text(
-              'Search',
-              style: TextStyle(color: Colors.white),
+            child: const Icon(
+              Icons.tune_rounded,
+              color: AppColors.deepBlue,
+              size: 18,
             ),
           ),
         ],
