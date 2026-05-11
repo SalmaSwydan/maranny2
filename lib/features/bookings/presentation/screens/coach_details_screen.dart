@@ -510,73 +510,116 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
     }
 
     return Column(
-      children: _reviews.map((r) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Container(
-            padding: const EdgeInsets.all(12),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              _rating.toStringAsFixed(1),
+              style: const TextStyle(
+                color: AppColors.deepBlue,
+                fontSize: 58,
+                fontWeight: FontWeight.w900,
+                height: 0.9,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: List.generate(
+                      5,
+                      (i) => Icon(
+                        Icons.star,
+                        size: 15,
+                        color: i < _rating.round()
+                            ? const Color(0xFFFFC44D)
+                            : const Color(0xFFDDE5F4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Based on $_reviewCount reviews',
+                    style: const TextStyle(
+                      color: Color(0xFF6C7897),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        ..._reviews.map((r) {
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 6,
-                ),
-              ],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFDDE5F4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 20,
-                      child: Icon(Icons.person, size: 20),
-                    ),
-                    const SizedBox(width: 10),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            r.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Row(
-                            children: List.generate(
-                              5,
-                              (i) => Icon(
-                                Icons.star,
-                                size: 14,
-                                color: i < r.rating
-                                    ? Colors.orange
-                                    : Colors.grey.shade300,
-                              ),
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        r.name,
+                        style: const TextStyle(
+                          color: AppColors.deepBlue,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                     Text(
                       r.date,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6C7897),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
+                Row(
+                  children: List.generate(
+                    5,
+                    (i) => Icon(
+                      Icons.star,
+                      size: 14,
+                      color: i < r.rating
+                          ? const Color(0xFFFFC44D)
+                          : const Color(0xFFDDE5F4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Text(
                   r.comment,
-                  style: const TextStyle(fontSize: 13, color: Colors.black54),
+                  style: const TextStyle(
+                    color: Color(0xFF4C5C7D),
+                    fontSize: 14,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }),
+      ],
     );
   }
 
