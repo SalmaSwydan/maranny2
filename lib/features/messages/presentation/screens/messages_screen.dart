@@ -104,40 +104,52 @@ class _MessagesScreenState extends State<MessagesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
-              child: IconButton(
-                tooltip: 'Refresh',
-                onPressed: _loadConversations,
-                icon: const Icon(
-                  Icons.refresh_rounded,
-                  color: Color(0xFF233B7A),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: Text(
-                '${_unreadTotal.clamp(0, 99)} UNREAD',
-                style: const TextStyle(
-                  color: Color(0xFF8B98B5),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2.4,
-                ),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 6, 20, 14),
-              child: Text(
-                'Messages.',
-                style: TextStyle(
-                  color: Color(0xFF13296B),
-                  fontSize: 34,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                  letterSpacing: -1.1,
-                ),
+            SizedBox(
+              height: 78,
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 2,
+                    right: 8,
+                    child: IconButton(
+                      tooltip: 'Refresh',
+                      onPressed: _loadConversations,
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        color: Color(0xFF233B7A),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 6,
+                    left: 20,
+                    right: 64,
+                    child: Text(
+                      '${_unreadTotal.clamp(0, 99)} UNREAD',
+                      style: const TextStyle(
+                        color: Color(0xFF8B98B5),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2.4,
+                      ),
+                    ),
+                  ),
+                  const Positioned(
+                    top: 28,
+                    left: 20,
+                    right: 20,
+                    child: Text(
+                      'Messages.',
+                      style: TextStyle(
+                        color: Color(0xFF13296B),
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                        letterSpacing: -1.1,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             _buildSearchBar(),
