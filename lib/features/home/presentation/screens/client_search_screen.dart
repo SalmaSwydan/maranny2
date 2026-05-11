@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import '../../../../core/network/api_config.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/egypt_locations.dart';
 import '../../../bookings/presentation/screens/coach_details_screen.dart';
 import '../../../bookings/domain/models/booking_session_model.dart';
@@ -20,6 +21,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   final _searchController = TextEditingController();
   final ProfileRepository _profileRepository = ProfileRepository();
   final SportsRepository _sportsRepository = SportsRepository();
+  static const double _screenGutter = 8;
 
   String _selectedCategory = 'All';
   String _searchQuery = '';
@@ -360,14 +362,26 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   String _coachCity(Map<String, dynamic> coach) {
     final locations = coach['locations'];
     if (locations is List && locations.isNotEmpty) {
-      return locations.first.toString();
+      return _firstCleanLocation(locations.first.toString());
     }
 
-    return (coach['city'] ?? coach['location'] ?? '').toString();
+    return _firstCleanLocation(
+      (coach['city'] ?? coach['location'] ?? '').toString(),
+    );
   }
 
   String _coachArea(Map<String, dynamic> coach) {
-    return (coach['area'] ?? '').toString();
+    return _firstCleanLocation((coach['area'] ?? '').toString());
+  }
+
+  String _firstCleanLocation(String value) {
+    final cleaned = value
+        .replaceAll('[', '')
+        .replaceAll(']', '')
+        .split(',')
+        .map((part) => part.trim())
+        .firstWhere((part) => part.isNotEmpty, orElse: () => '');
+    return cleaned;
   }
 
   int _coachId(Map<String, dynamic> coach) {
@@ -393,6 +407,52 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
             : null) ??
         '';
     return ApiConfig.resolveMediaUrl(raw.toString());
+  }
+
+  String _nextFreeText(Map<String, dynamic> coach) {
+    final upcomingDates = coach['upcomingAvailableDates'];
+    if (upcomingDates is List && upcomingDates.isNotEmpty) {
+      final first = upcomingDates.first;
+      if (first is Map) {
+        final date = (first['date'] ?? first['sessionDate'] ?? '').toString();
+        final day = (first['dayName'] ?? first['day'] ?? '').toString();
+        final hours = first['availableHours'] ?? first['hours'];
+        final firstHour = hours is List && hours.isNotEmpty
+            ? hours.first.toString()
+            : '';
+        if (firstHour.isNotEmpty) {
+          return 'NEXT FREE  -  ${_shortDay(day, date)}  -  $firstHour';
+        }
+      }
+    }
+
+    final availableDays = coach['availableDays'];
+    final availableHours = coach['availableHours'];
+    final firstDay = availableDays is List && availableDays.isNotEmpty
+        ? availableDays.first.toString()
+        : '';
+    final firstHour = availableHours is List && availableHours.isNotEmpty
+        ? availableHours.first.toString()
+        : '';
+    if (firstDay.isNotEmpty && firstHour.isNotEmpty) {
+      return 'NEXT FREE  -  ${_shortDay(firstDay, '')}  -  $firstHour';
+    }
+
+    return 'CHECK FREE SLOTS';
+  }
+
+  String _shortDay(String rawDay, String rawDate) {
+    final trimmedDay = rawDay.trim();
+    if (trimmedDay.isNotEmpty) {
+      return trimmedDay.length <= 3 ? trimmedDay : trimmedDay.substring(0, 3);
+    }
+
+    final parsed = DateTime.tryParse(rawDate);
+    if (parsed == null) {
+      return 'Soon';
+    }
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days[parsed.weekday - 1];
   }
 
   Color _coachColor(Map<String, dynamic> coach) {
@@ -506,241 +566,254 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      body: Column(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1F3A93), Color(0xFF6FD3F5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      backgroundColor: const Color(0xFFF3F7FF),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                _screenGutter,
+                12,
+                _screenGutter,
+                10,
               ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 16, 16),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Colors.white,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(22),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE9EFFA),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFD7E0F2)),
                       ),
-                    ),
-                    const Text(
-                      'Search',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, color: Colors.grey, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          autofocus: true,
-                          onChanged: (v) {
-                            setState(() => _searchQuery = v);
-                            Future.delayed(
-                              const Duration(milliseconds: 350),
-                              () {
-                                if (mounted && _searchQuery == v) {
-                                  _loadCoaches();
-                                }
-                              },
-                            );
-                          },
-                          decoration: const InputDecoration(
-                            hintText: 'Browse coaches by name',
-                            hintStyle: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                            border: InputBorder.none,
-                            isDense: true,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.auto_awesome_outlined,
-                        color: Colors.grey,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  height: 36,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _categories.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final cat = _categories[index];
-                      final selected = _selectedCategory == cat;
-
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() => _selectedCategory = cat);
-                          _loadCoaches();
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? const Color(0xFF1F3A93)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: selected
-                                  ? const Color(0xFF1F3A93)
-                                  : Colors.grey.shade300,
-                            ),
-                          ),
-                          child: Text(
-                            cat,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: selected ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 14),
-                GestureDetector(
-                  onTap: _openFilter,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.filter_list,
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
                         size: 18,
-                        color: _filterApplied
-                            ? const Color(0xFF1F3A93)
-                            : Colors.grey,
+                        color: AppColors.deepBlue,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Advanced filter',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: _filterApplied
-                              ? const Color(0xFF1F3A93)
-                              : Colors.grey.shade600,
-                          fontWeight: _filterApplied
-                              ? FontWeight.w600
-                              : FontWeight.normal,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'STEP 1 / 3',
+                    style: TextStyle(
+                      color: Color(0xFF9AA9C6),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Pick a coach.',
+                    style: TextStyle(
+                      color: AppColors.deepBlue,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Browse all coaches, then pick a free slot.',
+                    style: TextStyle(
+                      color: Color(0xFF6C7897),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                _screenGutter,
+                8,
+                _screenGutter,
+                0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 58,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD7E0F2)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
                         ),
-                      ),
-                      if (_filterApplied) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.search,
+                          color: Color(0xFF8190AD),
+                          size: 22,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            autofocus: true,
+                            onChanged: (v) {
+                              setState(() => _searchQuery = v);
+                              Future.delayed(
+                                const Duration(milliseconds: 350),
+                                () {
+                                  if (mounted && _searchQuery == v) {
+                                    _loadCoaches();
+                                  }
+                                },
+                              );
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Search coach or sport',
+                              hintStyle: TextStyle(
+                                color: Color(0xFF8190AD),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1F3A93),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
-                            'ON',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                        ),
+                        InkWell(
+                          onTap: _openFilter,
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: _filterApplied
+                                  ? AppColors.deepBlue
+                                  : const Color(0xFFEAF0FB),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.tune_rounded,
+                              color: _filterApplied
+                                  ? Colors.white
+                                  : AppColors.deepBlue,
+                              size: 18,
                             ),
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 36,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _categories.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 7),
+                      itemBuilder: (context, index) {
+                        final cat = _categories[index];
+                        final selected = _selectedCategory == cat;
+
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() => _selectedCategory = cat);
+                            _loadCoaches();
+                          },
+                          child: Container(
+                            height: 34,
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? AppColors.deepBlue
+                                  : const Color(0xFFEAF0FB),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: selected
+                                    ? AppColors.deepBlue
+                                    : const Color(0xFFD7E0F2),
+                              ),
+                            ),
+                            child: Text(
+                              cat,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w900,
+                                color: selected
+                                    ? Colors.white
+                                    : AppColors.deepBlue,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                ? Center(
-                    child: TextButton(
-                      onPressed: _loadCoaches,
-                      child: Text(_error!),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? Center(
+                      child: TextButton(
+                        onPressed: _loadCoaches,
+                        child: Text(_error!),
+                      ),
+                    )
+                  : filteredByPrice.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search_off, size: 48, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text(
+                            'No coaches match your filters',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(
+                        _screenGutter,
+                        2,
+                        _screenGutter,
+                        20,
+                      ),
+                      itemCount: filteredByPrice.length,
+                      itemBuilder: (context, index) => _CoachCard(
+                        coach: filteredByPrice[index],
+                        name: _coachName(filteredByPrice[index]),
+                        sport: _coachSport(filteredByPrice[index]),
+                        description: _coachDescription(filteredByPrice[index]),
+                        rating: _coachRating(filteredByPrice[index]),
+                        reviews: _coachReviews(filteredByPrice[index]),
+                        city: _coachCity(filteredByPrice[index]),
+                        area: _coachArea(filteredByPrice[index]),
+                        price: _coachPrice(filteredByPrice[index]),
+                        color: _coachColor(filteredByPrice[index]),
+                        image: _coachImage(filteredByPrice[index]),
+                        nextFreeText: _nextFreeText(filteredByPrice[index]),
+                        onTap: () => _openCoachDetails(filteredByPrice[index]),
+                      ),
                     ),
-                  )
-                : filteredByPrice.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.search_off, size: 48, color: Colors.grey),
-                        SizedBox(height: 8),
-                        Text(
-                          'No coaches match your filters',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    itemCount: filteredByPrice.length,
-                    itemBuilder: (context, index) => _CoachCard(
-                      coach: filteredByPrice[index],
-                      name: _coachName(filteredByPrice[index]),
-                      sport: _coachSport(filteredByPrice[index]),
-                      description: _coachDescription(filteredByPrice[index]),
-                      rating: _coachRating(filteredByPrice[index]),
-                      reviews: _coachReviews(filteredByPrice[index]),
-                      city: _coachCity(filteredByPrice[index]),
-                      area: _coachArea(filteredByPrice[index]),
-                      price: _coachPrice(filteredByPrice[index]),
-                      color: _coachColor(filteredByPrice[index]),
-                      image: _coachImage(filteredByPrice[index]),
-                      onTap: () => _openCoachDetails(filteredByPrice[index]),
-                    ),
-                  ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1047,6 +1120,7 @@ class _CoachCard extends StatelessWidget {
   final int price;
   final Color color;
   final String image;
+  final String nextFreeText;
   final VoidCallback onTap;
 
   const _CoachCard({
@@ -1061,134 +1135,143 @@ class _CoachCard extends StatelessWidget {
     required this.price,
     required this.color,
     required this.image,
+    required this.nextFreeText,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final location = area.isNotEmpty ? '$area, $city' : city;
+    final location = area.isNotEmpty ? area : city;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 13),
+        padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFDDE5F4)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Row(
+        child: Stack(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: image.isNotEmpty
-                  ? Image.network(
-                      image,
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(Icons.person, color: color, size: 32),
-                      ),
-                    )
-                  : Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.person, color: color, size: 32),
-                    ),
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Text(
+                price > 0 ? '$price LE/hr' : 'N/A',
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.lightBlue,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                  height: 1,
+                ),
+              ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: image.isNotEmpty
+                      ? Image.network(
+                          image,
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(Icons.person, color: color, size: 32),
+                          ),
+                        )
+                      : Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(Icons.person, color: color, size: 32),
+                        ),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 62),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
                           name,
                           style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                            color: AppColors.deepBlue,
+                            fontWeight: FontWeight.w900,
                             fontSize: 15,
+                            height: 1.1,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      Text(
-                        price > 0 ? '$price LE/hr' : 'N/A',
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                        const SizedBox(height: 4),
+                        Text(
+                          '$sport - ${rating.toStringAsFixed(1)} - $location',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF6C7897),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            height: 1.2,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    sport,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF5CD88B),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            Flexible(
+                              child: Text(
+                                nextFreeText,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  letterSpacing: 0.8,
+                                  color: Color(0xFF4C5C7D),
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.2,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: const TextStyle(fontSize: 12, color: Colors.black54),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 14, color: Colors.orange),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$rating ($reviews reviews)',
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.location_on,
-                        size: 13,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 2),
-                      Flexible(
-                        child: Text(
-                          location,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),

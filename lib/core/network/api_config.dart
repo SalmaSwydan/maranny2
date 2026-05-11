@@ -5,7 +5,7 @@
 class ApiConfig {
   ApiConfig._();
   // ✅ Dev tunnel URL — works for everyone on any device
-  static const String baseUrl = 'https://878c3slg-7112.uks1.devtunnels.ms/api';
+  static const String baseUrl = 'https://bb4n5c63-7112.uks1.devtunnels.ms/api';
 
   static String get publicBaseUrl => baseUrl.endsWith('/api')
       ? baseUrl.substring(0, baseUrl.length - 4)
