@@ -569,6 +569,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       backgroundColor: const Color(0xFFF3F7FF),
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
