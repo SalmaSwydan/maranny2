@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -101,6 +102,24 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         const SnackBar(content: Text('Item deleted successfully.')),
       );
       Navigator.of(context).pop(true);
+    } on DioException catch (error) {
+      if (!mounted) return;
+      final data = error.response?.data;
+      final message = data is Map<String, dynamic>
+          ? (data['error'] ?? data['message'] ?? '').toString().trim()
+          : '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message.isNotEmpty
+                ? message
+                : error.response?.statusCode == 403
+                ? 'You cannot delete another user listing.'
+                : 'Could not delete this item right now. Please try again.',
+          ),
+        ),
+      );
+      setState(() => _isDeleting = false);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -288,15 +307,6 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     child: _TopCircleButton(
                       icon: Icons.arrow_back_ios_new_rounded,
                       onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 16,
-                    child: _TopCircleButton(
-                      icon: Icons.delete_outline_rounded,
-                      iconColor: const Color(0xFFE53935),
-                      onPressed: _isDeleting ? null : _deleteProduct,
                     ),
                   ),
                 ],
@@ -651,7 +661,7 @@ class _DeleteButton extends StatelessWidget {
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Icon(Icons.delete_outline_rounded),
+            : const Center(child: Icon(Icons.delete_outline_rounded)),
       ),
     );
   }
@@ -659,14 +669,9 @@ class _DeleteButton extends StatelessWidget {
 
 class _TopCircleButton extends StatelessWidget {
   final IconData icon;
-  final Color iconColor;
   final VoidCallback? onPressed;
 
-  const _TopCircleButton({
-    required this.icon,
-    required this.onPressed,
-    this.iconColor = AppColors.primaryBlue,
-  });
+  const _TopCircleButton({required this.icon, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -679,7 +684,7 @@ class _TopCircleButton extends StatelessWidget {
         child: SizedBox(
           width: 42,
           height: 42,
-          child: Icon(icon, color: iconColor, size: 20),
+          child: Icon(icon, color: AppColors.primaryBlue, size: 20),
         ),
       ),
     );
