@@ -12,6 +12,7 @@ class PaymentScreen extends StatefulWidget {
   final int? sportID;
   final String? sessionDate;
   final String? startTime;
+  final String? location;
   final String day;
   final String time;
   final String coachName;
@@ -26,6 +27,7 @@ class PaymentScreen extends StatefulWidget {
     this.sportID,
     this.sessionDate,
     this.startTime,
+    this.location,
     required this.day,
     required this.time,
     this.coachName = 'Coach',
@@ -87,6 +89,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               sportID: widget.sportID,
               sessionDate: widget.sessionDate,
               startTime: widget.startTime,
+              location: widget.location,
               notes: 'Booked from mobile app',
             );
 
@@ -98,6 +101,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'selectedDate=${widget.sessionDate} '
         'selectedDay=${widget.day} '
         'selectedTime=${widget.startTime ?? widget.time} '
+        'location=${widget.location ?? ''} '
         'requestBody=${request.toJson()} '
         'finalSessionDateTime=${finalScheduledAt?.toIso8601String() ?? ''} '
         'paymentMethod=$_paymentMethodLabel',
@@ -111,6 +115,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'selectedDate=${widget.sessionDate} '
         'selectedDay=${widget.day} '
         'selectedTime=${widget.startTime ?? widget.time} '
+        'location=${widget.location ?? ''} '
         'requestBody=${request.toJson()} '
         'finalSessionDateTime=${finalScheduledAt?.toIso8601String() ?? ''} '
         'paymentMethod=$_paymentMethodLabel',
@@ -143,9 +148,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       );
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_friendlyBookingError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_friendlyBookingError(error))));
     } catch (_) {
       if (!mounted) return;
 

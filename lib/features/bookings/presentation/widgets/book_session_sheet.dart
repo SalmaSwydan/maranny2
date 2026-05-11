@@ -18,6 +18,7 @@ class BookSessionSheet extends StatefulWidget {
   final String coachImage;
   final int coachPrice;
   final List<String> availableDays;
+  final List<String> coachLocations;
 
   const BookSessionSheet({
     super.key,
@@ -28,6 +29,7 @@ class BookSessionSheet extends StatefulWidget {
     this.coachImage = '',
     this.coachPrice = 500,
     this.availableDays = const [],
+    this.coachLocations = const [],
   });
 
   @override
@@ -45,6 +47,7 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
   List<String> _visibleAvailableDays = [];
   String? _selectedDay;
   _AvailabilitySlotData? _selectedSlot;
+  String? _selectedLocation;
   Map<String, int> _clientBookingCountsByDate = const {};
 
   static const int _maxClientBookingsPerDay = 2;
@@ -73,6 +76,9 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       setState(() {
         _visibleAvailableDays = _normalizeDays(widget.availableDays);
         _selectedDay = _dateKey(DateTime.now());
+        _selectedLocation = _normalizedCoachLocations().isNotEmpty
+            ? _normalizedCoachLocations().first
+            : null;
         _clientBookingCountsByDate = bookingCounts;
         _isLoading = false;
       });
@@ -90,6 +96,8 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
         _availability = availability;
         _visibleAvailableDays = _normalizeDays(availability.availableDays);
         _selectedDay = _dateKey(DateTime.now());
+        final locations = _normalizedCoachLocations(availability.locations);
+        _selectedLocation = locations.isNotEmpty ? locations.first : null;
         _clientBookingCountsByDate = bookingCounts;
         _isLoading = false;
       });
@@ -128,6 +136,31 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       }
     }
     return normalizedDays;
+  }
+
+  List<String> _normalizedCoachLocations([List<String>? apiLocations]) {
+    final values = <String>[];
+
+    void addLocation(String value) {
+      for (final part in value.split(',')) {
+        final cleaned = part.trim();
+        if (cleaned.isNotEmpty &&
+            cleaned != 'Location not added yet' &&
+            !values.contains(cleaned)) {
+          values.add(cleaned);
+        }
+      }
+    }
+
+    for (final location in widget.coachLocations) {
+      addLocation(location);
+    }
+    for (final location
+        in apiLocations ?? _availability?.locations ?? const []) {
+      addLocation(location);
+    }
+
+    return values;
   }
 
   Future<Map<String, int>> _loadClientBookingCountsByDate() async {
@@ -905,6 +938,10 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     if (_hasReachedClientDailyLimit(_selectedDay ?? '')) {
       return false;
     }
+    if (_normalizedCoachLocations().isNotEmpty &&
+        (_selectedLocation == null || _selectedLocation!.trim().isEmpty)) {
+      return false;
+    }
     if (slot.session != null) {
       return true;
     }
@@ -931,6 +968,7 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     final selectedFreeSlots = selectedRow.slots
         .where((slot) => _isSlotSelectable(slot, selectedRow))
         .toList(growable: false);
+    final coachLocations = _normalizedCoachLocations();
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -1113,6 +1151,23 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                               );
                             },
                           ),
+                        if (coachLocations.isNotEmpty) ...[
+                          const SizedBox(height: 22),
+                          const _PickerSectionLabel('LOCATION'),
+                          const SizedBox(height: 10),
+                          _CoachLocationPicker(
+                            locations: coachLocations,
+                            selectedLocation: _selectedLocation,
+                            onChanged: (value) {
+                              setState(() => _selectedLocation = value);
+                            },
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 22),
+                          const _PickerSectionLabel('LOCATION'),
+                          const SizedBox(height: 10),
+                          const _LocationUnavailableNotice(),
+                        ],
                       ],
                     ),
             ),
@@ -1154,6 +1209,7 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
                                   ? slot.date
                                   : null,
                               startTime: slot.requestStartTime,
+                              location: _selectedLocation,
                               day: slot.formattedDate.isNotEmpty
                                   ? slot.formattedDate
                                   : slot.day,
@@ -1426,6 +1482,110 @@ class _DurationNotice extends StatelessWidget {
                 color: Color(0xFF175CD3),
                 fontSize: 12.5,
                 height: 1.25,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CoachLocationPicker extends StatelessWidget {
+  final List<String> locations;
+  final String? selectedLocation;
+  final ValueChanged<String?> onChanged;
+
+  const _CoachLocationPicker({
+    required this.locations,
+    required this.selectedLocation,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD7E0F2)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value:
+              selectedLocation != null && locations.contains(selectedLocation)
+              ? selectedLocation
+              : null,
+          isExpanded: true,
+          hint: const Text(
+            'Choose training location',
+            style: TextStyle(
+              color: Color(0xFF667085),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Color(0xFF1F3A93),
+          ),
+          items: locations.map((location) {
+            return DropdownMenuItem<String>(
+              value: location,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    color: Color(0xFF1F3A93),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      location,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF344054),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+class _LocationUnavailableNotice extends StatelessWidget {
+  const _LocationUnavailableNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF8E8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFEDC89)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.location_off_outlined, color: Color(0xFFB54708), size: 18),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'No coach locations are available yet.',
+              style: TextStyle(
+                color: Color(0xFFB54708),
+                fontSize: 12.5,
                 fontWeight: FontWeight.w700,
               ),
             ),

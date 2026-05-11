@@ -128,6 +128,7 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
         coachImage: _image,
         coachPrice: _price,
         availableDays: _data.availableDays,
+        coachLocations: _locations.isNotEmpty ? _locations : [_data.location],
       ),
     );
   }

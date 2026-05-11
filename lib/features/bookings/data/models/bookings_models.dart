@@ -410,6 +410,7 @@ class BookSessionRequest {
   final int? sportID;
   final String? sessionDate;
   final String? startTime;
+  final String? location;
   final String? notes;
 
   const BookSessionRequest({
@@ -418,6 +419,7 @@ class BookSessionRequest {
     this.sportID,
     this.sessionDate,
     this.startTime,
+    this.location,
     this.notes,
   });
 
@@ -427,6 +429,8 @@ class BookSessionRequest {
     if (sportID != null) 'sportID': sportID,
     if (sessionDate != null) 'sessionDate': sessionDate,
     if (startTime != null) 'startTime': startTime,
+    if (location != null && location!.trim().isNotEmpty)
+      'location': location!.trim(),
     if (notes != null) 'notes': notes,
   };
 }

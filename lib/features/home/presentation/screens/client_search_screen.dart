@@ -399,7 +399,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       }
     }
 
-    final locations = coach['locations'];
+    final locations = coach['locations'] ?? coach['Locations'];
     if (locations is List) {
       for (final location in locations) {
         addLocation(location);
