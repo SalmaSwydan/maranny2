@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/network/api_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/repositories/marketplace_repository.dart';
 import '../utils/marketplace_product.dart';
@@ -44,36 +45,26 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
 
     if (productId == null) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       return;
     }
 
     try {
       final details = await _repository.getProductDetails(productId);
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       setState(() {
         _product = MarketplaceProduct.fromApi(details);
         _isLoading = false;
       });
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isLoading = false;
-      });
+      if (!mounted) return;
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _deleteProduct() async {
     final productId = int.tryParse(_product.id);
-    if (productId == null || _isDeleting) {
-      return;
-    }
+    if (productId == null || _isDeleting) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -95,30 +86,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       ),
     );
 
-    if (confirmed != true || !mounted) {
-      return;
-    }
+    if (confirmed != true || !mounted) return;
 
-    setState(() {
-      _isDeleting = true;
-    });
+    setState(() => _isDeleting = true);
 
     try {
       await _repository.deleteProduct(productId);
       if (widget.onDeleted != null) {
         await widget.onDeleted!.call();
       }
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Item deleted successfully.')),
       );
       Navigator.of(context).pop(true);
     } catch (_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -126,26 +109,22 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           ),
         ),
       );
-      setState(() {
-        _isDeleting = false;
-      });
+      setState(() => _isDeleting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final product = _product;
-    final displayCategory = _normalizeText(
-      product.category,
-      fallback: 'Uncategorized',
-    );
+    final displayCategory = _normalizeText(product.category, fallback: 'Gear');
     final displayDescription = _normalizeText(
       product.description,
-      fallback: 'No description available.',
+      fallback: 'No description available yet.',
     );
-    final displayLocation = _normalizeText(
-      product.location,
-      fallback: 'Unknown',
+    final displayLocation = _normalizeText(product.location, fallback: 'Cairo');
+    final displayCondition = _normalizeText(
+      product.condition,
+      fallback: 'Available',
     );
     final displayPhone = product.showPhoneNumber
         ? _displayPhone(product.whatsapp)
@@ -153,377 +132,178 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final hasCallablePhone =
         product.showPhoneNumber &&
         _extractCallablePhone(product.whatsapp).isNotEmpty;
-    final displayCondition = _normalizeText(
-      product.condition,
-      fallback: 'Unknown',
-    );
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF3F7FF),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
-              ),
-              child: Row(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Stack(
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Product Details',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  CustomScrollView(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.fromLTRB(28, 18, 28, 30),
+                          color: const Color(0xFFF4F0E8),
+                          child: Center(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: SizedBox(
+                                height: 230,
+                                width: double.infinity,
+                                child: _buildProductImage(product),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 48,
-                    child: IconButton(
-                      onPressed: _isDeleting ? null : _deleteProduct,
-                      icon: _isDeleting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                      SliverToBoxAdapter(
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF3F7FF),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(30),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${displayCategory.toUpperCase()}  •  ${displayCondition.toUpperCase()}',
+                                style: const TextStyle(
+                                  color: Color(0xFF9AA7C5),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2.1,
                                 ),
                               ),
-                            )
-                          : const Icon(
-                              Icons.delete_outline,
-                              color: Color(0xFFFFD6D6),
-                              size: 22,
-                            ),
+                              const SizedBox(height: 8),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      product.title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: AppColors.primaryBlue,
+                                        fontSize: 29,
+                                        height: 1,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -1,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Text(
+                                    product.price.toStringAsFixed(0),
+                                    style: const TextStyle(
+                                      color: Color(0xFF60D9EF),
+                                      fontSize: 29,
+                                      height: 1,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _SellerCard(
+                                sellerName: product.sellerName,
+                                onMessage: _showMessageUnavailable,
+                              ),
+                              const SizedBox(height: 24),
+                              const _SectionLabel('DESCRIPTION'),
+                              const SizedBox(height: 10),
+                              Text(
+                                displayDescription,
+                                style: const TextStyle(
+                                  color: Color(0xFF405072),
+                                  fontSize: 14.5,
+                                  height: 1.55,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 28),
+                              const _SectionLabel('DETAILS'),
+                              const SizedBox(height: 10),
+                              _DetailsTable(
+                                rows: [
+                                  _DetailRow('Condition', displayCondition),
+                                  _DetailRow('Pickup', displayLocation),
+                                  _DetailRow('Phone', displayPhone),
+                                  _DetailRow('Seller', product.sellerName),
+                                ],
+                              ),
+                              const SizedBox(height: 22),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _PrimaryActionButton(
+                                      icon: Icons.call_rounded,
+                                      label: 'Call seller',
+                                      enabled: hasCallablePhone,
+                                      onPressed: () => _callSeller(
+                                        context,
+                                        product.whatsapp,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _DeleteButton(
+                                    isDeleting: _isDeleting,
+                                    onPressed: _deleteProduct,
+                                  ),
+                                ],
+                              ),
+                              if (!hasCallablePhone) ...[
+                                const SizedBox(height: 10),
+                                const Center(
+                                  child: Text(
+                                    'Seller phone number is not available yet.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF7E8CAD),
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    top: 12,
+                    left: 16,
+                    child: _TopCircleButton(
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                  Positioned(
+                    top: 12,
+                    right: 16,
+                    child: _TopCircleButton(
+                      icon: Icons.delete_outline_rounded,
+                      iconColor: const Color(0xFFE53935),
+                      onPressed: _isDeleting ? null : _deleteProduct,
                     ),
                   ),
                 ],
               ),
-            ),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Card(
-                            elevation: 2,
-                            shadowColor: Colors.black.withValues(alpha: 0.08),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: _buildProductImage(product),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          product.title,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          displayCategory,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Condition: $displayCondition',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade500,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.star,
-                                              size: 18,
-                                              color: Colors.amber.shade700,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${product.sellerRating} (${product.reviewers} reviewers)',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Align(
-                                          alignment: Alignment.centerRight,
-                                          child: Text(
-                                            '${product.price.toStringAsFixed(0)} LE',
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w800,
-                                              color: AppColors.primaryBlue,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Description',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            displayDescription,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textPrimary,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'For Contact',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Card(
-                            elevation: 1,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 44,
-                                        height: 44,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.lightBlue.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.store,
-                                          color: Colors.grey.shade700,
-                                          size: 24,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              product.sellerName,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 15,
-                                                color: AppColors.textPrimary,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.star,
-                                                  size: 16,
-                                                  color: Colors.amber.shade700,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '${product.sellerRating} (${product.reviewers} reviewers)',
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color: Colors.grey.shade600,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Divider(height: 1),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(
-                                        Icons.location_on_outlined,
-                                        size: 20,
-                                        color: AppColors.primaryBlue,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'Location',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                          Text(
-                                            displayLocation,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(width: 24),
-                                      const Icon(
-                                        Icons.message,
-                                        size: 20,
-                                        color: Color(0xFF25D366),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'WhatsApp / Phone',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.textSecondary,
-                                              ),
-                                            ),
-                                            Text(
-                                              displayPhone,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: AppColors.textPrimary,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                gradient: AppColors.primaryGradient,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primaryBlue.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton.icon(
-                                onPressed: () =>
-                                    _callSeller(context, product.whatsapp),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.call, size: 22),
-                                label: const Text(
-                                  'Call seller',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (!hasCallablePhone) ...[
-                            const SizedBox(height: 10),
-                            const Center(
-                              child: Text(
-                                'Seller phone number is not available yet.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-            ),
-          ],
-        ),
       ),
+    );
+  }
+
+  void _showMessageUnavailable() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Open Messages to chat with this seller.')),
     );
   }
 
@@ -556,40 +336,37 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
   Widget _buildProductImage(MarketplaceProduct product) {
     Widget placeholder() => Container(
-      width: 100,
-      height: 100,
-      color: Colors.grey.shade200,
-      child: const Icon(Icons.image_not_supported),
+      color: const Color(0xFFE7EDF8),
+      child: const Icon(
+        Icons.image_not_supported_outlined,
+        size: 48,
+        color: Color(0xFF8D99B5),
+      ),
     );
-    if (product.imageAsset.isEmpty) {
-      return placeholder();
-    }
+
+    final imageUrl = ApiConfig.resolveMediaUrl(product.imageAsset);
+    if (imageUrl.isEmpty) return placeholder();
+
     final isNetworkImage =
-        product.imageAsset.startsWith('http://') ||
-        product.imageAsset.startsWith('https://');
+        imageUrl.startsWith('http://') || imageUrl.startsWith('https://');
     final isFilePath =
-        product.imageAsset.startsWith('file:') ||
-        RegExp(r'^[A-Za-z]:[\\/]').hasMatch(product.imageAsset);
+        imageUrl.startsWith('file:') ||
+        RegExp(r'^[A-Za-z]:[\\/]').hasMatch(imageUrl);
+
     if (isNetworkImage) {
       return Image.network(
-        product.imageAsset,
-        width: 100,
-        height: 100,
+        imageUrl,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => placeholder(),
       );
     }
     if (isFilePath) {
-      final file = File(product.imageAsset);
-      if (!file.existsSync()) {
-        return placeholder();
-      }
-      return Image.file(file, width: 100, height: 100, fit: BoxFit.cover);
+      final file = File(imageUrl);
+      if (!file.existsSync()) return placeholder();
+      return Image.file(file, fit: BoxFit.cover);
     }
     return Image.asset(
-      product.imageAsset,
-      width: 100,
-      height: 100,
+      imageUrl,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => placeholder(),
     );
@@ -619,9 +396,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
   String _displayPhone(String value) {
     final normalized = _extractCallablePhone(value);
-    if (normalized.isEmpty) {
-      return 'Not available';
-    }
+    if (normalized.isEmpty) return 'Not available';
     if (normalized.startsWith('+') && normalized.length > 4) {
       return '${normalized.substring(0, 4)} ${normalized.substring(4)}';
     }
@@ -629,5 +404,262 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       return '${normalized.substring(0, 4)} ${normalized.substring(4, 7)} ${normalized.substring(7)}';
     }
     return normalized;
+  }
+}
+
+class _SellerCard extends StatelessWidget {
+  final String sellerName;
+  final VoidCallback onMessage;
+
+  const _SellerCard({required this.sellerName, required this.onMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = sellerName.trim().isNotEmpty
+        ? sellerName.trim()[0].toUpperCase()
+        : 'S';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD7E0F1)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: const Color(0xFFE8EEF9),
+            child: Text(
+              initial,
+              style: const TextStyle(
+                color: AppColors.primaryBlue,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Sold by',
+                  style: TextStyle(
+                    color: Color(0xFF7E8CAD),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  sellerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.primaryBlue,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: onMessage,
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFE8EEF9),
+              foregroundColor: const Color(0xFF4E5D7E),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            child: const Text(
+              'Message',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+
+  const _SectionLabel(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        color: Color(0xFF9AA7C5),
+        fontSize: 10,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 2.1,
+      ),
+    );
+  }
+}
+
+class _DetailRow {
+  final String label;
+  final String value;
+
+  const _DetailRow(this.label, this.value);
+}
+
+class _DetailsTable extends StatelessWidget {
+  final List<_DetailRow> rows;
+
+  const _DetailsTable({required this.rows});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD7E0F1)),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      rows[i].label,
+                      style: const TextStyle(
+                        color: Color(0xFF7E8CAD),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      rows[i].value,
+                      textAlign: TextAlign.right,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.primaryBlue,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (i != rows.length - 1)
+              const Divider(height: 1, color: Color(0xFFDCE4F2)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PrimaryActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  const _PrimaryActionButton({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 50,
+      child: ElevatedButton.icon(
+        onPressed: enabled ? onPressed : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryBlue,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: const Color(0xFFDDE5F3),
+          disabledForegroundColor: const Color(0xFF8B98B5),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        icon: Icon(icon, size: 20),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+      ),
+    );
+  }
+}
+
+class _DeleteButton extends StatelessWidget {
+  final bool isDeleting;
+  final VoidCallback onPressed;
+
+  const _DeleteButton({required this.isDeleting, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 50,
+      width: 54,
+      child: OutlinedButton(
+        onPressed: isDeleting ? null : onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFFE53935),
+          side: const BorderSide(color: Color(0xFFFFCDD2)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: isDeleting
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.delete_outline_rounded),
+      ),
+    );
+  }
+}
+
+class _TopCircleButton extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback? onPressed;
+
+  const _TopCircleButton({
+    required this.icon,
+    required this.onPressed,
+    this.iconColor = AppColors.primaryBlue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.82),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: SizedBox(
+          width: 42,
+          height: 42,
+          child: Icon(icon, color: iconColor, size: 20),
+        ),
+      ),
+    );
   }
 }
