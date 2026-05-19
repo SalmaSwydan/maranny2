@@ -40,7 +40,9 @@ class SessionModel {
   });
 
   factory SessionModel.fromJson(Map<String, dynamic> json) => SessionModel(
-    sessionID: _asInt(json['sessionID'] ?? json['sessionId'] ?? json['id']),
+    sessionID: _asInt(
+      json['sessionID'] ?? json['sessionId'] ?? json['SessionID'] ?? json['id'],
+    ),
     sessionDate: _asString(
       json['sessionDate'] ??
           json['date'] ??
@@ -103,7 +105,7 @@ class CoachSummary {
 
   factory CoachSummary.fromJson(Map<String, dynamic> json) => CoachSummary(
     coachID: _asInt(json['coachID'] ?? json['coachId'] ?? json['id']),
-    userID: _asNullableInt(json['userID'] ?? json['userId']),
+    userID: _asNullableInt(json['userID'] ?? json['userId'] ?? json['UserID']),
     name: _asString(
       json['name'] ?? json['fullName'] ?? json['coachName'],
       fallback: 'Coach',
@@ -128,7 +130,22 @@ class BookingUserSummary {
 
   factory BookingUserSummary.fromJson(Map<String, dynamic> json) =>
       BookingUserSummary(
-        userID: _asInt(json['userID'] ?? json['userId'] ?? json['id']),
+        userID: _asInt(
+          json['userID'] ??
+              json['UserID'] ??
+              json['userId'] ??
+              json['clientUserID'] ??
+              json['clientUserId'] ??
+              json['aspNetUserID'] ??
+              json['aspNetUserId'] ??
+              json['applicationUserID'] ??
+              json['applicationUserId'] ??
+              json['appUserID'] ??
+              json['appUserId'] ??
+              json['identityUserID'] ??
+              json['identityUserId'] ??
+              json['id'],
+        ),
         name: _asString(
           json['name'] ?? json['fullName'] ?? json['clientName'],
           fallback: 'Client',
@@ -373,9 +390,12 @@ class BookingModel {
         const <String, dynamic>{};
     final clientJson =
         _asMap(json['client']) ??
+        _asMap(json['clientProfile']) ??
+        _asMap(json['clientUser']) ??
         _asMap(json['user']) ??
         _asMap(json['bookedBy']) ??
-        _asMap(json['requester']);
+        _asMap(json['requester']) ??
+        _syntheticClientJson(json);
 
     return BookingModel(
       bookingID: _asInt(json['bookingID'] ?? json['bookingId'] ?? json['id']),
@@ -477,6 +497,40 @@ Map<String, dynamic>? _asMap(dynamic value) {
   if (value is Map<String, dynamic>) return value;
   if (value is Map) return Map<String, dynamic>.from(value);
   return null;
+}
+
+Map<String, dynamic>? _syntheticClientJson(Map<String, dynamic> json) {
+  final id =
+      json['clientUserID'] ??
+      json['clientUserId'] ??
+      json['userID'] ??
+      json['UserID'] ??
+      json['userId'] ??
+      json['aspNetUserID'] ??
+      json['aspNetUserId'] ??
+      json['applicationUserID'] ??
+      json['applicationUserId'];
+  final name =
+      json['clientName'] ??
+      json['clientFullName'] ??
+      json['userName'] ??
+      json['fullName'];
+  final email = json['clientEmail'] ?? json['email'];
+  final phone = json['clientPhoneNumber'] ?? json['phoneNumber'];
+
+  final hasClientData =
+      id != null ||
+      (name?.toString().trim().isNotEmpty ?? false) ||
+      (email?.toString().trim().isNotEmpty ?? false) ||
+      (phone?.toString().trim().isNotEmpty ?? false);
+  if (!hasClientData) return null;
+
+  return {
+    if (id != null) 'userID': id,
+    if (name != null) 'name': name,
+    if (email != null) 'email': email,
+    if (phone != null) 'phoneNumber': phone,
+  };
 }
 
 int _asInt(dynamic value, {int fallback = 0}) {

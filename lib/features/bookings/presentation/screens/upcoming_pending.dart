@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
+import 'package:dio/dio.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../messages/data/models/messages_models.dart';
+import '../../../messages/data/repositories/messages_repository.dart';
+import '../../../messages/presentation/screens/CoachChatScreen.dart';
 import '../../data/models/bookings_models.dart';
 import '../../data/repositories/bookings_repository.dart';
 import '../utils/bookings_refresh_notifier.dart';
@@ -17,6 +21,7 @@ class UpcomingScreen extends StatefulWidget {
 class _UpcomingScreenState extends State<UpcomingScreen>
     with SingleTickerProviderStateMixin {
   final BookingsRepository _repo = BookingsRepository();
+  final MessagesRepository _messagesRepository = MessagesRepository();
 
   late TabController _tabController;
 
@@ -95,7 +100,8 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   bool _isConfirmed(BookingModel booking) =>
       isConfirmedBookingStatus(booking.status);
 
-  bool _isUpcoming(BookingModel booking) => _isConfirmed(booking);
+  bool _isUpcoming(BookingModel booking) =>
+      _isConfirmed(booking) && !_isPast(booking);
 
   bool _isPastSession(BookingModel booking) =>
       _isPast(booking) && isCompletedBookingStatus(booking.status);
@@ -134,6 +140,33 @@ class _UpcomingScreenState extends State<UpcomingScreen>
     return raw;
   }
 
+  String _formatDayForMessage(BookingModel booking) {
+    final scheduledAt =
+        booking.scheduledDateTime ??
+        DateTime.tryParse(booking.session.sessionDate);
+    if (scheduledAt == null) return _formatDate(booking.session.sessionDate);
+
+    const days = <String>[
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    return days[scheduledAt.weekday - 1];
+  }
+
+  String _confirmationMessage(BookingModel booking) {
+    final day = _formatDayForMessage(booking);
+    final hour = _formatTime(booking.session.startTime);
+    final location = booking.session.location.trim().isEmpty
+        ? 'the selected location'
+        : booking.session.location.trim();
+    return 'Hey! Confirmed for $day $hour at $location';
+  }
+
   String _clientName(BookingModel booking) {
     final clientName = booking.client?.name;
     if (clientName != null && clientName.isNotEmpty) {
@@ -153,9 +186,91 @@ class _UpcomingScreenState extends State<UpcomingScreen>
     return '${price.toStringAsFixed(2)} LE';
   }
 
+  String _friendlyError(dynamic error, String fallback) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map) {
+        final message = data['error'] ?? data['message'] ?? data['title'];
+        if (message != null && message.toString().trim().isNotEmpty) {
+          return message.toString();
+        }
+      }
+      if (data is String && data.trim().isNotEmpty) return data;
+    }
+    return fallback;
+  }
+
+  int? _clientUserIdFromBooking(BookingModel booking) {
+    final userId = booking.client?.userID;
+    if (userId != null && userId > 0) return userId;
+    return null;
+  }
+
+  Future<int?> _resolveClientUserId(BookingModel booking) async {
+    final parsedUserId = _clientUserIdFromBooking(booking);
+    if (parsedUserId != null) return parsedUserId;
+
+    try {
+      final details = await _repo.getBookingById(booking.bookingID);
+      return _clientUserIdFromBooking(details);
+    } catch (error, stackTrace) {
+      developer.log(
+        'Could not resolve client user id for booking ${booking.bookingID}',
+        name: 'UpcomingScreen',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
+  }
+
+  Future<void> _openClientChat(BookingModel booking) async {
+    final clientUserId = await _resolveClientUserId(booking);
+    if (!mounted) return;
+
+    if (clientUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Client chat is not available yet.')),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CoachChatScreen(
+          otherUserId: clientUserId,
+          name: _clientName(booking),
+          isOnline: false,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _sendConfirmationMessage(BookingModel booking) async {
+    final clientUserId = await _resolveClientUserId(booking);
+    if (clientUserId == null) return;
+
+    try {
+      await _messagesRepository.sendMessage(
+        SendMessageRequest(
+          receiverId: clientUserId,
+          content: _confirmationMessage(booking),
+        ),
+      );
+    } catch (error, stackTrace) {
+      developer.log(
+        'Could not send automatic confirmation message',
+        name: 'UpcomingScreen',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
   Future<void> _approveBooking(BookingModel booking) async {
     try {
       await _repo.approveBooking(booking.bookingID);
+      await _sendConfirmationMessage(booking);
       BookingsRefreshNotifier.notifyUpdated();
       await _loadBookings();
 
@@ -190,11 +305,26 @@ class _UpcomingScreenState extends State<UpcomingScreen>
     }
   }
 
-  Future<void> _cancelBooking(BookingModel booking) async {
+  Future<void> _cancelBooking(
+    BookingModel booking, {
+    required bool clientInformedCoach,
+  }) async {
+    if (booking.session.sessionID <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not cancel: session details are missing.'),
+        ),
+      );
+      return;
+    }
+
     try {
+      final reason = clientInformedCoach
+          ? 'Cancelled by coach. Client informed the coach more than 24 hours before the session.'
+          : 'Cancelled by coach. Client did not inform the coach more than 24 hours before the session.';
       final response = await _repo.cancelSessionWithRefund(
         booking.session.sessionID,
-        reason: 'Cancelled by coach',
+        reason: reason,
       );
       BookingsRefreshNotifier.notifyUpdated();
       await _loadBookings();
@@ -203,11 +333,18 @@ class _UpcomingScreenState extends State<UpcomingScreen>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(response.message)));
-    } catch (_) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      developer.log(
+        'Failed to cancel coach booking -> bookingId=${booking.bookingID} sessionId=${booking.session.sessionID}',
+        name: 'UpcomingScreen',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      final message = _friendlyError(error, 'Failed to cancel booking');
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to cancel booking')));
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -238,22 +375,88 @@ class _UpcomingScreenState extends State<UpcomingScreen>
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Cancel Booking'),
-        content: const Text('Are you sure you want to cancel this booking?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Text('Cancel session'),
+        content: const Text(
+          'Did the client inform you at least 24 hours before the session start time?',
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+        actions: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _cancelBooking(booking, clientInformedCoach: true);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.deepBlue,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  minimumSize: const Size(double.infinity, 46),
+                ),
+                child: const Text('Yes, the client informed me'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _cancelBooking(booking, clientInformedCoach: false);
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFD94A4A),
+                  side: const BorderSide(color: Color(0xFFFFC9C9)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  minimumSize: const Size(double.infinity, 46),
+                ),
+                child: const Text('No, the client did not inform me'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Keep session'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAcceptPreview(BookingModel booking) {
+    final message = _confirmationMessage(booking);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Text('Confirm booking'),
+        content: Text(
+          'This booking will be approved and this message will be sent to the client:\n\n"$message"',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No'),
+            child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _cancelBooking(booking);
+              _approveBooking(booking);
             },
-            child: const Text(
-              'Yes, Cancel',
-              style: TextStyle(color: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.deepBlue,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -457,8 +660,9 @@ class _UpcomingScreenState extends State<UpcomingScreen>
             statusLabel: 'Pending',
             statusColor: const Color(0xFFE9A500),
             statusBackground: const Color(0xFFFFF4D6),
-            onAccept: () => _approveBooking(booking),
+            onAccept: () => _showAcceptPreview(booking),
             onDecline: () => _confirmDecline(booking),
+            onChat: () => _openClientChat(booking),
           );
         }
 
@@ -473,6 +677,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
           statusLabel: 'Confirmed',
           statusColor: const Color(0xFF1FA463),
           statusBackground: const Color(0xFFE0F7EA),
+          onChat: () => _openClientChat(booking),
           onCancel: () => _confirmCancel(booking),
         );
       },
@@ -681,6 +886,7 @@ class _CoachBookingCard extends StatelessWidget {
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
   final VoidCallback? onCancel;
+  final VoidCallback? onChat;
 
   const _CoachBookingCard({
     required this.name,
@@ -695,6 +901,7 @@ class _CoachBookingCard extends StatelessWidget {
     this.onAccept,
     this.onDecline,
     this.onCancel,
+    this.onChat,
   });
 
   @override
@@ -796,63 +1003,101 @@ class _CoachBookingCard extends StatelessWidget {
           _InfoRow(icon: Icons.payments_outlined, label: price),
           const SizedBox(height: 14),
           if (onAccept != null && onDecline != null)
-            Row(
+            Column(
               children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onAccept,
-                    icon: const Icon(
-                      Icons.check_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    label: const Text(
-                      'Accept',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepBlue,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                if (onChat != null) ...[
+                  _ChatButton(onTap: onChat!),
+                  const SizedBox(height: 10),
+                ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: onAccept,
+                        icon: const Icon(
+                          Icons.check_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Accept',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.deepBlue,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          minimumSize: const Size(double.infinity, 46),
+                        ),
                       ),
-                      minimumSize: const Size(double.infinity, 46),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onDecline,
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    label: const Text('Decline'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFD94A4A),
-                      side: const BorderSide(color: Color(0xFFFFC9C9)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onDecline,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        label: const Text('Decline'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFD94A4A),
+                          side: const BorderSide(color: Color(0xFFFFC9C9)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          minimumSize: const Size(double.infinity, 46),
+                        ),
                       ),
-                      minimumSize: const Size(double.infinity, 46),
                     ),
-                  ),
+                  ],
                 ),
               ],
             )
           else if (onCancel != null)
-            OutlinedButton.icon(
-              onPressed: onCancel,
-              icon: const Icon(Icons.cancel_outlined, size: 18),
-              label: const Text('Cancel session'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFD94A4A),
-                side: const BorderSide(color: Color(0xFFFFC9C9)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+            Column(
+              children: [
+                if (onChat != null) ...[
+                  _ChatButton(onTap: onChat!),
+                  const SizedBox(height: 10),
+                ],
+                OutlinedButton.icon(
+                  onPressed: onCancel,
+                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  label: const Text('Cancel session'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFD94A4A),
+                    side: const BorderSide(color: Color(0xFFFFC9C9)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    minimumSize: const Size(double.infinity, 46),
+                  ),
                 ),
-                minimumSize: const Size(double.infinity, 46),
-              ),
+              ],
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _ChatButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _ChatButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+      label: const Text('Chat with client'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.deepBlue,
+        side: const BorderSide(color: Color(0xFFD7E0F2)),
+        backgroundColor: const Color(0xFFF6F9FF),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        minimumSize: const Size(double.infinity, 46),
       ),
     );
   }
