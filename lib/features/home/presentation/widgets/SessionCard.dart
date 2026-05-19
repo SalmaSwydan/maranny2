@@ -19,119 +19,72 @@ class SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isConfirmed = status == 'Confirmed';
-    final Color statusColor = isConfirmed ? AppColors.confirmed : AppColors.pending;
-    final Color statusBgColor = isConfirmed ? AppColors.confirmedLight : AppColors.pendingLight;
-
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(13),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-            spreadRadius: 0,
-          ),
-        ],
+        color: AppColors.lightBlue,
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.person, color: AppColors.deepBlue),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Name
                 Text(
-                  name,
+                  time.toUpperCase(),
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    color: AppColors.deepBlue,
+                    fontSize: 11,
+                    letterSpacing: 1.8,
+                    fontWeight: FontWeight.w900,
                     fontFamily: 'Inter',
-                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 4),
-                // Sport
+                const SizedBox(height: 3),
                 Text(
-                  sport,
+                  '$sport with $name',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontFamily: 'Inter',
-                    color: AppColors.textPrimary,
+                    color: AppColors.deepBlue,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                    height: 1.05,
+                    fontFamily: 'Poppins',
                   ),
                 ),
-                const SizedBox(height: 8),
-                // Time with icon
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.access_time,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      time,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontFamily: 'Inter',
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                // Location with icon
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      location,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontFamily: 'Inter',
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
+                Text(
+                  location,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF38607A),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Inter',
+                  ),
                 ),
               ],
             ),
           ),
-          // Status badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusBgColor,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Inter',
-              ),
-            ),
+          const SizedBox(width: 10),
+          Icon(
+            Icons.arrow_forward_rounded,
+            color: AppColors.deepBlue.withValues(alpha: 0.95),
+            size: 24,
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 
+import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/network/token_storage.dart';
 import '../../../../../core/widgets/app_side_menu.dart';
 import '../../../auth/presentation/screens/welcome_screen.dart';
@@ -304,7 +305,7 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF3F7FF),
       drawer: AppSideMenu(
         userName: _userName,
         userType: 'coach',
@@ -384,35 +385,49 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
               else if (_pendingRequests.isEmpty)
                 Container(
                   margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
+                    horizontal: 18,
                     vertical: 16,
                   ),
-                  padding: const EdgeInsets.all(32),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 30,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: const Color(0xFFE1E9F8)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        color: AppColors.primaryBlue.withValues(alpha: 0.08),
+                        blurRadius: 22,
+                        offset: const Offset(0, 12),
                       ),
                     ],
                   ),
                   child: Column(
                     children: [
-                      Icon(
-                        Icons.check_circle_outline,
-                        size: 64,
-                        color: Colors.grey[400],
+                      Container(
+                        width: 66,
+                        height: 66,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F6FF),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFDCE7FA)),
+                        ),
+                        child: Icon(
+                          Icons.check_rounded,
+                          size: 36,
+                          color: Colors.grey[400],
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'All caught up!',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey[700],
+                          color: AppColors.primaryBlue,
+                          fontFamily: 'Poppins',
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -468,11 +483,19 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
 
   Widget _emptyCard(String message) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE1E9F8)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryBlue.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Center(
         child: Text(
@@ -496,26 +519,28 @@ class _SectionTitleWithViewAll extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
             style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
               fontFamily: 'Poppins',
+              color: AppColors.primaryBlue,
             ),
           ),
           GestureDetector(
             onTap: onViewAll,
-            child: const Text(
+            child: Text(
               'View All →',
               style: TextStyle(
-                color: Color(0xFF1F3A93),
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+                color: AppColors.primaryBlue,
+                fontWeight: FontWeight.w700,
+                fontSize: 12.5,
+                fontFamily: 'Inter',
               ),
             ),
           ),
