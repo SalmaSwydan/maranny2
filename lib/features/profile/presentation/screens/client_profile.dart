@@ -123,14 +123,14 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xffF5F6FA),
+        backgroundColor: Color(0xFFF3F7FF),
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_error != null) {
       return Scaffold(
-        backgroundColor: const Color(0xffF5F6FA),
+        backgroundColor: const Color(0xFFF3F7FF),
         body: Center(
           child: TextButton(onPressed: _loadCurrentUser, child: Text(_error!)),
         ),
@@ -138,7 +138,7 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xffF5F6FA),
+      backgroundColor: const Color(0xFFF3F7FF),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -150,9 +150,9 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
               onImageTap: _pickAndUploadProfileImage,
               isUploadingImage: _isUploadingImage,
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             const ProfileStats(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             _ProfileCompletionCard(
               missing: ProfileValidators.missingClientProfileFields(
                 phone: phone,
@@ -214,9 +214,9 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
+                    backgroundColor: AppColors.deepBlue,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                   ),
                   onPressed: () async {
@@ -260,7 +260,12 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
                   },
                   child: const Text(
                     'Edit Profile',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
                 ),
               ),
@@ -294,19 +299,17 @@ class _ProfileCompletionCard extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      margin: const EdgeInsets.fromLTRB(18, 0, 18, 14),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primaryBlue.withValues(alpha: 0.10),
+            AppColors.deepBlue.withValues(alpha: 0.08),
             AppColors.lightBlue.withValues(alpha: 0.16),
           ],
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.12),
-        ),
+        border: Border.all(color: AppColors.deepBlue.withValues(alpha: 0.12)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,7 +317,7 @@ class _ProfileCompletionCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(9),
             decoration: const BoxDecoration(
-              color: AppColors.primaryBlue,
+              color: AppColors.deepBlue,
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -330,13 +333,18 @@ class _ProfileCompletionCard extends StatelessWidget {
               children: [
                 const Text(
                   'Complete your profile to book',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    color: AppColors.deepBlue,
+                    fontFamily: 'Poppins',
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Add ${missing.join(', ')}.',
                   style: const TextStyle(
-                    color: AppColors.textSecondary,
+                    color: Color(0xFF6C7897),
                     fontSize: 12,
                     height: 1.35,
                   ),
@@ -359,16 +367,17 @@ class _ProfileInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      margin: const EdgeInsets.fromLTRB(18, 0, 18, 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFD7E0F2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: AppColors.deepBlue.withValues(alpha: 0.05),
             blurRadius: 16,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 9),
           ),
         ],
       ),
@@ -379,8 +388,9 @@ class _ProfileInfoCard extends StatelessWidget {
             title,
             style: const TextStyle(
               fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w900,
+              color: AppColors.deepBlue,
+              fontFamily: 'Poppins',
             ),
           ),
           const SizedBox(height: 12),
@@ -412,10 +422,10 @@ class _ProfileInfoRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withValues(alpha: 0.08),
+              color: AppColors.lightBlue.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: AppColors.primaryBlue, size: 19),
+            child: Icon(icon, color: AppColors.deepBlue, size: 19),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -425,7 +435,7 @@ class _ProfileInfoRow extends StatelessWidget {
                 Text(
                   label,
                   style: const TextStyle(
-                    color: AppColors.textSecondary,
+                    color: Color(0xFF6C7897),
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -434,7 +444,7 @@ class _ProfileInfoRow extends StatelessWidget {
                 Text(
                   value,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
+                    color: AppColors.deepBlue,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -465,13 +475,14 @@ class _StackedInfoTile extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FC),
+        color: const Color(0xFFF6F9FF),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE7EEFB)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.primaryBlue, size: 22),
+          Icon(icon, color: AppColors.deepBlue, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -480,7 +491,7 @@ class _StackedInfoTile extends StatelessWidget {
                 Text(
                   label,
                   style: const TextStyle(
-                    color: AppColors.textSecondary,
+                    color: Color(0xFF6C7897),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -489,7 +500,7 @@ class _StackedInfoTile extends StatelessWidget {
                 Text(
                   value,
                   style: const TextStyle(
-                    color: AppColors.textPrimary,
+                    color: AppColors.deepBlue,
                     fontSize: 14,
                     height: 1.45,
                     fontWeight: FontWeight.w600,

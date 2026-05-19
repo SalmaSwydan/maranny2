@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 
 class ProfileStats extends StatelessWidget {
   final String totalBooked;
@@ -15,24 +16,31 @@ class ProfileStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _StatCard(
-            icon: Icons.people,
-            value: totalBooked,
-            label: 'Total Booked',
+          Expanded(
+            child: _StatCard(
+              icon: Icons.people_alt_rounded,
+              value: totalBooked,
+              label: 'Booked',
+            ),
           ),
-          _StatCard(
-            icon: Icons.track_changes,
-            value: totalSessions,
-            label: 'Total Sessions',
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatCard(
+              icon: Icons.track_changes_rounded,
+              value: totalSessions,
+              label: 'Sessions',
+            ),
           ),
-          _StatCard(
-            icon: Icons.timer,
-            value: hoursTrained,
-            label: 'Hours Trained',
+          const SizedBox(width: 10),
+          Expanded(
+            child: _StatCard(
+              icon: Icons.timer_rounded,
+              value: hoursTrained,
+              label: 'Hours',
+            ),
           ),
         ],
       ),
@@ -54,34 +62,53 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 100,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD7E0F2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-          )
+            color: AppColors.deepBlue.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: Colors.blue),
-          const SizedBox(height: 6),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.lightBlue.withValues(alpha: 0.22),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppColors.deepBlue, size: 18),
+          ),
+          const SizedBox(height: 8),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontWeight: FontWeight.bold,
+              color: AppColors.deepBlue,
+              fontWeight: FontWeight.w900,
               fontSize: 18,
+              fontFamily: 'Poppins',
+              height: 1,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12),
+            style: const TextStyle(
+              color: Color(0xFF6C7897),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter',
+            ),
           ),
         ],
       ),

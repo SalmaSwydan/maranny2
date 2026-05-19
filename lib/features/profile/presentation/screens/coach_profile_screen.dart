@@ -309,13 +309,13 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
+        backgroundColor: Color(0xFFF3F7FF),
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF3F7FF),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,10 +353,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
               ),
             const SizedBox(height: 24),
             _buildSectionTitle('Coach Certifications'),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _emptyText(certificationLabel),
-            ),
+            _simpleInfoCard(certificationLabel),
             const SizedBox(height: 24),
           ],
         ),
@@ -367,130 +364,164 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   Widget _buildHeader() {
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [Color(0xFF6FD3F5), Color(0xFF1F3A93)],
-        ),
+        color: Color(0xFFF3F7FF),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
       ),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GestureDetector(
-                onTap: () async {
-                  final updated = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(
-                      builder: (_) => const EditProfileScreen(),
-                    ),
-                  );
-                  if (updated == true) _loadCoach();
-                },
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: _buildProfileImage(),
-                    ),
-                    Positioned(
-                      bottom: -4,
-                      right: -4,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.edit,
-                          size: 16,
-                          color: AppColors.primaryBlue,
-                        ),
-                      ),
-                    ),
-                  ],
+              const Text(
+                'COACH PROFILE',
+                style: TextStyle(
+                  color: Color(0xFF9AA9C6),
+                  fontSize: 11,
+                  letterSpacing: 2.3,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Inter',
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Poppins',
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        sportsLabel == 'No sports yet'
-                            ? 'Training not selected yet'
-                            : 'Training: $sportsLabel',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      final updated = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfileScreen(),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
+                      );
+                      if (updated == true) _loadCoach();
+                    },
+                    child: Stack(
+                      clipBehavior: Clip.none,
                       children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          _averageRating.toStringAsFixed(1),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
-                            color: Colors.white,
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: AppColors.deepBlue.withValues(alpha: 0.13),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.deepBlue.withValues(
+                                  alpha: 0.08,
+                                ),
+                                blurRadius: 18,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(23),
+                            child: _buildProfileImage(),
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '($_totalReviews reviewers)',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'Inter',
-                            color: Colors.white70,
+                        Positioned(
+                          bottom: -3,
+                          right: -3,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: AppColors.lightBlue,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                            ),
+                            child: const Icon(
+                              Icons.edit_rounded,
+                              size: 15,
+                              color: AppColors.deepBlue,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '$price / session',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Inter',
-                        color: Colors.white,
-                      ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                            fontFamily: 'Poppins',
+                            color: AppColors.deepBlue,
+                          ),
+                        ),
+                        const SizedBox(height: 9),
+                        _headerMetaLine(
+                          Icons.sports_soccer_outlined,
+                          sportsLabel == 'No sports yet'
+                              ? 'Training not selected yet'
+                              : sportsLabel,
+                        ),
+                        const SizedBox(height: 7),
+                        _headerMetaLine(Icons.location_on_outlined, location),
+                        const SizedBox(height: 9),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              color: Colors.amber,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _averageRating.toStringAsFixed(1),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                fontFamily: 'Inter',
+                                color: AppColors.deepBlue,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '($_totalReviews reviews)',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Inter',
+                                color: Color(0xFF6C7897),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.lightBlue.withValues(alpha: 0.22),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$price / session',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'Inter',
+                              color: AppColors.deepBlue,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -499,10 +530,32 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     );
   }
 
+  Widget _headerMetaLine(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.deepBlue.withValues(alpha: 0.65), size: 16),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF6C7897),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildVerificationNotice() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
       decoration: BoxDecoration(
         color: const Color(0xFFEAF8FF),
         borderRadius: BorderRadius.circular(18),
@@ -603,7 +656,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
               : shownBio);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 18),
       padding: const EdgeInsets.all(16),
       decoration: _cardDecoration(),
       child: Column(
@@ -614,7 +667,9 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             style: const TextStyle(
               fontSize: 14,
               fontFamily: 'Inter',
-              color: AppColors.textSecondary,
+              color: Color(0xFF6C7897),
+              height: 1.45,
+              fontWeight: FontWeight.w600,
             ),
           ),
           if (shownBio.length > 150) ...[
@@ -627,7 +682,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
                   fontSize: 14,
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primaryBlue,
+                  color: AppColors.deepBlue,
                 ),
               ),
             ),
@@ -639,7 +694,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
 
   Widget _buildContactCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 18),
       padding: const EdgeInsets.all(16),
       decoration: _cardDecoration(),
       child: Column(
@@ -658,8 +713,10 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   }
 
   Widget _buildCoachingDetails() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 18),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -685,8 +742,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://'))) {
       return Image.network(
         imageUrl!,
-        width: 100,
-        height: 100,
+        width: 88,
+        height: 88,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _avatarBox(),
       );
@@ -697,19 +754,20 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
 
   Widget _avatarBox() {
     return Container(
-      width: 100,
-      height: 100,
+      width: 88,
+      height: 88,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFE8ECF7),
+        borderRadius: BorderRadius.circular(23),
       ),
       child: Center(
         child: Text(
           name.isNotEmpty ? name[0].toUpperCase() : 'C',
           style: const TextStyle(
-            color: Colors.white,
+            color: AppColors.deepBlue,
             fontSize: 36,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w900,
+            fontFamily: 'Poppins',
           ),
         ),
       ),
@@ -718,14 +776,14 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
       child: Text(
         title,
         style: const TextStyle(
           fontSize: 18,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w900,
           fontFamily: 'Poppins',
-          color: AppColors.textPrimary,
+          color: AppColors.deepBlue,
         ),
       ),
     );
@@ -739,19 +797,27 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
         decoration: _cardDecoration(),
         child: Column(
           children: [
-            Icon(icon, color: iconColor, size: 24),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 18),
+            ),
             const SizedBox(height: 8),
             Text(
               value,
               style: const TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w900,
                 fontFamily: 'Poppins',
-                color: AppColors.textPrimary,
+                color: AppColors.deepBlue,
               ),
             ),
             const SizedBox(height: 4),
@@ -761,7 +827,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
               style: const TextStyle(
                 fontSize: 12,
                 fontFamily: 'Inter',
-                color: AppColors.textSecondary,
+                color: Color(0xFF6C7897),
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
@@ -773,7 +840,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   Widget _buildContactRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: AppColors.primaryBlue, size: 20),
+        Icon(icon, color: AppColors.deepBlue, size: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
@@ -781,7 +848,8 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             style: const TextStyle(
               fontSize: 14,
               fontFamily: 'Inter',
-              color: AppColors.textPrimary,
+              color: AppColors.deepBlue,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -800,12 +868,23 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     );
   }
 
+  Widget _simpleInfoCard(String text) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 18),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: _emptyText(text),
+    );
+  }
+
   Widget _achievementText(String text) {
     return Text(
       text,
       style: const TextStyle(
         fontSize: 13,
-        color: AppColors.textPrimary,
+        color: AppColors.deepBlue,
+        fontWeight: FontWeight.w700,
         fontFamily: 'Inter',
       ),
     );
@@ -814,12 +893,13 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(13),
+      borderRadius: BorderRadius.circular(22),
+      border: Border.all(color: const Color(0xFFD7E0F2)),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.10),
-          blurRadius: 15,
-          offset: const Offset(0, 6),
+          color: AppColors.deepBlue.withValues(alpha: 0.05),
+          blurRadius: 16,
+          offset: const Offset(0, 9),
         ),
       ],
     );

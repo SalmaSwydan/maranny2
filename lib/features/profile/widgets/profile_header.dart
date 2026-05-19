@@ -29,111 +29,138 @@ class ProfileHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+        color: Color(0xFFF3F7FF),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
       ),
       padding: EdgeInsets.fromLTRB(
+        18,
+        MediaQuery.of(context).padding.top + 18,
+        18,
         20,
-        MediaQuery.of(context).padding.top + 22,
-        20,
-        24,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: isUploadingImage ? null : onImageTap,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white, width: 3),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.14),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.all(Radius.circular(17)),
-                    child: imageUrl != null && imageUrl!.isNotEmpty
-                        ? _isNetworkImage
-                              ? Image.network(
-                                  imageUrl!,
-                                  width: 92,
-                                  height: 92,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => _avatarBox(),
-                                )
-                              : Image.asset(
-                                  imageUrl!,
-                                  width: 92,
-                                  height: 92,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => _avatarBox(),
-                                )
-                        : _avatarBox(),
-                  ),
-                ),
-                Positioned(
-                  right: -4,
-                  bottom: -4,
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: isUploadingImage
-                          ? Colors.white
-                          : AppColors.primaryBlue,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: isUploadingImage
-                        ? const Padding(
-                            padding: EdgeInsets.all(6),
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.primaryBlue,
-                              ),
-                            ),
-                          )
-                        : const Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 15,
-                          ),
-                  ),
-                ),
-              ],
+          const Text(
+            'YOUR PROFILE',
+            style: TextStyle(
+              color: Color(0xFF9AA9C6),
+              fontSize: 11,
+              letterSpacing: 2.3,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'Inter',
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: isUploadingImage ? null : onImageTap,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: AppColors.deepBlue.withValues(alpha: 0.13),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.deepBlue.withValues(alpha: 0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(23),
+                        child: imageUrl != null && imageUrl!.isNotEmpty
+                            ? _isNetworkImage
+                                  ? Image.network(
+                                      imageUrl!,
+                                      width: 88,
+                                      height: 88,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _avatarBox(),
+                                    )
+                                  : Image.asset(
+                                      imageUrl!,
+                                      width: 88,
+                                      height: 88,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _avatarBox(),
+                                    )
+                            : _avatarBox(),
+                      ),
+                    ),
+                    Positioned(
+                      right: -3,
+                      bottom: -3,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: isUploadingImage
+                              ? Colors.white
+                              : AppColors.lightBlue,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                        ),
+                        child: isUploadingImage
+                            ? const Padding(
+                                padding: EdgeInsets.all(7),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppColors.primaryBlue,
+                                  ),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.camera_alt_rounded,
+                                color: AppColors.deepBlue,
+                                size: 15,
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                _HeaderLine(icon: Icons.sports_soccer_outlined, text: sports),
-                const SizedBox(height: 6),
-                _HeaderLine(
-                  icon: Icons.notes_outlined,
-                  text: bio.trim().isNotEmpty ? bio.trim() : 'No bio yet',
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.deepBlue,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _HeaderLine(
+                      icon: Icons.sports_soccer_outlined,
+                      text: sports,
+                    ),
+                    const SizedBox(height: 7),
+                    _HeaderLine(
+                      icon: Icons.notes_outlined,
+                      text: bio.trim().isNotEmpty ? bio.trim() : 'No bio yet',
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -142,16 +169,17 @@ class ProfileHeader extends StatelessWidget {
 
   Widget _avatarBox() {
     return Container(
-      width: 92,
-      height: 92,
+      width: 88,
+      height: 88,
       color: const Color(0xFFE8ECF7),
       child: Center(
         child: Text(
           name.isNotEmpty ? name[0].toUpperCase() : 'U',
           style: const TextStyle(
-            color: AppColors.primaryBlue,
+            color: AppColors.deepBlue,
             fontSize: 36,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w900,
+            fontFamily: 'Poppins',
           ),
         ),
       ),
@@ -170,7 +198,7 @@ class _HeaderLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.white70, size: 16),
+        Icon(icon, color: AppColors.deepBlue.withValues(alpha: 0.65), size: 16),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
@@ -178,10 +206,11 @@ class _HeaderLine extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Colors.white70,
+              color: Color(0xFF6C7897),
               fontSize: 12,
               height: 1.25,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter',
             ),
           ),
         ),
