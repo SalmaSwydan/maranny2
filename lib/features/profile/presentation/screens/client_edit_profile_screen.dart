@@ -322,14 +322,14 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF3F7FF),
       body: SafeArea(
         child: Column(
           children: [
             _buildAppBar(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -338,31 +338,45 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                     const SizedBox(height: 24),
 
                     // ── Personal Information ──
-                    _buildSectionTitle('Personal Information'),
-                    _buildTextField(_nameController, 'Full Name'),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      _emailController,
-                      'Email',
-                      keyboardType: TextInputType.emailAddress,
+                    _FormPlate(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSectionTitle('Personal Information'),
+                          _buildTextField(_nameController, 'Full Name'),
+                          const SizedBox(height: 12),
+                          _buildTextField(
+                            _emailController,
+                            'Email',
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildLocationDropdown(),
+                          const SizedBox(height: 12),
+                          _buildTextField(
+                            _phoneController,
+                            'Phone Number',
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildBioField(),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    _buildLocationDropdown(),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      _phoneController,
-                      'Phone Number',
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildBioField(),
                     const SizedBox(height: 20),
 
                     // ── Sports Background (matches coach "Professional Info") ──
-                    _buildSectionTitle('Sports Background'),
-                    _buildSportsPicker(),
-                    const SizedBox(height: 16),
-                    _buildPreferencesSettingsCard(),
+                    _FormPlate(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSectionTitle('Sports Background'),
+                          _buildSportsPicker(),
+                          const SizedBox(height: 16),
+                          _buildPreferencesSettingsCard(),
+                        ],
+                      ),
+                    ),
 
                     const SizedBox(height: 32),
 
@@ -381,31 +395,56 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
 
   // ── Same app bar as coach ─────────────────────────
   Widget _buildAppBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-      decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Colors.white,
-              size: 22,
-            ),
-          ),
-          const Expanded(
-            child: Text(
-              'Edit Profile',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
                 color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFD7E0F2)),
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: AppColors.deepBlue,
+                size: 18,
               ),
             ),
           ),
-          const SizedBox(width: 48),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PROFILE SETTINGS',
+                  style: TextStyle(
+                    color: Color(0xFF9AA9C6),
+                    fontSize: 11,
+                    letterSpacing: 2.2,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Edit profile.',
+                  style: TextStyle(
+                    color: AppColors.deepBlue,
+                    fontSize: 27,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -420,14 +459,14 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
           clipBehavior: Clip.none,
           children: [
             CircleAvatar(
-              radius: 56,
-              backgroundColor: Colors.grey.shade200,
+              radius: 58,
+              backgroundColor: const Color(0xFFE8ECF7),
               child: _profileImagePath != null
                   ? ClipOval(
                       child: Image.file(
                         File(_profileImagePath!),
-                        width: 112,
-                        height: 112,
+                        width: 116,
+                        height: 116,
                         fit: BoxFit.cover,
                       ),
                     )
@@ -435,20 +474,20 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                   ? ClipOval(
                       child: Image.network(
                         _profileImageUrl!,
-                        width: 112,
-                        height: 112,
+                        width: 116,
+                        height: 116,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const Icon(
-                          Icons.person,
+                          Icons.person_rounded,
                           size: 56,
-                          color: AppColors.primaryBlue,
+                          color: AppColors.deepBlue,
                         ),
                       ),
                     )
                   : const Icon(
-                      Icons.person,
+                      Icons.person_rounded,
                       size: 56,
-                      color: AppColors.primaryBlue,
+                      color: AppColors.deepBlue,
                     ),
             ),
             Positioned(
@@ -457,12 +496,12 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: const BoxDecoration(
-                  color: AppColors.primaryBlue,
+                  color: AppColors.lightBlue,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.camera_alt,
-                  color: Colors.white,
+                  Icons.camera_alt_rounded,
+                  color: AppColors.deepBlue,
                   size: 20,
                 ),
               ),
@@ -480,9 +519,10 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textPrimary,
+          fontSize: 17,
+          fontWeight: FontWeight.w900,
+          color: AppColors.deepBlue,
+          fontFamily: 'Poppins',
         ),
       ),
     );
@@ -500,25 +540,18 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFFF7FAFF),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppColors.primaryBlue.withValues(alpha: 0.5),
-          ),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: const Color(0xFFD7E0F2)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppColors.primaryBlue.withValues(alpha: 0.5),
-          ),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: const Color(0xFFD7E0F2)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.primaryBlue,
-            width: 1.5,
-          ),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.deepBlue, width: 1.5),
         ),
       ),
     );
@@ -545,25 +578,18 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
       decoration: InputDecoration(
         labelText: 'Location / City',
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFFF7FAFF),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppColors.primaryBlue.withValues(alpha: 0.5),
-          ),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: const Color(0xFFD7E0F2)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppColors.primaryBlue.withValues(alpha: 0.5),
-          ),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: const Color(0xFFD7E0F2)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.primaryBlue,
-            width: 1.5,
-          ),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.deepBlue, width: 1.5),
         ),
       ),
     );
@@ -589,18 +615,16 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: BoxDecoration(
-              color: selected ? AppColors.primaryBlue : Colors.white,
+              color: selected ? AppColors.deepBlue : const Color(0xFFF7FAFF),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: selected
-                    ? AppColors.primaryBlue
-                    : AppColors.primaryBlue.withValues(alpha: 0.45),
+                color: selected ? AppColors.deepBlue : const Color(0xFFD7E0F2),
               ),
             ),
             child: Text(
               sport,
               style: TextStyle(
-                color: selected ? Colors.white : AppColors.textPrimary,
+                color: selected ? Colors.white : AppColors.deepBlue,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
@@ -620,25 +644,18 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
         labelText: 'Bio / About You',
         alignLabelWithHint: true,
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFFF7FAFF),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppColors.primaryBlue.withValues(alpha: 0.5),
-          ),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: const Color(0xFFD7E0F2)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppColors.primaryBlue.withValues(alpha: 0.5),
-          ),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: const Color(0xFFD7E0F2)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.primaryBlue,
-            width: 1.5,
-          ),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.deepBlue, width: 1.5),
         ),
       ),
     );
@@ -649,18 +666,9 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.35),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: const Color(0xFFF7FAFF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD7E0F2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -673,12 +681,8 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
               children: [
                 const CircleAvatar(
                   radius: 20,
-                  backgroundColor: Color(0xFFE8F4FD),
-                  child: Icon(
-                    Icons.tune,
-                    color: AppColors.primaryBlue,
-                    size: 20,
-                  ),
+                  backgroundColor: Color(0xFFEAF0FB),
+                  child: Icon(Icons.tune, color: AppColors.deepBlue, size: 20),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -689,7 +693,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                         'Recommendation Preferences',
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
+                          color: AppColors.deepBlue,
                         ),
                       ),
                       SizedBox(height: 3),
@@ -697,7 +701,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                         'Budget, area, coach style, and certification filters.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: Color(0xFF6C7897),
                           height: 1.25,
                         ),
                       ),
@@ -708,7 +712,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                   _preferencesExpanded
                       ? Icons.keyboard_arrow_up
                       : Icons.keyboard_arrow_down,
-                  color: AppColors.primaryBlue,
+                  color: AppColors.deepBlue,
                 ),
               ],
             ),
@@ -726,14 +730,14 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                   '${_minPrice.toInt()} LE',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBlue,
+                    color: AppColors.deepBlue,
                   ),
                 ),
                 Text(
                   '${_maxPrice.toInt()} LE',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBlue,
+                    color: AppColors.deepBlue,
                   ),
                 ),
               ],
@@ -743,8 +747,8 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
               min: 50,
               max: 1000,
               divisions: 19,
-              activeColor: AppColors.primaryBlue,
-              inactiveColor: AppColors.primaryBlue.withValues(alpha: 0.18),
+              activeColor: AppColors.deepBlue,
+              inactiveColor: AppColors.deepBlue.withValues(alpha: 0.14),
               labels: RangeLabels(
                 '${_minPrice.toInt()} LE',
                 '${_maxPrice.toInt()} LE',
@@ -883,14 +887,14 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
       ),
       child: const Row(
         children: [
-          Icon(Icons.info_outline, color: AppColors.primaryBlue, size: 18),
+          Icon(Icons.info_outline, color: AppColors.deepBlue, size: 18),
           SizedBox(width: 8),
           Expanded(
             child: Text(
               'Fill these preferences so recommendations match your budget and location.',
               style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textPrimary,
+                color: AppColors.deepBlue,
                 fontWeight: FontWeight.w600,
                 height: 1.3,
               ),
@@ -907,7 +911,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
       style: const TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w800,
-        color: AppColors.textPrimary,
+        color: AppColors.deepBlue,
       ),
     );
   }
@@ -924,12 +928,10 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primaryBlue : const Color(0xFFF7F9FF),
+          color: selected ? AppColors.deepBlue : const Color(0xFFF7FAFF),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected
-                ? AppColors.primaryBlue
-                : AppColors.primaryBlue.withValues(alpha: 0.18),
+            color: selected ? AppColors.deepBlue : const Color(0xFFD7E0F2),
           ),
         ),
         child: Row(
@@ -946,7 +948,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
             Text(
               label,
               style: TextStyle(
-                color: selected ? Colors.white : AppColors.textPrimary,
+                color: selected ? Colors.white : AppColors.deepBlue,
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
               ),
@@ -970,20 +972,18 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primaryBlue.withValues(alpha: 0.08)
-              : const Color(0xFFF7F9FF),
+              ? AppColors.deepBlue.withValues(alpha: 0.08)
+              : const Color(0xFFF7FAFF),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected
-                ? AppColors.primaryBlue
-                : AppColors.primaryBlue.withValues(alpha: 0.16),
+            color: selected ? AppColors.deepBlue : const Color(0xFFD7E0F2),
           ),
         ),
         child: Row(
           children: [
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected ? AppColors.primaryBlue : Colors.grey,
+              color: selected ? AppColors.deepBlue : Colors.grey,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -994,7 +994,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                     title,
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+                      color: AppColors.deepBlue,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1002,7 +1002,7 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
                     subtitle,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: Color(0xFF6C7897),
                       height: 1.25,
                     ),
                   ),
@@ -1018,43 +1018,59 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
   Widget _buildSaveButton() {
     return SizedBox(
       height: 52,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: AppColors.primaryGradient,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryBlue.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          onPressed: _isSaving ? null : _save,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+      child: ElevatedButton(
+        onPressed: _isSaving ? null : _save,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.deepBlue,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
           ),
-          child: _isSaving
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text(
-                  'Save Edit',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
         ),
+        child: _isSaving
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Text(
+                'Save Edit',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Poppins',
+                ),
+              ),
       ),
+    );
+  }
+}
+
+class _FormPlate extends StatelessWidget {
+  const _FormPlate({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFD7E0F2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.035),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }
