@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/network/api_config.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../home/presentation/screens/client_search_screen.dart';
+import '../../../home/presentation/screens/ai_recommended_coaches_screen.dart';
 import '../../../profile/data/repositories/profile_repository.dart';
 
 class CoachesForYouSection extends StatefulWidget {
@@ -57,10 +57,10 @@ class _CoachesForYouSectionState extends State<CoachesForYouSection> {
     return recommended;
   }
 
-  void _openSearch() {
+  void _openRecommendations() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ClientSearchScreen()),
+      MaterialPageRoute(builder: (_) => const AiRecommendedCoachesScreen()),
     );
   }
 
@@ -81,7 +81,7 @@ class _CoachesForYouSectionState extends State<CoachesForYouSection> {
             ),
             const Spacer(),
             GestureDetector(
-              onTap: _openSearch,
+              onTap: _openRecommendations,
               child: const Text(
                 'See all ->',
                 style: TextStyle(
@@ -108,7 +108,7 @@ class _CoachesForYouSectionState extends State<CoachesForYouSection> {
                 icon: Icons.wifi_off_outlined,
                 title: 'Could not load coaches',
                 message: 'Please try again from the search page.',
-                onTap: _openSearch,
+                onTap: _openRecommendations,
               );
             }
 
@@ -118,7 +118,7 @@ class _CoachesForYouSectionState extends State<CoachesForYouSection> {
                 icon: Icons.person_search_outlined,
                 title: 'No coaches available yet',
                 message: 'Check back soon or explore all coaches.',
-                onTap: _openSearch,
+                onTap: _openRecommendations,
               );
             }
 
@@ -133,8 +133,10 @@ class _CoachesForYouSectionState extends State<CoachesForYouSection> {
                   mainAxisSpacing: 14,
                   childAspectRatio: 0.72,
                 ),
-                itemBuilder: (context, index) =>
-                    _CoachCard(coach: coaches[index], onTap: _openSearch),
+                itemBuilder: (context, index) => _CoachCard(
+                  coach: coaches[index],
+                  onTap: _openRecommendations,
+                ),
               ),
             );
           },
