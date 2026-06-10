@@ -32,7 +32,6 @@ class AuthRepository {
   Future<LoginResponse> login(LoginRequest request) async {
     try {
       await ClientProfileStorage.clear();
-      await UserPreferencesStorage.clear();
       final response = await _dio.post(ApiConfig.login, data: request.toJson());
       final loginResponse = LoginResponse.fromJson(
         response.data as Map<String, dynamic>,
@@ -54,6 +53,11 @@ class AuthRepository {
         await UserPreferencesStorage.migratePendingForEmail(
           loginResponse.user.email,
         );
+        final migratedPreferences = await UserPreferencesStorage.load();
+        if (migratedPreferences.hasPreferences) {
+          await _savePreferencesToServer(migratedPreferences);
+        }
+        await _hydratePreferencesFromServer();
       }
       return loginResponse;
     } on DioException catch (e) {
@@ -106,7 +110,6 @@ class AuthRepository {
     } catch (_) {
     } finally {
       await ClientProfileStorage.clear();
-      await UserPreferencesStorage.clear();
       await TokenStorage.clear();
     }
   }
@@ -117,6 +120,56 @@ class AuthRepository {
       return UserModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleError(e);
+    }
+  }
+
+  Future<void> _hydratePreferencesFromServer() async {
+    try {
+      final response = await _dio.get(ApiConfig.userPreferences);
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        final preferences = UserPreferences.fromJson(data);
+        if (preferences.hasPreferences) {
+          await UserPreferencesStorage.saveSnapshot(preferences);
+        }
+      } else if (data is Map) {
+        final preferences = UserPreferences.fromJson(
+          Map<String, dynamic>.from(data),
+        );
+        if (preferences.hasPreferences) {
+          await UserPreferencesStorage.saveSnapshot(preferences);
+        }
+      }
+    } catch (_) {
+      // Login should continue even if preferences cannot be refreshed.
+    }
+  }
+
+  Future<void> _savePreferencesToServer(UserPreferences preferences) async {
+    try {
+      await _dio.put(
+        ApiConfig.updatePreferences,
+        data: {
+          'sports': preferences.sports,
+          if (preferences.budgetMin != null) 'budgetMin': preferences.budgetMin,
+          if (preferences.budgetMax != null) 'budgetMax': preferences.budgetMax,
+          if (preferences.locationPreference == 'Anywhere') 'maxDistance': 100,
+          if (preferences.locationPreference == 'My city') 'maxDistance': 25,
+          if (preferences.city != null) 'city': preferences.city,
+          if (preferences.area != null) 'area': preferences.area,
+          if (preferences.locationPreference != null)
+            'locationPreference': preferences.locationPreference,
+          if (preferences.ratingPreferenceLabel != null)
+            'ratingPreference': preferences.ratingPreferenceLabel,
+          if (preferences.coachGender != null)
+            'coachGender': preferences.coachGender,
+          if (preferences.coachAgeRange != null)
+            'coachAgeRange': preferences.coachAgeRange,
+          'certifiedOnly': preferences.certifiedOnly,
+        },
+      );
+    } catch (_) {
+      // A later explicit profile save can persist preferences if this sync fails.
     }
   }
 

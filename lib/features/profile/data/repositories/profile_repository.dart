@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_config.dart';
+import '../../../../core/utils/user_preferences_storage.dart';
 import '../models/profile_models.dart';
 
 class ProfileRepository {
@@ -68,6 +69,30 @@ class ProfileRepository {
       data: request.toJson(),
     );
     return response.data['message'] as String;
+  }
+
+  Future<UserPreferences> getPreferences() async {
+    final response = await _dio.get(ApiConfig.userPreferences);
+    final data = response.data;
+    UserPreferences serverPreferences;
+    if (data is Map<String, dynamic>) {
+      serverPreferences = UserPreferences.fromJson(data);
+    } else if (data is Map) {
+      serverPreferences = UserPreferences.fromJson(
+        Map<String, dynamic>.from(data),
+      );
+    } else {
+      serverPreferences = const UserPreferences(sports: <String>[]);
+    }
+
+    if (serverPreferences.hasPreferences) {
+      return serverPreferences;
+    }
+
+    final localPreferences = await UserPreferencesStorage.load();
+    return localPreferences.hasPreferences
+        ? localPreferences
+        : serverPreferences;
   }
 
   Future<CoachProfileModel> getCoachProfile(int coachId) async {
@@ -147,14 +172,6 @@ class ProfileRepository {
       'query=${jsonEncode(queryParameters)}',
       name: 'ProfileRepository',
     );
-    print(
-      '[ProfileRepository] Search coaches request -> '
-      'url=$requestUrl '
-      'method=GET '
-      'headers=${jsonEncode(requestHeaders)} '
-      'query=${jsonEncode(queryParameters)}',
-    );
-
     final response = await _dio.get(
       ApiConfig.searchCoaches,
       queryParameters: queryParameters,
@@ -177,13 +194,6 @@ class ProfileRepository {
       'body=${jsonEncode(response.data)}',
       name: 'ProfileRepository',
     );
-    print(
-      '[ProfileRepository] Search coaches response -> '
-      'status=${response.statusCode} '
-      'count=${coaches.length} '
-      'body=${jsonEncode(response.data)}',
-    );
-
     return coaches
         .whereType<Map>()
         .map((e) => Map<String, dynamic>.from(e))

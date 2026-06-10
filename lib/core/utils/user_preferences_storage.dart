@@ -62,6 +62,21 @@ class UserPreferencesStorage {
     );
   }
 
+  static Future<void> saveSnapshot(UserPreferences preferences) async {
+    final scope = await _currentUserScope();
+    if (scope == null) return;
+
+    await _writeSnapshotForScope(scope, preferences);
+  }
+
+  static Future<UserPreferences> saveSnapshotFromJson(
+    Map<String, dynamic> json,
+  ) async {
+    final preferences = UserPreferences.fromJson(json);
+    await saveSnapshot(preferences);
+    return preferences;
+  }
+
   static Future<void> saveForEmail({
     required String email,
     List<String>? sports,
@@ -131,6 +146,62 @@ class UserPreferencesStorage {
       await prefs.setString(_scopedKey(_kAgeRange, scope), coachAgeRange);
     }
     await prefs.setBool(_scopedKey(_kCertified, scope), certifiedOnly);
+  }
+
+  static Future<void> _writeSnapshotForScope(
+    String scope,
+    UserPreferences preferences,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      _scopedKey(_kSports, scope),
+      preferences.sports.join(','),
+    );
+    await _setOrRemoveDouble(
+      prefs,
+      _scopedKey(_kBudgetMin, scope),
+      preferences.budgetMin,
+    );
+    await _setOrRemoveDouble(
+      prefs,
+      _scopedKey(_kBudgetMax, scope),
+      preferences.budgetMax,
+    );
+    await _setOrRemoveString(
+      prefs,
+      _scopedKey(_kCity, scope),
+      preferences.city,
+    );
+    await _setOrRemoveString(
+      prefs,
+      _scopedKey(_kArea, scope),
+      preferences.area,
+    );
+    await _setOrRemoveString(
+      prefs,
+      _scopedKey(_kLocation, scope),
+      preferences.locationPreference,
+    );
+    await _setOrRemoveString(
+      prefs,
+      _scopedKey(_kRating, scope),
+      preferences.ratingPreferenceLabel,
+    );
+    await _setOrRemoveString(
+      prefs,
+      _scopedKey(_kGender, scope),
+      preferences.coachGender,
+    );
+    await _setOrRemoveString(
+      prefs,
+      _scopedKey(_kAgeRange, scope),
+      preferences.coachAgeRange,
+    );
+    await prefs.setBool(
+      _scopedKey(_kCertified, scope),
+      preferences.certifiedOnly,
+    );
   }
 
   static Future<UserPreferences> load() async {
@@ -244,6 +315,31 @@ class UserPreferencesStorage {
   }
 
   static String _scopedKey(String key, String scope) => '${key}_$scope';
+
+  static Future<void> _setOrRemoveDouble(
+    SharedPreferences prefs,
+    String key,
+    double? value,
+  ) async {
+    if (value == null) {
+      await prefs.remove(key);
+      return;
+    }
+    await prefs.setDouble(key, value);
+  }
+
+  static Future<void> _setOrRemoveString(
+    SharedPreferences prefs,
+    String key,
+    String? value,
+  ) async {
+    final text = value?.trim();
+    if (text == null || text.isEmpty) {
+      await prefs.remove(key);
+      return;
+    }
+    await prefs.setString(key, text);
+  }
 }
 
 class UserPreferences {
@@ -271,11 +367,41 @@ class UserPreferences {
     this.certifiedOnly = false,
   });
 
+  factory UserPreferences.fromJson(Map<String, dynamic> json) {
+    return UserPreferences(
+      sports: _asStringList(json['sports'] ?? json['Sports']),
+      budgetMin: _asNullableDouble(json['budgetMin'] ?? json['BudgetMin']),
+      budgetMax: _asNullableDouble(json['budgetMax'] ?? json['BudgetMax']),
+      city: _asNullableString(json['city'] ?? json['City']),
+      area: _asNullableString(json['area'] ?? json['Area']),
+      locationPreference: _asNullableString(
+        json['locationPreference'] ?? json['LocationPreference'],
+      ),
+      minRating: _ratingToDouble(
+        json['ratingPreference'] ?? json['RatingPreference'],
+      ),
+      coachGender: _asNullableString(
+        json['coachGender'] ?? json['CoachGender'],
+      ),
+      coachAgeRange: _asNullableString(
+        json['coachAgeRange'] ?? json['CoachAgeRange'],
+      ),
+      certifiedOnly:
+          json['certifiedOnly'] == true || json['CertifiedOnly'] == true,
+    );
+  }
+
   bool get hasPreferences =>
       sports.isNotEmpty ||
       budgetMin != null ||
+      budgetMax != null ||
       city != null ||
-      minRating != null;
+      area != null ||
+      locationPreference != null ||
+      minRating != null ||
+      coachGender != null ||
+      coachAgeRange != null ||
+      certifiedOnly;
 
   String? get ratingPreferenceLabel {
     if (minRating == 4.5) return '4.5+';
@@ -283,4 +409,42 @@ class UserPreferences {
     if (minRating == 3.0) return '3.0+';
     return null;
   }
+}
+
+List<String> _asStringList(dynamic value) {
+  if (value is List) {
+    return value
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+  if (value is String && value.trim().isNotEmpty) {
+    return value
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+  }
+  return const [];
+}
+
+double? _asNullableDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
+}
+
+String? _asNullableString(dynamic value) {
+  final text = value?.toString().trim() ?? '';
+  return text.isEmpty ? null : text;
+}
+
+double? _ratingToDouble(dynamic value) {
+  final text = value?.toString().trim() ?? '';
+  if (text == '4.5+') return 4.5;
+  if (text == '4.0+') return 4.0;
+  if (text == '3.0+') return 3.0;
+  return _asNullableDouble(text.replaceAll('+', ''));
 }

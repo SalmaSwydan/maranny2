@@ -1,11 +1,11 @@
 /// ─────────────────────────────────────────────────────────────
 /// API CONFIG
 /// Single source of truth for all URLs and endpoint paths.
-/// ─────────────────────────────────────────────────────────────
+/// ──────────────────────────────────────────────────
 class ApiConfig {
   ApiConfig._();
   // ✅ Dev tunnel URL — works for everyone on any device
-  static const String baseUrl = 'https://nqszfjtb-7112.uks1.devtunnels.ms/api';
+  static const String baseUrl = 'https://18fbd7fp-7112.uks1.devtunnels.ms/api';
 
   static String get publicBaseUrl => baseUrl.endsWith('/api')
       ? baseUrl.substring(0, baseUrl.length - 4)
@@ -47,6 +47,7 @@ class ApiConfig {
   static const String updateProfile = '/users/profile';
   static const String uploadProfilePic = '/users/profile/image';
   static const String updatePreferences = '/users/preferences';
+  static const String userPreferences = '/users/preferences';
   static const String coachSetup = '/users/coach-setup';
 
   // ── Sessions endpoints ────────────────────────────────────

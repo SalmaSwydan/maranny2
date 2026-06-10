@@ -31,29 +31,12 @@ import '../../features/reviews/presentation/screens/all_reviews_screen.dart';
 
 // ── Guest ─────────────────────────────────────────────────────
 import '../../features/home/presentation/screens/guest_homescreen.dart';
-
-/// ─────────────────────────────────────────────────────────────
-/// ROUTE ARGUMENTS — typed, no raw Maps in navigation calls
-/// ─────────────────────────────────────────────────────────────
 class UserTypeArgs {
   final String userType; // 'client' | 'coach'
   const UserTypeArgs(this.userType);
 }
-
-/// ─────────────────────────────────────────────────────────────
-/// APP ROUTER
-///
-/// Navigate:
-///   AppRouter.pushNamed(context, AppRouter.login,
-///       args: UserTypeArgs('coach'));
-///
-/// Clear stack (logout):
-///   AppRouter.pushNamedAndClearStack(context, AppRouter.welcome);
-/// ─────────────────────────────────────────────────────────────
 class AppRouter {
   AppRouter._();
-
-  // ── Route name constants ──────────────────────────────────
   static const String splash           = '/';
   static const String onboarding       = '/onboarding';
   static const String welcome          = '/welcome';
@@ -72,7 +55,6 @@ class AppRouter {
   static const String allReviews = '/reviews';
   static const String guestHome  = '/guest';
 
-  // ── Route generator ───────────────────────────────────────
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final args = settings.arguments;
 
@@ -96,7 +78,6 @@ class AppRouter {
         return _build(LoginScreen(userType: userType));
 
       case register:
-      // ✅ Routes to CoachInfoScreen for coach, MainLayout for trainee
         final userType = args is UserTypeArgs ? args.userType : 'trainee';
         return _build(RegisterScreen(userType: userType));
 

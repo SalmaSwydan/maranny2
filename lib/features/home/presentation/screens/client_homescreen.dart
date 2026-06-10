@@ -9,8 +9,13 @@ import '../../../auth/presentation/screens/welcome_screen.dart';
 
 class ClientHomeScreen extends StatefulWidget {
   final VoidCallback? onGoToBookings;
+  final int recommendationRefreshVersion;
 
-  const ClientHomeScreen({super.key, this.onGoToBookings});
+  const ClientHomeScreen({
+    super.key,
+    this.onGoToBookings,
+    this.recommendationRefreshVersion = 0,
+  });
 
   @override
   State<ClientHomeScreen> createState() => _ClientHomeScreenState();
@@ -66,9 +71,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
               child: UpcomingSessionsSection(onViewMore: widget.onGoToBookings),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(18, 18, 18, 0),
-              child: CoachesForYouSection(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+              child: CoachesForYouSection(
+                key: ValueKey(widget.recommendationRefreshVersion),
+              ),
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(18, 18, 18, 24),

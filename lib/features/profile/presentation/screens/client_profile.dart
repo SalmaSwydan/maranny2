@@ -49,7 +49,7 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
 
     try {
       final UserModel user = await _authRepository.getCurrentUser();
-      final savedPrefs = await UserPreferencesStorage.load();
+      final savedPrefs = await _loadLatestPreferences();
       final profileCache = await ClientProfileStorage.load();
 
       if (!mounted) return;
@@ -75,6 +75,16 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
         _error = 'Failed to load profile';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<UserPreferences> _loadLatestPreferences() async {
+    try {
+      final prefs = await _profileRepository.getPreferences();
+      await UserPreferencesStorage.saveSnapshot(prefs);
+      return prefs;
+    } catch (_) {
+      return UserPreferencesStorage.load();
     }
   }
 

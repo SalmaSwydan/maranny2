@@ -111,7 +111,13 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
   }
 
   Future<void> _loadPreferences() async {
-    final prefs = await UserPreferencesStorage.load();
+    UserPreferences prefs;
+    try {
+      prefs = await _profileRepository.getPreferences();
+      await UserPreferencesStorage.saveSnapshot(prefs);
+    } catch (_) {
+      prefs = await UserPreferencesStorage.load();
+    }
     if (!mounted) return;
 
     setState(() {
@@ -266,17 +272,21 @@ class _ClientEditProfileScreenState extends State<ClientEditProfileScreen> {
           certifiedOnly: _certifiedOnly,
         ),
       );
-      await UserPreferencesStorage.save(
-        sports: _selectedSports.toList(),
-        budgetMin: _minPrice,
-        budgetMax: _maxPrice,
-        city: _selectedPreferenceCity,
-        area: _selectedPreferenceArea,
-        locationPreference: _locationPreference,
-        ratingPreference: _ratingPreference,
-        coachGender: _coachGender,
-        coachAgeRange: _coachAgeRange,
-        certifiedOnly: _certifiedOnly,
+      await UserPreferencesStorage.saveSnapshot(
+        UserPreferences(
+          sports: _selectedSports.toList(),
+          budgetMin: _minPrice,
+          budgetMax: _maxPrice,
+          city: _selectedPreferenceCity,
+          area: _selectedPreferenceArea,
+          locationPreference: _locationPreference,
+          minRating: _ratingPreference == null
+              ? null
+              : double.tryParse(_ratingPreference!.replaceAll('+', '')),
+          coachGender: _coachGender,
+          coachAgeRange: _coachAgeRange,
+          certifiedOnly: _certifiedOnly,
+        ),
       );
       final normalizedPhone = ProfileValidators.normalizeEgyptPhone(phone);
       await ClientProfileStorage.save(

@@ -51,7 +51,7 @@ class _AiRecommendedCoachesScreenState
 
     try {
       final results = await Future.wait<dynamic>([
-        UserPreferencesStorage.load(),
+        _loadLatestPreferences(),
         _profileRepository.searchCoachesList(
           page: 1,
           pageSize: 40,
@@ -99,6 +99,16 @@ class _AiRecommendedCoachesScreenState
         _error = 'Could not load recommendations right now.';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<UserPreferences> _loadLatestPreferences() async {
+    try {
+      final prefs = await _profileRepository.getPreferences();
+      await UserPreferencesStorage.saveSnapshot(prefs);
+      return prefs;
+    } catch (_) {
+      return UserPreferencesStorage.load();
     }
   }
 
@@ -1223,6 +1233,7 @@ class _RecommendedCoach {
         price <= prefs.budgetMax!.round();
     final ratingMatch = prefs.minRating == null || rating >= prefs.minRating!;
     final timeMatch = availableDays.isNotEmpty || _hasUpcomingSlots(coach);
+    final genderMatch = _genderMatches(coach, prefs);
 
     var score = 40.0;
     if (sportMatch) score += 18;
@@ -1230,6 +1241,7 @@ class _RecommendedCoach {
     if (priceMatch) score += 14;
     if (ratingMatch) score += 8;
     if (timeMatch) score += 8;
+    if (genderMatch) score += 6;
     if (rating >= 4.5) score += 4;
     score = score.clamp(45, 99);
 
@@ -1239,6 +1251,8 @@ class _RecommendedCoach {
       _MatchResult('Price', priceMatch),
       _MatchResult('Time', timeMatch),
       if (prefs.minRating != null) _MatchResult('Rating', ratingMatch),
+      if ((prefs.coachGender ?? '').trim().isNotEmpty)
+        _MatchResult('Gender', genderMatch),
     ];
 
     final reasons = [
@@ -1429,6 +1443,23 @@ bool _locationMatches(List<String> locations, UserPreferences prefs) {
 bool _hasUpcomingSlots(Map<String, dynamic> coach) {
   final upcoming = coach['upcomingAvailableDates'];
   return upcoming is List && upcoming.isNotEmpty;
+}
+
+bool _genderMatches(Map<String, dynamic> coach, UserPreferences prefs) {
+  final preferred = (prefs.coachGender ?? '').trim().toLowerCase();
+  if (preferred.isEmpty ||
+      preferred == 'any' ||
+      preferred == 'no preference' ||
+      preferred == 'all') {
+    return true;
+  }
+
+  final gender = _firstText([
+    coach['gender'],
+    coach['coachGender'],
+    coach['user'] is Map ? (coach['user'] as Map)['gender'] : null,
+  ]).toLowerCase();
+  return gender.isEmpty || gender == preferred;
 }
 
 int _coachId(Map<String, dynamic> coach) {

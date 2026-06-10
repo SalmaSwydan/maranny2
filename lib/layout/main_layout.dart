@@ -18,6 +18,7 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   late int _currentIndex;
+  int _homeRefreshVersion = 0;
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _MainLayoutState extends State<MainLayout> {
         index: _currentIndex,
         children: [
           ClientHomeScreen(
+            recommendationRefreshVersion: _homeRefreshVersion,
             onGoToBookings: () => setState(() => _currentIndex = 1),
           ),
           BookingsScreen(
@@ -49,7 +51,12 @@ class _MainLayoutState extends State<MainLayout> {
       bottomNavigationBar: CoachBottomNav(
         initialIndex: _currentIndex,
         onItemSelected: (index) {
-          setState(() => _currentIndex = index);
+          setState(() {
+            if (index == 0 && _currentIndex != 0) {
+              _homeRefreshVersion++;
+            }
+            _currentIndex = index;
+          });
         },
       ),
     );

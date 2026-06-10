@@ -5,6 +5,7 @@ import '../../data/models/bookings_models.dart';
 import '../../data/repositories/bookings_repository.dart';
 import '../screens/payment_screen.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
+import '../../../profile/data/repositories/profile_repository.dart';
 import '../../../../core/utils/client_profile_storage.dart';
 import '../../../../core/utils/profile_validators.dart';
 import '../../../../core/utils/user_preferences_storage.dart';
@@ -39,6 +40,7 @@ class BookSessionSheet extends StatefulWidget {
 class _BookSessionSheetState extends State<BookSessionSheet> {
   final BookingsRepository _repo = BookingsRepository();
   final AuthRepository _authRepository = AuthRepository();
+  final ProfileRepository _profileRepository = ProfileRepository();
 
   bool _isLoading = true;
   bool _isCheckingProfile = false;
@@ -771,7 +773,7 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
     setState(() => _isCheckingProfile = true);
     try {
       final user = await _authRepository.getCurrentUser();
-      final prefs = await UserPreferencesStorage.load();
+      final prefs = await _loadLatestPreferences();
       final cache = await ClientProfileStorage.load();
       final missing = ProfileValidators.missingClientProfileFields(
         phone: (user.phoneNumber?.trim().isNotEmpty ?? false)
@@ -813,6 +815,16 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
       if (mounted) {
         setState(() => _isCheckingProfile = false);
       }
+    }
+  }
+
+  Future<UserPreferences> _loadLatestPreferences() async {
+    try {
+      final prefs = await _profileRepository.getPreferences();
+      await UserPreferencesStorage.saveSnapshot(prefs);
+      return prefs;
+    } catch (_) {
+      return UserPreferencesStorage.load();
     }
   }
 
