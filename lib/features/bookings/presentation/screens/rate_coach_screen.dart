@@ -78,11 +78,18 @@ class _RateSessionScreenState extends State<RateSessionScreen> {
       return;
     }
 
+    final rawComment = _commentController.text.trim();
+    final tags = _selectedTags.toList(growable: false);
+    final commentParts = <String>[
+      if (rawComment.isNotEmpty) rawComment,
+      if (tags.isNotEmpty) 'Highlights: ${tags.join(', ')}',
+    ];
+
     final request = CreateReviewRequest(
       coachId: widget.coachId,
       sessionId: widget.sessionId,
       rating: rating,
-      comment: _commentController.text.trim(),
+      comment: commentParts.join('\n\n'),
     );
 
     setState(() {
@@ -128,7 +135,10 @@ class _RateSessionScreenState extends State<RateSessionScreen> {
     final statusCode = error.response?.statusCode;
     final data = error.response?.data;
     if (statusCode == 400 && data is Map<String, dynamic>) {
-      return (data['message'] ?? data['error'] ?? 'Please check your review and try again.').toString();
+      return (data['message'] ??
+              data['error'] ??
+              'Please check your review and try again.')
+          .toString();
     }
     if (statusCode == 401) {
       return 'Your session expired. Please sign in again and retry.';
@@ -168,149 +178,268 @@ class _RateSessionScreenState extends State<RateSessionScreen> {
         : 'C';
 
     return Scaffold(
-      appBar: AppBar(
-        leading: BackButton(onPressed: () => Navigator.pop(context)),
-        title: const Text('Back'),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: AppColors.primaryGradient,
-          ),
-        ),
-      ),
+      backgroundColor: const Color(0xFFF3F7FF),
       body: Stack(
         children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: AppColors.primaryBlue,
-                  child: Text(
-                    avatarLetter,
-                    style: const TextStyle(color: Colors.white, fontSize: 28),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Rate Your Session',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'How was your experience with ${widget.coachName}?',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (index) {
-                    return IconButton(
-                      onPressed: _isSubmitting || widget.isReviewed
-                          ? null
-                          : () => setState(() => rating = index + 1),
-                      icon: Icon(
-                        Icons.star,
-                        size: 32,
-                        color: rating > index ? Colors.orange : Colors.grey,
+          CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                elevation: 0,
+                backgroundColor: const Color(0xFFF3F7FF),
+                leading: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: InkWell(
+                    onTap: () => Navigator.pop(context),
+                    borderRadius: BorderRadius.circular(22),
+                    child: const CircleAvatar(
+                      backgroundColor: Color(0xFFEAF0FB),
+                      child: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: AppColors.deepBlue,
+                        size: 18,
                       ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _commentController,
-                  enabled: !_isSubmitting && !widget.isReviewed,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText:
-                        'Share your experience with this coach.\nWhat did you like? What could be improved?',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _availableTags
-                      .map(
-                        (tag) => _Tag(
-                          text: tag,
-                          selected: _selectedTags.contains(tag),
-                          onTap: _isSubmitting || widget.isReviewed
-                              ? null
-                              : () => _toggleTag(tag),
-                        ),
-                      )
-                      .toList(growable: false),
+                title: const Text(
+                  'Rate session',
+                  style: TextStyle(
+                    color: AppColors.deepBlue,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: widget.isReviewed ? null : _submitReview,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(color: const Color(0xFFDDE6F6)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.deepBlue.withValues(alpha: 0.08),
+                              blurRadius: 22,
+                              offset: const Offset(0, 12),
                             ),
-                          )
-                        : const Text('Submit Review'),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 42,
+                              backgroundColor: AppColors.deepBlue,
+                              child: Text(
+                                avatarLetter,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'How was your session?',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppColors.deepBlue,
+                                fontSize: 26,
+                                height: 1.05,
+                                fontWeight: FontWeight.w900,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${widget.sportName} with ${widget.coachName}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Color(0xFF6C7897),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(5, (index) {
+                                final active = rating > index;
+                                return IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: _isSubmitting || widget.isReviewed
+                                      ? null
+                                      : () =>
+                                            setState(() => rating = index + 1),
+                                  icon: Icon(
+                                    active
+                                        ? Icons.star_rounded
+                                        : Icons.star_border_rounded,
+                                    size: 38,
+                                    color: active
+                                        ? const Color(0xFFFFC44D)
+                                        : const Color(0xFFB8C2D8),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      TextField(
+                        controller: _commentController,
+                        enabled: !_isSubmitting && !widget.isReviewed,
+                        maxLines: 5,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          hintText:
+                              'Share what went well, what improved, or what the coach can do better.',
+                          hintStyle: const TextStyle(
+                            color: Color(0xFF8A96B2),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFDDE6F6),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFDDE6F6),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: const BorderSide(
+                              color: AppColors.deepBlue,
+                              width: 1.4,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 9,
+                        runSpacing: 10,
+                        children: _availableTags
+                            .map(
+                              (tag) => _Tag(
+                                text: tag,
+                                selected: _selectedTags.contains(tag),
+                                onTap: _isSubmitting || widget.isReviewed
+                                    ? null
+                                    : () => _toggleTag(tag),
+                              ),
+                            )
+                            .toList(growable: false),
+                      ),
+                      const SizedBox(height: 26),
+                      SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: widget.isReviewed ? null : _submitReview,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.deepBlue,
+                            disabledBackgroundColor: const Color(0xFFCFD8EA),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            elevation: 8,
+                            shadowColor: AppColors.deepBlue.withValues(
+                              alpha: 0.24,
+                            ),
+                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  widget.isReviewed
+                                      ? 'Already reviewed'
+                                      : 'Submit review',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           if (submitted)
             Container(
-              color: Colors.black.withValues(alpha: 0.4),
+              color: Colors.black.withValues(alpha: 0.28),
               child: Center(
                 child: Container(
+                  margin: const EdgeInsets.all(24),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.star, color: Colors.white, size: 40),
-                      const SizedBox(height: 12),
+                      const CircleAvatar(
+                        radius: 34,
+                        backgroundColor: Color(0xFF5EDCF4),
+                        child: Icon(
+                          Icons.check_rounded,
+                          color: AppColors.deepBlue,
+                          size: 42,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       const Text(
                         'Review Submitted!',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          color: AppColors.deepBlue,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Thank you for your feedback',
-                        style: TextStyle(color: Colors.white),
+                        'Thanks for helping other athletes choose with confidence.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFF6C7897),
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
                       ElevatedButton(
                         onPressed: () => Navigator.pop(context, true),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
+                          backgroundColor: AppColors.deepBlue,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                         child: const Text(
-                          'Back Home',
-                          style: TextStyle(color: Colors.green),
+                          'Back to bookings',
+                          style: TextStyle(fontWeight: FontWeight.w900),
                         ),
                       ),
                     ],
@@ -329,19 +458,38 @@ class _Tag extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
-  const _Tag({
-    required this.text,
-    required this.selected,
-    required this.onTap,
-  });
+  const _Tag({required this.text, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Chip(
-        label: Text(text),
-        backgroundColor: selected ? AppColors.lightBlue : Colors.grey.shade200,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.deepBlue : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected ? AppColors.deepBlue : const Color(0xFFDDE6F6),
+          ),
+          boxShadow: [
+            if (selected)
+              BoxShadow(
+                color: AppColors.deepBlue.withValues(alpha: 0.18),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+          ],
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.deepBlue,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
     );
   }

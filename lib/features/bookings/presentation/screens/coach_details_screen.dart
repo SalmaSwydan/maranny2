@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/cairo_time.dart';
+import '../../data/models/reviews_payments_models.dart';
+import '../../data/repositories/reviews_payments_repository.dart';
 import '../../domain/models/booking_session_model.dart';
 import '../../domain/models/coach_data_model.dart';
 import '../widgets/book_session_sheet.dart';
@@ -21,9 +24,14 @@ class CoachDetailsScreen extends StatefulWidget {
 }
 
 class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
+  final ReviewsRepository _reviewsRepository = ReviewsRepository();
   bool _bioExpanded = false;
+  bool _isLoadingReviews = false;
   int _selectedTab = 0;
   late final CoachData _data;
+  List<ReviewModel> _apiReviews = const <ReviewModel>[];
+  double? _apiAverageRating;
+  int? _apiReviewCount;
 
   @override
   void initState() {
@@ -38,6 +46,7 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
             orElse: _coachDataFromSession,
           ),
         );
+    _loadReviews();
   }
 
   CoachData _coachDataFromSession() {
@@ -72,8 +81,8 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
   int get _totalStudents => _data.totalStudents;
   int get _totalSessions => _data.totalSessions;
   double get _hoursTaught => _data.hoursTaught;
-  double get _rating => _data.rating;
-  int get _reviewCount => _data.reviewCount;
+  double get _rating => _apiAverageRating ?? _data.rating;
+  int get _reviewCount => _apiReviewCount ?? _data.reviewCount;
   int get _price => _data.price;
 
   String get _image {
@@ -111,6 +120,35 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
   ImageProvider? get _headerImageProvider {
     if (_image.isEmpty) return null;
     return _isNetworkImage ? NetworkImage(_image) : AssetImage(_image);
+  }
+
+  Future<void> _loadReviews() async {
+    final coachId = widget.session.coachUserId;
+    if (coachId <= 0) {
+      return;
+    }
+
+    setState(() => _isLoadingReviews = true);
+    try {
+      final reviewsPage = await _reviewsRepository.getCoachReviews(
+        coachId,
+        pageSize: 20,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _apiReviews = reviewsPage.reviews;
+        _apiAverageRating = reviewsPage.averageRating;
+        _apiReviewCount = reviewsPage.totalCount;
+        _isLoadingReviews = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isLoadingReviews = false);
+    }
   }
 
   void _openBooking() {
@@ -503,7 +541,16 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
   }
 
   Widget _buildReviews() {
-    if (_reviews.isEmpty) {
+    if (_isLoadingReviews) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_apiReviews.isEmpty && _reviews.isEmpty) {
       return _EmptyPanel(
         icon: Icons.star_outline_rounded,
         text: 'No reviews yet',
@@ -558,70 +605,50 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
           ],
         ),
         const SizedBox(height: 22),
-        ..._reviews.map((r) {
-          return Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 14),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFDDE5F4)),
+        if (_apiReviews.isNotEmpty)
+          ..._apiReviews.map(
+            (review) => _ReviewTile(
+              name: review.clientName,
+              date: _formatReviewDate(review.createdAt),
+              rating: review.rating.round().clamp(0, 5),
+              comment: review.comment.isNotEmpty
+                  ? review.comment
+                  : 'No written comment provided.',
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        r.name,
-                        style: const TextStyle(
-                          color: AppColors.deepBlue,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      r.date,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6C7897),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: List.generate(
-                    5,
-                    (i) => Icon(
-                      Icons.star,
-                      size: 14,
-                      color: i < r.rating
-                          ? const Color(0xFFFFC44D)
-                          : const Color(0xFFDDE5F4),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  r.comment,
-                  style: const TextStyle(
-                    color: Color(0xFF4C5C7D),
-                    fontSize: 14,
-                    height: 1.45,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+          )
+        else
+          ..._reviews.map(
+            (review) => _ReviewTile(
+              name: review.name,
+              date: review.date,
+              rating: review.rating,
+              comment: review.comment,
             ),
-          );
-        }),
+          ),
       ],
     );
+  }
+
+  String _formatReviewDate(String raw) {
+    final parsed = CairoTime.parse(raw);
+    if (parsed == null) {
+      return raw;
+    }
+    const months = <String>[
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[parsed.month - 1]} ${parsed.day}';
   }
 
   Widget _buildLocations() {
@@ -766,6 +793,91 @@ class _TabButton extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ReviewTile extends StatelessWidget {
+  final String name;
+  final String date;
+  final int rating;
+  final String comment;
+
+  const _ReviewTile({
+    required this.name,
+    required this.date,
+    required this.rating,
+    required this.comment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDDE5F4)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.deepBlue.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  style: const TextStyle(
+                    color: AppColors.deepBlue,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              Text(
+                date,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF6C7897),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: List.generate(
+              5,
+              (i) => Icon(
+                Icons.star_rounded,
+                size: 15,
+                color: i < rating
+                    ? const Color(0xFFFFC44D)
+                    : const Color(0xFFDDE5F4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            comment,
+            style: const TextStyle(
+              color: Color(0xFF4C5C7D),
+              fontSize: 14,
+              height: 1.45,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
