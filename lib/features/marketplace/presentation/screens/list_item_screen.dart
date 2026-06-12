@@ -315,269 +315,241 @@ class _ListItemScreenState extends State<ListItemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF3F7FF),
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'List your item',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 48),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: _isSubmitting ? null : _pickImage,
-                      child: Center(
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey.shade200,
-                            border: Border.all(
-                              color: AppColors.primaryBlue,
-                              width: 2,
-                            ),
-                          ),
-                          child: _imagePath != null
-                              ? ClipOval(
-                                  child: Image.file(
-                                    File(_imagePath!),
-                                    width: 120,
-                                    height: 120,
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.camera_alt,
-                                  size: 48,
-                                  color: Colors.grey.shade600,
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildLabel('What is the product title ?'),
-                    const SizedBox(height: 6),
-                    _buildTextField(
-                      controller: _titleController,
-                      hint: 'Product title',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildLabel('What is the product price ?'),
-                    const SizedBox(height: 6),
-                    _buildTextField(
-                      controller: _priceController,
-                      hint: '0',
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildLabel('What is the product category ?'),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.primaryBlue.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _category,
-                          isExpanded: true,
-                          items: _categories
-                              .map(
-                                (c) => DropdownMenuItem<String>(
-                                  value: c,
-                                  child: Text(c),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: _isSubmitting
-                              ? null
-                              : (v) =>
-                                    setState(() => _category = v ?? _category),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildLabel('Condition'),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.primaryBlue.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _condition,
-                          isExpanded: true,
-                          items: const [
-                            DropdownMenuItem<String>(
-                              value: 'New',
-                              child: Text('New'),
-                            ),
-                            DropdownMenuItem<String>(
-                              value: 'Used',
-                              child: Text('Used'),
-                            ),
-                          ],
-                          onChanged: _isSubmitting
-                              ? null
-                              : (v) => setState(
-                                  () => _condition = v ?? _condition,
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildLabel('Describe your product'),
-                    const SizedBox(height: 6),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.primaryBlue.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      child: TextField(
-                        controller: _descriptionController,
-                        enabled: !_isSubmitting,
-                        maxLines: 4,
-                        decoration: const InputDecoration(
-                          hintText: "How's your product",
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildLabel('Seller / Contact info (shown to buyers)'),
-                    const SizedBox(height: 6),
-                    _buildTextField(
-                      controller: _sellerNameController,
-                      hint: 'Store or seller name',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTextField(
-                      controller: _sellerPhoneController,
-                      hint: 'Your phone number (e.g. +20 100 123 4567)',
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildLocationDropdown(),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.lightBlue.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.lightBlue.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: const Text(
-                        'Note: This is a display-only marketplace. You are responsible for all communications, transactions, and arrangements with buyers.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.primaryBlue,
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      height: 52,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          gradient: AppColors.primaryGradient,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryBlue.withValues(
-                                alpha: 0.3,
-                              ),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: _isSubmitting
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'List item',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTopBar(),
+              const SizedBox(height: 22),
+              const Text(
+                'SELL YOUR GEAR',
+                style: TextStyle(
+                  color: Color(0xFF91A0C0),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2.4,
+                  fontFamily: 'Inter',
                 ),
               ),
+              const SizedBox(height: 8),
+              const Text(
+                'List your item.',
+                style: TextStyle(
+                  color: AppColors.deepBlue,
+                  fontSize: 34,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Add the key details buyers need, then publish it to the marketplace.',
+                style: TextStyle(
+                  color: Color(0xFF657392),
+                  fontSize: 13,
+                  height: 1.45,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(height: 22),
+              _buildPhotoPicker(),
+              const SizedBox(height: 18),
+              _buildFormCard(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Row(
+      children: [
+        Material(
+          color: Colors.white,
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => Navigator.of(context).pop(),
+            child: const SizedBox(
+              width: 44,
+              height: 44,
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: AppColors.deepBlue,
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+        const Spacer(),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFDDE7FA)),
+          ),
+          child: const Icon(
+            Icons.storefront_rounded,
+            color: AppColors.deepBlue,
+            size: 19,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhotoPicker() {
+    return GestureDetector(
+      onTap: _isSubmitting ? null : _pickImage,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: const Color(0xFFDDE7FA)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.deepBlue.withValues(alpha: 0.06),
+              blurRadius: 24,
+              offset: const Offset(0, 14),
             ),
           ],
         ),
+        child: Row(
+          children: [
+            Container(
+              width: 78,
+              height: 78,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F7FF),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFDDE7FA)),
+              ),
+              child: _imagePath != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(23),
+                      child: Image.file(
+                        File(_imagePath!),
+                        width: 78,
+                        height: 78,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.add_a_photo_rounded,
+                      color: AppColors.deepBlue,
+                      size: 28,
+                    ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Product photo',
+                    style: TextStyle(
+                      color: AppColors.deepBlue,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Required. Tap to choose a clear image.',
+                    style: TextStyle(
+                      color: Color(0xFF7A86A5),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFFB7C2DA)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFDDE7FA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildLabel('Product title'),
+          const SizedBox(height: 8),
+          _buildTextField(controller: _titleController, hint: 'Product title'),
+          const SizedBox(height: 16),
+          _buildLabel('Price'),
+          const SizedBox(height: 8),
+          _buildTextField(
+            controller: _priceController,
+            hint: '0 LE',
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 16),
+          _buildLabel('Category'),
+          const SizedBox(height: 8),
+          _buildDropdown<String>(
+            value: _category,
+            items: _categories,
+            onChanged: (value) => setState(() => _category = value),
+          ),
+          const SizedBox(height: 16),
+          _buildLabel('Condition'),
+          const SizedBox(height: 8),
+          _buildDropdown<String>(
+            value: _condition,
+            items: const ['New', 'Used'],
+            onChanged: (value) => setState(() => _condition = value),
+          ),
+          const SizedBox(height: 16),
+          _buildLabel('Description'),
+          const SizedBox(height: 8),
+          _buildTextField(
+            controller: _descriptionController,
+            hint: "How's your product?",
+            maxLines: 5,
+          ),
+          const SizedBox(height: 20),
+          _buildSectionPill('Seller / contact info'),
+          const SizedBox(height: 14),
+          _buildTextField(
+            controller: _sellerNameController,
+            hint: 'Store or seller name',
+          ),
+          const SizedBox(height: 12),
+          _buildTextField(
+            controller: _sellerPhoneController,
+            hint: 'Phone number (e.g. +20 100 123 4567)',
+            keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 12),
+          _buildLocationDropdown(),
+          const SizedBox(height: 18),
+          _buildNotice(),
+          const SizedBox(height: 22),
+          _buildSubmitButton(),
+        ],
       ),
     );
   }
@@ -585,9 +557,11 @@ class _ListItemScreenState extends State<ListItemScreen> {
   Widget _buildLabel(String text) => Text(
     text,
     style: const TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
-      color: AppColors.textPrimary,
+      fontSize: 12,
+      fontWeight: FontWeight.w900,
+      color: AppColors.deepBlue,
+      letterSpacing: 0.2,
+      fontFamily: 'Inter',
     ),
   );
 
@@ -595,29 +569,79 @@ class _ListItemScreenState extends State<ListItemScreen> {
     required TextEditingController controller,
     required String hint,
     TextInputType? keyboardType,
+    int maxLines = 1,
   }) => TextField(
     controller: controller,
     enabled: !_isSubmitting,
     keyboardType: keyboardType,
+    maxLines: maxLines,
+    style: const TextStyle(
+      color: AppColors.deepBlue,
+      fontWeight: FontWeight.w700,
+      fontFamily: 'Inter',
+    ),
     decoration: InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: const Color(0xFFF8FAFF),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: AppColors.primaryBlue.withValues(alpha: 0.6),
-        ),
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Color(0xFFDDE7FA)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(
-          color: AppColors.primaryBlue.withValues(alpha: 0.6),
-        ),
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: Color(0xFFDDE7FA)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: const BorderSide(color: AppColors.lightBlue, width: 1.4),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
   );
+
+  Widget _buildDropdown<T>({
+    required T value,
+    required List<T> items,
+    required ValueChanged<T> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDDE7FA)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          borderRadius: BorderRadius.circular(18),
+          items: items
+              .map(
+                (item) => DropdownMenuItem<T>(
+                  value: item,
+                  child: Text(
+                    item.toString(),
+                    style: const TextStyle(
+                      color: AppColors.deepBlue,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: _isSubmitting
+              ? null
+              : (selected) {
+                  if (selected == null) return;
+                  onChanged(selected);
+                },
+        ),
+      ),
+    );
+  }
 
   Widget _buildLocationDropdown() {
     final areas = EgyptLocations.allAreas;
@@ -628,19 +652,29 @@ class _ListItemScreenState extends State<ListItemScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.6)),
+        color: const Color(0xFFF8FAFF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDDE7FA)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           hint: const Text('Your location (e.g. Nasr City)'),
           isExpanded: true,
+          borderRadius: BorderRadius.circular(18),
           items: areas
               .map(
-                (area) =>
-                    DropdownMenuItem<String>(value: area, child: Text(area)),
+                (area) => DropdownMenuItem<String>(
+                  value: area,
+                  child: Text(
+                    area,
+                    style: const TextStyle(
+                      color: AppColors.deepBlue,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                ),
               )
               .toList(growable: false),
           onChanged: _isSubmitting
@@ -649,6 +683,103 @@ class _ListItemScreenState extends State<ListItemScreen> {
                   if (v == null) return;
                   setState(() => _sellerLocationController.text = v);
                 },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionPill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.lightBlue.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text.toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.deepBlue,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.2,
+          fontFamily: 'Inter',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotice() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF8FF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.lightBlue.withValues(alpha: 0.35)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: AppColors.deepBlue, size: 18),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'You are responsible for all communications, transactions, and arrangements with buyers.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.deepBlue,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Inter',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      height: 56,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: AppColors.primaryGradient,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryBlue.withValues(alpha: 0.24),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: _isSubmitting ? null : _submit,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text(
+                  'List item',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'Inter',
+                  ),
+                ),
         ),
       ),
     );
