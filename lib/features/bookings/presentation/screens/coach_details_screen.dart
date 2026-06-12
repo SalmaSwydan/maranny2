@@ -6,6 +6,7 @@ import '../../data/repositories/reviews_payments_repository.dart';
 import '../../domain/models/booking_session_model.dart';
 import '../../domain/models/coach_data_model.dart';
 import '../widgets/book_session_sheet.dart';
+import '../../../profile/data/repositories/profile_repository.dart';
 
 class CoachDetailsScreen extends StatefulWidget {
   final BookingSessionModel session;
@@ -25,6 +26,7 @@ class CoachDetailsScreen extends StatefulWidget {
 
 class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
   final ReviewsRepository _reviewsRepository = ReviewsRepository();
+  final ProfileRepository _profileRepository = ProfileRepository();
   bool _bioExpanded = false;
   bool _isLoadingReviews = false;
   int _selectedTab = 0;
@@ -32,6 +34,10 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
   List<ReviewModel> _apiReviews = const <ReviewModel>[];
   double? _apiAverageRating;
   int? _apiReviewCount;
+  int? _apiTotalStudents;
+  int? _apiTotalSessions;
+  double? _apiHoursTaught;
+  int? _apiPrice;
 
   @override
   void initState() {
@@ -47,6 +53,7 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
           ),
         );
     _loadReviews();
+    _loadCoachProfileStats();
   }
 
   CoachData _coachDataFromSession() {
@@ -78,12 +85,12 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
   }
 
   String get _bio => _data.bio;
-  int get _totalStudents => _data.totalStudents;
-  int get _totalSessions => _data.totalSessions;
-  double get _hoursTaught => _data.hoursTaught;
+  int get _totalStudents => _apiTotalStudents ?? _data.totalStudents;
+  int get _totalSessions => _apiTotalSessions ?? _data.totalSessions;
+  double get _hoursTaught => _apiHoursTaught ?? _data.hoursTaught;
   double get _rating => _apiAverageRating ?? _data.rating;
   int get _reviewCount => _apiReviewCount ?? _data.reviewCount;
-  int get _price => _data.price;
+  int get _price => _apiPrice ?? _data.price;
 
   String get _image {
     if (widget.image.isNotEmpty) return widget.image;
@@ -149,6 +156,35 @@ class _CoachDetailsScreenState extends State<CoachDetailsScreen> {
       }
       setState(() => _isLoadingReviews = false);
     }
+  }
+
+  Future<void> _loadCoachProfileStats() async {
+    final coachId = widget.session.coachUserId;
+    if (coachId <= 0) {
+      return;
+    }
+
+    try {
+      final profile = await _profileRepository.getCoachProfile(coachId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        if (profile.totalStudents > 0) {
+          _apiTotalStudents = profile.totalStudents;
+        }
+        if (profile.totalSessions > 0) {
+          _apiTotalSessions = profile.totalSessions;
+        }
+        if (profile.hoursTaught > 0) {
+          _apiHoursTaught = profile.hoursTaught;
+        }
+        final resolvedPrice = profile.resolvedPrice;
+        if (resolvedPrice != null && resolvedPrice > 0) {
+          _apiPrice = resolvedPrice.round();
+        }
+      });
+    } catch (_) {}
   }
 
   void _openBooking() {

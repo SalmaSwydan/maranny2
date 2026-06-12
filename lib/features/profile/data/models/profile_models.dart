@@ -115,6 +115,9 @@ class CoachProfileModel {
   final List<CoachSportModel> sports;
   final List<String> locations;
   final int totalReviews;
+  final int totalStudents;
+  final int totalSessions;
+  final double hoursTaught;
   final List<Map<String, dynamic>> upcomingSessions;
   final List<Map<String, dynamic>> recentReviews;
 
@@ -127,6 +130,9 @@ class CoachProfileModel {
     required this.sports,
     required this.locations,
     required this.totalReviews,
+    required this.totalStudents,
+    required this.totalSessions,
+    required this.hoursTaught,
     required this.upcomingSessions,
     required this.recentReviews,
     this.bio,
@@ -194,6 +200,33 @@ class CoachProfileModel {
           .toList(),
       locations: List<String>.from(payload['locations'] ?? const []),
       totalReviews: _asInt(payload['totalReviews']),
+      totalStudents: _countOrInt(payload, const [
+        'totalStudents',
+        'studentsCount',
+        'studentCount',
+        'totalClients',
+        'clientsCount',
+        'bookedClients',
+        'students',
+        'clients',
+      ]),
+      totalSessions: _countOrInt(payload, const [
+        'totalSessions',
+        'sessionsCount',
+        'sessionCount',
+        'completedSessions',
+        'completedSessionCount',
+        'bookingsCount',
+        'sessions',
+        'bookings',
+      ]),
+      hoursTaught: _firstDouble(payload, const [
+        'hoursTaught',
+        'hoursTrained',
+        'totalHours',
+        'totalHoursTaught',
+        'trainingHours',
+      ]),
       upcomingSessions:
           (payload['upcomingSessions'] as List<dynamic>? ?? const [])
               .whereType<Map>()
@@ -359,6 +392,32 @@ double _asDouble(dynamic value, {double fallback = 0}) {
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value) ?? fallback;
   return fallback;
+}
+
+int _countOrInt(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is List) return value.length;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsed = int.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+  }
+  return 0;
+}
+
+double _firstDouble(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+  }
+  return 0;
 }
 
 double? _asNullableDouble(dynamic value) {

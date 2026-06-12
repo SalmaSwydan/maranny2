@@ -437,7 +437,12 @@ class BookingModel {
             sessionJson['amount'] ??
             sessionJson['price'] ??
             sessionJson['sessionPrice'] ??
-            sessionJson['pricePerSession'],
+            sessionJson['pricePerSession'] ??
+            coachJson['sessionPrice'] ??
+            coachJson['pricePerSession'] ??
+            coachJson['startingPrice'] ??
+            coachJson['hourlyRate'] ??
+            _firstSportPrice(coachJson['sports']),
       ),
     );
   }
@@ -583,6 +588,22 @@ double? _asNullableDouble(dynamic value) {
   if (value is double) return value;
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value);
+  return null;
+}
+
+double? _firstSportPrice(dynamic sports) {
+  if (sports is! List) return null;
+  for (final sport in sports) {
+    final map = _asMap(sport);
+    if (map == null) continue;
+    final price = _asNullableDouble(
+      map['pricePerSession'] ??
+          map['sessionPrice'] ??
+          map['price'] ??
+          map['hourlyRate'],
+    );
+    if (price != null && price > 0) return price;
+  }
   return null;
 }
 

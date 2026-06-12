@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import '../../../../core/network/api_config.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/cairo_time.dart';
 import '../../../../core/utils/egypt_locations.dart';
 import '../../../bookings/presentation/screens/coach_details_screen.dart';
 import '../../../bookings/domain/models/booking_session_model.dart';
@@ -343,19 +344,88 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   }
 
   int _coachPrice(Map<String, dynamic> coach) {
-    final sports = coach['sports'];
-    if (sports is List && sports.isNotEmpty) {
-      final first = sports.first;
-      if (first is Map<String, dynamic>) {
-        final price = first['pricePerSession'];
-        if (price is num) return price.toInt();
-      }
+    final direct = _firstPositiveInt([
+      coach['sessionPrice'],
+      coach['pricePerSession'],
+      coach['startingPrice'],
+      coach['hourlyRate'],
+      coach['price'],
+    ]);
+    if (direct > 0) {
+      return direct;
     }
 
-    final value =
-        coach['startingPrice'] ?? coach['price'] ?? coach['pricePerSession'];
-    if (value is int) return value;
-    if (value is num) return value.toInt();
+    final sports = coach['sports'];
+    if (sports is List && sports.isNotEmpty) {
+      for (final sport in sports) {
+        if (sport is Map) {
+          final price = _firstPositiveInt([sport['pricePerSession']]);
+          if (price > 0) return price;
+        }
+      }
+    }
+    return 0;
+  }
+
+  int _firstPositiveInt(List<dynamic> values) {
+    for (final value in values) {
+      if (value is num && value > 0) return value.round();
+      final parsed = num.tryParse(value?.toString() ?? '');
+      if (parsed != null && parsed > 0) return parsed.round();
+    }
+    return 0;
+  }
+
+  int _coachTotalStudents(Map<String, dynamic> coach) {
+    return _firstCountOrPositiveInt(coach, const [
+      'totalStudents',
+      'studentsCount',
+      'studentCount',
+      'totalClients',
+      'clientsCount',
+      'bookedClients',
+      'students',
+      'clients',
+    ]);
+  }
+
+  int _coachTotalSessions(Map<String, dynamic> coach) {
+    return _firstCountOrPositiveInt(coach, const [
+      'totalSessions',
+      'sessionsCount',
+      'sessionCount',
+      'completedSessions',
+      'completedSessionCount',
+      'bookingsCount',
+      'sessions',
+      'bookings',
+    ]);
+  }
+
+  double _coachHoursTaught(Map<String, dynamic> coach) {
+    for (final key in const [
+      'hoursTaught',
+      'hoursTrained',
+      'totalHours',
+      'totalHoursTaught',
+      'trainingHours',
+    ]) {
+      final value = coach[key];
+      if (value is num && value >= 0) return value.toDouble();
+      final parsed = num.tryParse(value?.toString() ?? '');
+      if (parsed != null && parsed >= 0) return parsed.toDouble();
+    }
+    return 0;
+  }
+
+  int _firstCountOrPositiveInt(Map<String, dynamic> coach, List<String> keys) {
+    for (final key in keys) {
+      final value = coach[key];
+      if (value is List) return value.length;
+      if (value is num && value > 0) return value.round();
+      final parsed = num.tryParse(value?.toString() ?? '');
+      if (parsed != null && parsed > 0) return parsed.round();
+    }
     return 0;
   }
 
@@ -518,7 +588,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       coachName: name,
       sport: sport,
       location: location,
-      date: DateTime.now(),
+      date: CairoTime.now(),
       isPast: false,
       isReviewed: false,
     );
@@ -535,9 +605,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       reviewCount: _coachReviews(coach),
       price: _coachPrice(coach),
       bio: _coachDescription(coach),
-      totalStudents: 0,
-      totalSessions: 0,
-      hoursTaught: 0,
+      totalStudents: _coachTotalStudents(coach),
+      totalSessions: _coachTotalSessions(coach),
+      hoursTaught: _coachHoursTaught(coach),
       achievements: const [],
       reviews: const [],
     );

@@ -8,6 +8,8 @@ import '../../../../core/utils/profile_validators.dart';
 import '../../../../core/utils/user_preferences_storage.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../auth/data/models/user_model.dart';
+import '../../../bookings/data/models/bookings_models.dart';
+import '../../../bookings/data/repositories/bookings_repository.dart';
 import '../../data/repositories/profile_repository.dart';
 import 'client_edit_profile_screen.dart';
 import 'dart:io';
@@ -22,6 +24,7 @@ class ClientProfileScreen extends StatefulWidget {
 class _ClientProfileScreenState extends State<ClientProfileScreen> {
   final AuthRepository _authRepository = AuthRepository();
   final ProfileRepository _profileRepository = ProfileRepository();
+  final BookingsRepository _bookingsRepository = BookingsRepository();
 
   bool _isLoading = true;
   bool _isUploadingImage = false;
@@ -34,6 +37,9 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
   String bio = '';
   String sports = 'No sports yet';
   String? profilePicture;
+  String totalBooked = '0';
+  String totalSessions = '0';
+  String hoursTrained = '0';
 
   @override
   void initState() {
@@ -49,7 +55,14 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
 
     try {
       final UserModel user = await _authRepository.getCurrentUser();
-      final savedPrefs = await _loadLatestPreferences();
+      final results = await Future.wait<Object?>([
+        _loadLatestPreferences(),
+        _loadClientBookingsFallback(),
+      ]);
+      final savedPrefs = results[0] as UserPreferences;
+      final bookings =
+          (results[1] as List<BookingModel>?) ?? const <BookingModel>[];
+      final bookingStats = _buildClientBookingStats(bookings);
       final profileCache = await ClientProfileStorage.load();
 
       if (!mounted) return;
@@ -66,6 +79,9 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
         sports = savedPrefs.sports.isNotEmpty
             ? savedPrefs.sports.join(', ')
             : 'No sports yet';
+        totalBooked = bookingStats.totalBooked.toString();
+        totalSessions = bookingStats.totalSessions.toString();
+        hoursTrained = _formatHours(bookingStats.hoursTrained);
         _isLoading = false;
       });
     } catch (_) {
@@ -76,6 +92,76 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<List<BookingModel>> _loadClientBookingsFallback() async {
+    try {
+      return await _bookingsRepository.getMyBookings();
+    } catch (_) {
+      return const <BookingModel>[];
+    }
+  }
+
+  _ClientBookingStats _buildClientBookingStats(List<BookingModel> bookings) {
+    final booked = bookings
+        .where(
+          (booking) =>
+              isPendingBookingStatus(booking.status) ||
+              isConfirmedBookingStatus(booking.status) ||
+              isCompletedBookingStatus(booking.status),
+        )
+        .toList(growable: false);
+    final sessions = booked
+        .where(
+          (booking) =>
+              isConfirmedBookingStatus(booking.status) ||
+              isCompletedBookingStatus(booking.status),
+        )
+        .toList(growable: false);
+
+    final minutes = sessions.fold<int>(
+      0,
+      (total, booking) => total + _sessionDurationMinutes(booking.session),
+    );
+
+    return _ClientBookingStats(
+      totalBooked: booked.length,
+      totalSessions: sessions.length,
+      hoursTrained: minutes / 60,
+    );
+  }
+
+  int _sessionDurationMinutes(SessionModel session) {
+    final start = _parseMinutes(session.startTime);
+    final end = _parseMinutes(session.endTime);
+    if (start == null || end == null) {
+      return 60;
+    }
+    var diff = end - start;
+    if (diff <= 0) diff += 24 * 60;
+    return diff;
+  }
+
+  int? _parseMinutes(String raw) {
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$',
+      caseSensitive: false,
+    ).firstMatch(raw.trim());
+    if (match == null) return null;
+
+    var hour = int.tryParse(match.group(1) ?? '');
+    final minute = int.tryParse(match.group(2) ?? '');
+    final meridiem = match.group(3)?.toUpperCase();
+    if (hour == null || minute == null) return null;
+    if (meridiem == 'PM' && hour < 12) hour += 12;
+    if (meridiem == 'AM' && hour == 12) hour = 0;
+    return hour * 60 + minute;
+  }
+
+  String _formatHours(double value) {
+    if (value <= 0) return '0';
+    if (value == value.roundToDouble()) return value.toInt().toString();
+    return value.toStringAsFixed(1);
   }
 
   Future<UserPreferences> _loadLatestPreferences() async {
@@ -161,7 +247,11 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
               isUploadingImage: _isUploadingImage,
             ),
             const SizedBox(height: 14),
-            const ProfileStats(),
+            ProfileStats(
+              totalBooked: totalBooked,
+              totalSessions: totalSessions,
+              hoursTrained: hoursTrained,
+            ),
             const SizedBox(height: 18),
             _ProfileCompletionCard(
               missing: ProfileValidators.missingClientProfileFields(
@@ -295,6 +385,18 @@ class _ClientProfileScreenState extends State<ClientProfileScreen> {
     }
     return '';
   }
+}
+
+class _ClientBookingStats {
+  final int totalBooked;
+  final int totalSessions;
+  final double hoursTrained;
+
+  const _ClientBookingStats({
+    required this.totalBooked,
+    required this.totalSessions,
+    required this.hoursTrained,
+  });
 }
 
 class _ProfileCompletionCard extends StatelessWidget {
