@@ -4,14 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:maranny_two/features/messages/presentation/screens/chat_screen.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/cairo_time.dart';
 import '../../data/models/bookings_models.dart';
 import '../../data/repositories/bookings_repository.dart';
 import '../../data/repositories/reviews_payments_repository.dart';
-import '../../domain/models/booking_session_model.dart';
-import '../../domain/models/coach_data_model.dart';
 import '../utils/bookings_refresh_notifier.dart';
-import 'coach_details_screen.dart';
 import 'rate_coach_screen.dart';
+import 'session_info_screen.dart';
 
 class BookingsScreen extends StatefulWidget {
   final VoidCallback onMessageTap;
@@ -103,7 +102,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
     if (scheduledAt == null) {
       return false;
     }
-    return scheduledAt.isBefore(DateTime.now());
+    return scheduledAt.isBefore(CairoTime.now());
   }
 
   bool _isUpcoming(BookingModel booking) =>
@@ -136,28 +135,6 @@ class _BookingsScreenState extends State<BookingsScreen> {
     return booking.coach.userID ?? booking.coach.coachID;
   }
 
-  CoachData _coachDataFromBooking(BookingModel booking) {
-    final session = booking.session;
-    final coach = booking.coach;
-
-    return CoachData(
-      name: coach.name,
-      sport: session.sportName,
-      location: session.location,
-      image: '',
-      availableDays: const [],
-      rating: coach.avgRating,
-      reviewCount: 0,
-      price: (session.price ?? 0).round(),
-      bio: '',
-      totalStudents: 0,
-      totalSessions: 0,
-      hoursTaught: 0,
-      achievements: const [],
-      reviews: const [],
-    );
-  }
-
   Future<void> _openBookingDetails(BookingModel booking) async {
     BookingModel bookingDetails = booking;
 
@@ -169,27 +146,10 @@ class _BookingsScreenState extends State<BookingsScreen> {
 
     if (!mounted) return;
 
-    final detailsSession = BookingSessionModel(
-      id: bookingDetails.bookingID.toString(),
-      coachUserId: _coachUserId(bookingDetails),
-      coachName: bookingDetails.coach.name,
-      sport: bookingDetails.session.sportName,
-      location: bookingDetails.session.location,
-      date:
-          bookingDetails.scheduledDateTime ??
-          DateTime.tryParse(bookingDetails.session.sessionDate) ??
-          DateTime.now(),
-      isPast: _isPastSession(bookingDetails),
-    );
-
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CoachDetailsScreen(
-          session: detailsSession,
-          image: '',
-          coachData: _coachDataFromBooking(bookingDetails),
-        ),
+        builder: (_) => SessionInfoScreen(booking: bookingDetails),
       ),
     );
   }
@@ -458,7 +418,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
     final scheduledAt =
         booking.scheduledDateTime ?? DateTime.tryParse(session.sessionDate);
     final statusStyle = _statusStyle(booking);
-    final price = _priceText(session.price);
+    final price = _priceText(session.price ?? booking.amount);
 
     return Container(
       decoration: BoxDecoration(
@@ -811,7 +771,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
   }
 
   String _formatDate(String raw) {
-    final parsed = DateTime.tryParse(raw);
+    final parsed = CairoTime.parse(raw);
     if (parsed == null) return raw;
     return '${parsed.day}/${parsed.month}/${parsed.year}';
   }
@@ -836,8 +796,21 @@ class _BookingsScreenState extends State<BookingsScreen> {
   }
 
   String _formatTime(String raw) {
-    if (raw.length >= 5) return raw.substring(0, 5);
-    return raw;
+    final value = raw.trim();
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$',
+      caseSensitive: false,
+    ).firstMatch(value);
+    if (match == null) return value;
+
+    var hour = int.tryParse(match.group(1) ?? '') ?? 0;
+    final minute = int.tryParse(match.group(2) ?? '') ?? 0;
+    final meridiem = match.group(3)?.toUpperCase();
+    if (meridiem == 'PM' && hour < 12) hour += 12;
+    if (meridiem == 'AM' && hour == 12) hour = 0;
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour % 12 == 0 ? 12 : hour % 12;
+    return '$displayHour:${minute.toString().padLeft(2, '0')} $period';
   }
 
   String _formatClock(DateTime scheduledAt, String fallbackRaw) {

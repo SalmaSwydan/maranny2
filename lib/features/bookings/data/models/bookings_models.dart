@@ -1,3 +1,5 @@
+import '../../../../core/utils/cairo_time.dart';
+
 class SessionModel {
   final int sessionID;
   final String sessionDate;
@@ -56,13 +58,13 @@ class SessionModel {
     ),
     location: _asString(json['location']),
     maxParticipants: _asInt(json['maxParticipants']),
-    startTime: _asString(
+    startTime: _asTimeString(
       json['start_Time'] ??
           json['startTime'] ??
           json['sessionTime'] ??
           json['time'],
     ),
-    endTime: _asString(json['end_Time'] ?? json['endTime']),
+    endTime: _asTimeString(json['end_Time'] ?? json['endTime']),
     status: _asString(json['status'], fallback: 'Pending'),
     sportName: _asString(
       json['sportName'] ?? json['sport']?['name'],
@@ -82,7 +84,10 @@ class SessionModel {
     price: _asNullableDouble(
       json['price'] ??
           json['totalPrice'] ??
+          json['totalAmount'] ??
+          json['amountPaid'] ??
           json['sessionPrice'] ??
+          json['pricePerSession'] ??
           json['amount'],
     ),
   );
@@ -370,6 +375,7 @@ class BookingModel {
   final SessionModel session;
   final CoachSummary coach;
   final BookingUserSummary? client;
+  final double? amount;
 
   const BookingModel({
     required this.bookingID,
@@ -379,10 +385,15 @@ class BookingModel {
     required this.session,
     required this.coach,
     this.client,
+    this.amount,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
-    final sessionJson = _asMap(json['session']) ?? json;
+    final nestedSessionJson = _asMap(json['session']);
+    final sessionJson = <String, dynamic>{
+      ...json,
+      if (nestedSessionJson != null) ...nestedSessionJson,
+    };
     final coachJson =
         _asMap(json['coach']) ??
         _asMap(sessionJson['coach']) ??
@@ -416,6 +427,18 @@ class BookingModel {
       client: clientJson != null
           ? BookingUserSummary.fromJson(clientJson)
           : null,
+      amount: _asNullableDouble(
+        json['totalAmount'] ??
+            json['amount'] ??
+            json['price'] ??
+            json['sessionPrice'] ??
+            json['pricePerSession'] ??
+            sessionJson['totalAmount'] ??
+            sessionJson['amount'] ??
+            sessionJson['price'] ??
+            sessionJson['sessionPrice'] ??
+            sessionJson['pricePerSession'],
+      ),
     );
   }
 
@@ -662,7 +685,8 @@ List<String> _extractAvailableHours(Map<String, dynamic> json) {
 
 String _dayNameFromDate(String value) {
   try {
-    final date = DateTime.parse(value);
+    final date = CairoTime.parse(value);
+    if (date == null) return '';
     switch (date.weekday) {
       case DateTime.monday:
         return 'Monday';
@@ -688,7 +712,8 @@ String _dayNameFromDate(String value) {
 
 String _formattedDateFromDate(String value) {
   try {
-    final date = DateTime.parse(value);
+    final date = CairoTime.parse(value);
+    if (date == null) return value;
     return '${date.day}/${date.month}/${date.year}';
   } catch (_) {
     return value;
@@ -818,11 +843,44 @@ DateTime? _parseFlexibleDateTime(String? raw) {
     return null;
   }
 
-  final parsed = DateTime.tryParse(raw.trim());
+  final parsed = CairoTime.parse(raw.trim());
   if (parsed == null) {
     return null;
   }
-  return parsed.isUtc ? parsed.toLocal() : parsed;
+  return parsed;
+}
+
+String _asTimeString(dynamic value, {String fallback = ''}) {
+  if (value == null) return fallback;
+
+  if (value is Map) {
+    final direct = _asString(
+      value['time'] ??
+          value['value'] ??
+          value['startTime'] ??
+          value['start_Time'] ??
+          value['endTime'] ??
+          value['end_Time'],
+    );
+    if (direct.isNotEmpty) return direct;
+
+    final hours = _asNullableInt(value['hours']);
+    final minutes = _asNullableInt(value['minutes']) ?? 0;
+    if (hours != null) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}';
+    }
+
+    final ticks = value['ticks'];
+    final parsedTicks = ticks is num ? ticks.toInt() : int.tryParse('$ticks');
+    if (parsedTicks != null && parsedTicks >= 0) {
+      final totalMinutes = parsedTicks ~/ 600000000;
+      final hour = (totalMinutes ~/ 60) % 24;
+      final minute = totalMinutes % 60;
+      return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+    }
+  }
+
+  return _asString(value, fallback: fallback);
 }
 
 DateTime? _parseFlexibleTime(String? raw) {
@@ -832,7 +890,7 @@ DateTime? _parseFlexibleTime(String? raw) {
 
   final normalized = raw.trim().replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
   final match = RegExp(
-    r'^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$',
+    r'^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$',
   ).firstMatch(normalized);
   if (match == null) {
     return null;

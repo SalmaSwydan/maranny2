@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'search_bar.dart';
-import 'client_sports_categories.dart';
 import '../../../notifications/presentation/screens/client_notifications_screen.dart';
 import '../screens/client_search_screen.dart';
 
@@ -33,8 +32,6 @@ class HomeHeaderTwo extends StatelessWidget {
             ),
             child: const AbsorbPointer(child: HomeSearchBar()),
           ),
-          const SizedBox(height: 16),
-          const SportsCategoriesTwo(),
         ],
       ),
     );

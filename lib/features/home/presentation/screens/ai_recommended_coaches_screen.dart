@@ -158,9 +158,9 @@ class _AiRecommendedCoachesScreenState
       reviewCount: coach.reviewCount,
       price: coach.price,
       bio: coach.bio,
-      totalStudents: 0,
-      totalSessions: 0,
-      hoursTaught: 0,
+      totalStudents: coach.totalStudents,
+      totalSessions: coach.totalSessions,
+      hoursTaught: coach.hoursTaught,
       achievements: const [],
       reviews: const [],
     );
@@ -599,7 +599,22 @@ class _RecommendationCard extends StatefulWidget {
 }
 
 class _RecommendationCardState extends State<_RecommendationCard> {
-  bool _expanded = false;
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.rank == 1 && widget.coach.score >= 85;
+  }
+
+  @override
+  void didUpdateWidget(covariant _RecommendationCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.coach.coachId != widget.coach.coachId ||
+        oldWidget.rank != widget.rank) {
+      _expanded = widget.rank == 1 && widget.coach.score >= 85;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -748,7 +763,7 @@ class _RecommendationCardState extends State<_RecommendationCard> {
               ),
             ],
           ),
-          if (_expanded || isBest) ...[
+          if (_expanded) ...[
             const SizedBox(height: 12),
             _WhyCoachPanel(coach: coach),
           ],
@@ -1275,6 +1290,9 @@ class _RecommendedCoach {
   final int reviewCount;
   final int price;
   final String bio;
+  final int totalStudents;
+  final int totalSessions;
+  final double hoursTaught;
   final List<String> availableDays;
   final String nextFreeText;
   final double score;
@@ -1296,6 +1314,9 @@ class _RecommendedCoach {
     required this.reviewCount,
     required this.price,
     required this.bio,
+    required this.totalStudents,
+    required this.totalSessions,
+    required this.hoursTaught,
     required this.availableDays,
     required this.nextFreeText,
     required this.score,
@@ -1477,6 +1498,9 @@ class _RecommendedCoach {
         coach['bio'],
         coach['description'],
       ], fallback: 'Professional coach with experience.'),
+      totalStudents: _coachTotalStudents(coach),
+      totalSessions: _coachTotalSessions(coach),
+      hoursTaught: _coachHoursTaught(coach),
       availableDays: availableDays,
       nextFreeText: _nextFreeText(coach),
       score: score,
@@ -1768,6 +1792,43 @@ int _coachPrice(Map<String, dynamic> coach) {
         if (price > 0) return price;
       }
     }
+  }
+  return 0;
+}
+
+int _coachTotalStudents(Map<String, dynamic> coach) {
+  return _firstPositiveInt([
+    coach['totalStudents'],
+    coach['studentsCount'],
+    coach['studentCount'],
+    coach['totalClients'],
+    coach['clientsCount'],
+    coach['bookedClients'],
+  ]);
+}
+
+int _coachTotalSessions(Map<String, dynamic> coach) {
+  return _firstPositiveInt([
+    coach['totalSessions'],
+    coach['sessionsCount'],
+    coach['sessionCount'],
+    coach['completedSessions'],
+    coach['completedSessionCount'],
+    coach['bookingsCount'],
+  ]);
+}
+
+double _coachHoursTaught(Map<String, dynamic> coach) {
+  for (final value in [
+    coach['hoursTaught'],
+    coach['hoursTrained'],
+    coach['totalHours'],
+    coach['totalHoursTaught'],
+    coach['trainingHours'],
+  ]) {
+    if (value is num && value >= 0) return value.toDouble();
+    final parsed = num.tryParse(value?.toString() ?? '');
+    if (parsed != null && parsed >= 0) return parsed.toDouble();
   }
   return 0;
 }

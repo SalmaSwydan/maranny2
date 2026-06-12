@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
+import '../../../../core/utils/cairo_time.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../messages/data/models/messages_models.dart';
 import '../../../messages/data/repositories/messages_repository.dart';
@@ -8,6 +9,7 @@ import '../../../messages/presentation/screens/CoachChatScreen.dart';
 import '../../data/models/bookings_models.dart';
 import '../../data/repositories/bookings_repository.dart';
 import '../utils/bookings_refresh_notifier.dart';
+import 'session_info_screen.dart';
 
 class UpcomingScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -91,7 +93,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
     if (scheduledAt == null) {
       return false;
     }
-    return scheduledAt.isBefore(DateTime.now());
+    return scheduledAt.isBefore(CairoTime.now());
   }
 
   bool _isPending(BookingModel booking) =>
@@ -128,7 +130,8 @@ class _UpcomingScreenState extends State<UpcomingScreen>
 
   String _formatDate(String raw) {
     try {
-      final d = DateTime.parse(raw);
+      final d = CairoTime.parse(raw);
+      if (d == null) return raw;
       return '${d.day}/${d.month}/${d.year}';
     } catch (_) {
       return raw;
@@ -136,14 +139,27 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   }
 
   String _formatTime(String raw) {
-    if (raw.length >= 5) return raw.substring(0, 5);
-    return raw;
+    final value = raw.trim();
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$',
+      caseSensitive: false,
+    ).firstMatch(value);
+    if (match == null) return value;
+
+    var hour = int.tryParse(match.group(1) ?? '') ?? 0;
+    final minute = int.tryParse(match.group(2) ?? '') ?? 0;
+    final meridiem = match.group(3)?.toUpperCase();
+    if (meridiem == 'PM' && hour < 12) hour += 12;
+    if (meridiem == 'AM' && hour == 12) hour = 0;
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour % 12 == 0 ? 12 : hour % 12;
+    return '$displayHour:${minute.toString().padLeft(2, '0')} $period';
   }
 
   String _formatDayForMessage(BookingModel booking) {
     final scheduledAt =
         booking.scheduledDateTime ??
-        DateTime.tryParse(booking.session.sessionDate);
+        CairoTime.parse(booking.session.sessionDate);
     if (scheduledAt == null) return _formatDate(booking.session.sessionDate);
 
     const days = <String>[
@@ -176,7 +192,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
   }
 
   String _price(BookingModel booking) {
-    final price = booking.session.price;
+    final price = booking.session.price ?? booking.amount;
     if (price == null || price <= 0) {
       return 'Price not set';
     }
@@ -243,6 +259,20 @@ class _UpcomingScreenState extends State<UpcomingScreen>
           isOnline: false,
         ),
       ),
+    );
+  }
+
+  Future<void> _openSessionInfo(BookingModel booking) async {
+    BookingModel details = booking;
+    try {
+      details = await _repo.getBookingById(booking.bookingID);
+    } catch (_) {
+      details = booking;
+    }
+
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => SessionInfoScreen(booking: details)),
     );
   }
 
@@ -663,6 +693,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
             onAccept: () => _showAcceptPreview(booking),
             onDecline: () => _confirmDecline(booking),
             onChat: () => _openClientChat(booking),
+            onInfo: () => _openSessionInfo(booking),
           );
         }
 
@@ -678,6 +709,7 @@ class _UpcomingScreenState extends State<UpcomingScreen>
           statusColor: const Color(0xFF1FA463),
           statusBackground: const Color(0xFFE0F7EA),
           onChat: () => _openClientChat(booking),
+          onInfo: () => _openSessionInfo(booking),
           onCancel: () => _confirmCancel(booking),
         );
       },
@@ -887,6 +919,7 @@ class _CoachBookingCard extends StatelessWidget {
   final VoidCallback? onDecline;
   final VoidCallback? onCancel;
   final VoidCallback? onChat;
+  final VoidCallback? onInfo;
 
   const _CoachBookingCard({
     required this.name,
@@ -902,6 +935,7 @@ class _CoachBookingCard extends StatelessWidget {
     this.onDecline,
     this.onCancel,
     this.onChat,
+    this.onInfo,
   });
 
   @override
@@ -1009,6 +1043,10 @@ class _CoachBookingCard extends StatelessWidget {
                   _ChatButton(onTap: onChat!),
                   const SizedBox(height: 10),
                 ],
+                if (onInfo != null) ...[
+                  _InfoButton(onTap: onInfo!),
+                  const SizedBox(height: 10),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -1060,6 +1098,10 @@ class _CoachBookingCard extends StatelessWidget {
                   _ChatButton(onTap: onChat!),
                   const SizedBox(height: 10),
                 ],
+                if (onInfo != null) ...[
+                  _InfoButton(onTap: onInfo!),
+                  const SizedBox(height: 10),
+                ],
                 OutlinedButton.icon(
                   onPressed: onCancel,
                   icon: const Icon(Icons.cancel_outlined, size: 18),
@@ -1092,6 +1134,28 @@ class _ChatButton extends StatelessWidget {
       onPressed: onTap,
       icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
       label: const Text('Chat with client'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.deepBlue,
+        side: const BorderSide(color: Color(0xFFD7E0F2)),
+        backgroundColor: const Color(0xFFF6F9FF),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        minimumSize: const Size(double.infinity, 46),
+      ),
+    );
+  }
+}
+
+class _InfoButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _InfoButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.info_outline_rounded, size: 18),
+      label: const Text('Session info'),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.deepBlue,
         side: const BorderSide(color: Color(0xFFD7E0F2)),
