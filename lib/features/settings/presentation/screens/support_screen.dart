@@ -1,10 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
-/// Usage:
-///   SupportScreen(userType: 'client')   ← from client side menu
-///   SupportScreen(userType: 'coach')    ← from coach side menu
+import '../../../../core/theme/app_colors.dart';
+import '../../data/settings_repository.dart';
+
 class SupportScreen extends StatefulWidget {
   final String userType;
+
   const SupportScreen({super.key, required this.userType});
 
   @override
@@ -12,133 +14,140 @@ class SupportScreen extends StatefulWidget {
 }
 
 class _SupportScreenState extends State<SupportScreen> {
-  static const _blue1 = Color(0xFF1F3A93);
-  static const _blue2 = Color(0xFF6FD3F5);
+  final SettingsRepository _repository = SettingsRepository();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
 
-  final _messageController = TextEditingController();
-  final _emailController = TextEditingController();
   int? _expandedFaq;
+  bool _isSending = false;
 
-  bool get _isCoach => widget.userType == 'coach';
+  bool get _isCoach => widget.userType.toLowerCase() == 'coach';
 
-  // ─── CLIENT FAQs ──────────────────────────────────────────
-  static const _clientFaqs = [
-    {
-      'q': 'How do I book a session with a coach?',
-      'a':
-      'Go to the Home tab and browse available coaches. Tap on a coach to view their profile, then tap "Book Session" to pick a time slot and confirm your booking.',
-    },
-    {
-      'q': 'How do I cancel or reschedule a booking?',
-      'a':
-      'Open the Bookings tab, find your upcoming session, and tap "Manage". You can cancel or request a reschedule up to 24 hours before the session starts.',
-    },
-    {
-      'q': 'How do payments work?',
-      'a':
-      'Payments are processed securely when you confirm a booking. Refunds for cancellations are processed within 3–5 business days.',
-    },
-    {
-      'q': 'How do I become a coach on Maranny?',
-      'a':
-      'Log out of your current account and go back to the Welcome screen. Tap "I am a Coach", then tap Register. You will complete 4 steps: your basic info, your specialties, your available days, and optional certifications. Our team reviews your profile within 24–48 hours before it goes live.',
-    },
-    {
-      'q': 'How do I report a coach?',
-      'a':
-      'Open the side menu and tap "Report". Search for the coach by name or email, select a reason, and add a description. Our moderation team reviews all reports within 24 hours.',
-    },
-    {
-      'q': 'My payment failed — what should I do?',
-      'a':
-      'Check that your payment method is valid and has sufficient funds. If the issue persists, remove and re-add your payment method in Settings, then try again or contact us.',
-    },
-    {
-      'q': 'How do I update my profile?',
-      'a':
-      'Go to the Profile tab and tap "Edit Profile". You can update your name, photo, bio, and contact details at any time.',
-    },
-    {
-      'q': 'How do I find coaches near me?',
-      'a':
-      'On the Home screen, use the Nearby Facilities section or the search bar to filter coaches by location, sport, or price.',
-    },
+  List<_FaqItem> get _faqs => _isCoach ? _coachFaqs : _clientFaqs;
+
+  static const List<_FaqItem> _clientFaqs = [
+    _FaqItem(
+      'How do I book a session?',
+      'Open Home, choose a coach, select one of the available times, then confirm your booking from the payment screen.',
+    ),
+    _FaqItem(
+      'Where can I see my bookings?',
+      'Go to Bookings. Upcoming, pending, and past sessions are separated so you can track each request clearly.',
+    ),
+    _FaqItem(
+      'Can I message a coach?',
+      'Yes. Open the coach profile or a booking card and use Messages to contact the coach directly.',
+    ),
+    _FaqItem(
+      'How do reviews work?',
+      'After a completed session, you can rate the coach and write feedback. The review appears on the coach profile.',
+    ),
   ];
 
-  // ─── COACH FAQs ───────────────────────────────────────────
-  static const _coachFaqs = [
-    {
-      'q': 'How do I set or update my availability?',
-      'a':
-      'Go to your Profile tab and tap "Edit Profile". Update the days and time slots you are available. Changes take effect immediately for new bookings.',
-    },
-    {
-      'q': 'How do I accept or decline a booking request?',
-      'a':
-      'Open the Bookings tab to see all pending requests. Tap any request to confirm or decline it. You will also receive a push notification for every new booking.',
-    },
-    {
-      'q': 'How and when do I get paid?',
-      'a':
-      'Payments are released to your linked payout account after a session is completed and confirmed. Processing takes 3–5 business days. Manage your payout method in Settings → Payment Settings.',
-    },
-    {
-      'q': 'How do I update my specialties or session price?',
-      'a':
-      'Go to the Profile tab and tap "Edit Profile". You can update your sports specialties, session price, location, bio, and profile photo at any time.',
-    },
-    {
-      'q': 'How do I upload or update my certifications?',
-      'a':
-      'Go to Profile → Edit Profile and scroll to Certifications. Upload PDF files up to 10 MB each. New certifications are reviewed before appearing on your public profile.',
-    },
-    {
-      'q': 'A client did not show up — what do I do?',
-      'a':
-      'Open the Bookings tab, find the session, and mark it as a no-show. Our team will review the case. Clients with repeated no-shows may face account restrictions.',
-    },
-    {
-      'q': 'How do I message my clients?',
-      'a':
-      'Use the Messages tab to chat directly with your clients. You can send reminders, session notes, or follow-up messages after a session.',
-    },
-    {
-      'q': 'My profile is under review — how long does it take?',
-      'a':
-      'Coach profile reviews typically take 24–48 hours. You will receive a notification once your profile is approved and visible to clients.',
-    },
+  static const List<_FaqItem> _coachFaqs = [
+    _FaqItem(
+      'How do I manage booking requests?',
+      'Open Bookings to accept or decline pending requests. Confirmed sessions appear in your upcoming schedule.',
+    ),
+    _FaqItem(
+      'Why is my coach account under review?',
+      'New coach accounts are reviewed by the admin team. Verification usually takes 24 to 48 hours.',
+    ),
+    _FaqItem(
+      'How do I update my availability?',
+      'Open Profile, tap Edit Profile, and update your locations, days, times, price, and sports.',
+    ),
+    _FaqItem(
+      'How do client reviews appear?',
+      'Reviews submitted after completed sessions are loaded from the backend and shown on your coach profile.',
+    ),
   ];
 
-  List<Map<String, String>> get _faqs =>
-      List<Map<String, String>>.from(_isCoach ? _coachFaqs : _clientFaqs);
+  Future<void> _sendMessage() async {
+    final email = _emailController.text.trim();
+    final message = _messageController.text.trim();
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
-  void _sendMessage() {
-    if (_emailController.text.trim().isEmpty ||
-        _messageController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in both fields.')),
-      );
+    if (!emailRegex.hasMatch(email)) {
+      _showSnack('Please enter a valid email address.');
       return;
     }
-    _emailController.clear();
-    _messageController.clear();
-    showDialog(
+    if (message.length < 10) {
+      _showSnack('Please describe the issue in at least 10 characters.');
+      return;
+    }
+
+    setState(() => _isSending = true);
+    try {
+      final responseMessage = await _repository.contactSupport(
+        email: email,
+        message: message,
+      );
+      if (!mounted) return;
+      _emailController.clear();
+      _messageController.clear();
+      _showSuccess(responseMessage);
+    } on DioException catch (error) {
+      _showSnack(_friendlyError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
+  }
+
+  String _friendlyError(DioException error) {
+    final status = error.response?.statusCode;
+    if (status == 401) {
+      return 'Please log in again to contact support.';
+    }
+    if (status == 400) {
+      return 'Please check your message and try again.';
+    }
+    return 'Could not send your message right now. Please try again.';
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showSuccess(String message) {
+    showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Row(children: [
-          Icon(Icons.check_circle, color: Colors.green),
-          SizedBox(width: 8),
-          Text('Message Sent'),
-        ]),
-        content: const Text(
-            'Thanks for reaching out! Our support team will respond within 24 hours.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        icon: Container(
+          width: 58,
+          height: 58,
+          decoration: const BoxDecoration(
+            color: Color(0xFFDFF8EF),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.check_rounded, color: Color(0xFF10A66B)),
+        ),
+        title: const Text(
+          'Message sent',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontFamily: 'Poppins',
+            color: AppColors.deepBlue,
+          ),
+        ),
+        content: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'Inter'),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child:
-              const Text('OK', style: TextStyle(color: _blue1))),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
         ],
       ),
     );
@@ -146,83 +155,166 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   void dispose() {
-    _messageController.dispose();
     _emailController.dispose();
+    _messageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      body: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildContactCards(),
-                if (_isCoach) ...[
-                  const SizedBox(height: 12),
-                  _buildCoachResourcesBanner(),
-                ],
-                const SizedBox(height: 20),
-                _buildSectionLabel('Frequently Asked Questions'),
-                const SizedBox(height: 10),
-                ..._buildFaqItems(),
-                const SizedBox(height: 20),
-                _buildSectionLabel("Didn't find what you need?"),
-                const SizedBox(height: 10),
-                _buildMessageForm(),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-        ],
+      backgroundColor: const Color(0xFFF3F7FF),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+          children: [
+            _buildTopBar(),
+            const SizedBox(height: 22),
+            _buildHero(),
+            const SizedBox(height: 20),
+            _buildQuickHelp(),
+            const SizedBox(height: 24),
+            _sectionLabel('Common questions'),
+            const SizedBox(height: 10),
+            ..._faqs.asMap().entries.map(_faqCard),
+            const SizedBox(height: 24),
+            _sectionLabel('Need more help?'),
+            const SizedBox(height: 10),
+            _buildMessageCard(),
+          ],
+        ),
       ),
     );
   }
 
-  // ─── Header ───────────────────────────────────────────────
-  Widget _buildHeader() {
+  Widget _buildTopBar() {
+    return Row(
+      children: [
+        _circleButton(
+          Icons.arrow_back_ios_new_rounded,
+          () => Navigator.pop(context),
+        ),
+        const Spacer(),
+        _circleButton(Icons.support_agent_rounded, () {}),
+      ],
+    );
+  }
+
+  Widget _buildHero() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'SUPPORT CENTER',
+          style: TextStyle(
+            color: Color(0xFF91A0C0),
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2.4,
+            fontFamily: 'Inter',
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _isCoach ? 'Coach support.' : 'How can we help?',
+          style: const TextStyle(
+            color: AppColors.deepBlue,
+            fontSize: 34,
+            height: 1,
+            fontWeight: FontWeight.w900,
+            fontFamily: 'Poppins',
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _isCoach
+              ? 'Manage requests, profile, reviews, and account verification.'
+              : 'Find answers for bookings, payments, coaches, and your account.',
+          style: const TextStyle(
+            color: Color(0xFF657392),
+            fontSize: 13,
+            height: 1.45,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Inter',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickHelp() {
+    return Row(
+      children: [
+        Expanded(
+          child: _InfoCard(
+            icon: Icons.mail_outline_rounded,
+            title: 'Email',
+            subtitle: _isCoach ? 'coaches@maranny.com' : 'support@maranny.com',
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: _InfoCard(
+            icon: Icons.schedule_rounded,
+            title: 'Response',
+            subtitle: 'Within 24 hours',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _faqCard(MapEntry<int, _FaqItem> entry) {
+    final isOpen = _expandedFaq == entry.key;
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-            colors: [_blue1, _blue2],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFDDE7FA)),
       ),
-      child: SafeArea(
-        bottom: false,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => setState(() => _expandedFaq = isOpen ? null : entry.key),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 8, 20, 20),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back,
-                      color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const Text('Support',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
-              ]),
-              Padding(
-                padding: const EdgeInsets.only(left: 16),
-                child: Text(
-                  _isCoach
-                      ? 'Coach support centre'
-                      : 'How can we help you?',
-                  style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.85)),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.value.question,
+                      style: const TextStyle(
+                        color: AppColors.deepBlue,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    isOpen
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: const Color(0xFF8A96B5),
+                  ),
+                ],
               ),
+              if (isOpen) ...[
+                const SizedBox(height: 10),
+                Text(
+                  entry.value.answer,
+                  style: const TextStyle(
+                    color: Color(0xFF657392),
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -230,203 +322,79 @@ class _SupportScreenState extends State<SupportScreen> {
     );
   }
 
-  // ─── Contact cards ────────────────────────────────────────
-  Widget _buildContactCards() {
-    return Row(
-      children: [
-        Expanded(
-          child: _ContactCard(
-            icon: Icons.email_outlined,
-            label: 'Email Us',
-            value: _isCoach
-                ? 'coaches@maranny.com'
-                : 'support@maranny.com',
-            color: _blue1,
-            onTap: () {},
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ContactCard(
-            icon: Icons.chat_bubble_outline,
-            label: 'Live Chat',
-            value: 'Available 9am–6pm',
-            color: Colors.teal,
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Live chat coming soon')),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─── Coach-only resources banner ──────────────────────────
-  Widget _buildCoachResourcesBanner() {
+  Widget _buildMessageCard() {
     return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8F4FD),
-        borderRadius: BorderRadius.circular(12),
-        border:
-        Border.all(color: _blue2.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: _blue1.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.menu_book_outlined,
-                color: _blue1, size: 18),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Coach Resources',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        color: _blue1)),
-                SizedBox(height: 2),
-                Text(
-                    'Tips, guides and best practices for coaches',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey)),
-              ],
-            ),
-          ),
-          const Icon(Icons.arrow_forward_ios,
-              size: 14, color: Colors.grey),
-        ],
-      ),
-    );
-  }
-
-  // ─── FAQ accordion ────────────────────────────────────────
-  List<Widget> _buildFaqItems() {
-    return _faqs.asMap().entries.map((entry) {
-      final i = entry.key;
-      final faq = entry.value;
-      final isOpen = _expandedFaq == i;
-      return Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2))
-          ],
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () =>
-              setState(() => _expandedFaq = isOpen ? null : i),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Expanded(
-                      child: Text(faq['q']!,
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87))),
-                  Icon(
-                      isOpen
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      color: Colors.grey,
-                      size: 20),
-                ]),
-                if (isOpen) ...[
-                  const SizedBox(height: 10),
-                  Divider(height: 1, color: Colors.grey.shade100),
-                  const SizedBox(height: 10),
-                  Text(faq['a']!,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.black54,
-                          height: 1.5)),
-                ],
-              ],
-            ),
-          ),
-        ),
-      );
-    }).toList();
-  }
-
-  // ─── Send message form ────────────────────────────────────
-  Widget _buildMessageForm() {
-    return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFDDE7FA)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Send Us a Message',
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.bold)),
+          const Text(
+            'Send us a message',
+            style: TextStyle(
+              color: AppColors.deepBlue,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+              fontFamily: 'Poppins',
+            ),
+          ),
           const SizedBox(height: 4),
-          const Text("We'll get back to you within 24 hours.",
-              style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const Text(
+            'Tell us what happened and our team will follow up.',
+            style: TextStyle(
+              color: Color(0xFF7A86A5),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter',
+            ),
+          ),
           const SizedBox(height: 16),
-          _label('Your Email'),
-          const SizedBox(height: 6),
-          _inputField(
+          _input(
             controller: _emailController,
-            hint: 'Enter your email address',
+            hint: 'Your email address',
+            icon: Icons.alternate_email_rounded,
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 12),
-          _label('Message'),
-          const SizedBox(height: 6),
-          _inputField(
+          _input(
             controller: _messageController,
             hint: _isCoach
-                ? 'Describe your issue as a coach…'
-                : 'Describe your issue in detail…',
-            maxLines: 4,
+                ? 'Describe your coach account issue...'
+                : 'Describe your issue...',
+            icon: Icons.edit_note_rounded,
+            maxLines: 5,
           ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
+            height: 54,
             child: ElevatedButton.icon(
-              onPressed: _sendMessage,
-              icon: const Icon(Icons.send, size: 16),
-              label: const Text('Send Message',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14)),
+              onPressed: _isSending ? null : _sendMessage,
+              icon: _isSending
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send_rounded, size: 18),
+              label: Text(_isSending ? 'Sending...' : 'Send message'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _blue1,
+                backgroundColor: AppColors.deepBlue,
                 foregroundColor: Colors.white,
-                padding:
-                const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Inter',
+                ),
               ),
             ),
           ),
@@ -435,105 +403,133 @@ class _SupportScreenState extends State<SupportScreen> {
     );
   }
 
-  Widget _buildSectionLabel(String text) => Text(text,
-      style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey,
-          letterSpacing: 0.5));
-
-  Widget _label(String text) => Text(text,
-      style: const TextStyle(
-          fontSize: 13, fontWeight: FontWeight.w600));
-
-  Widget _inputField({
+  Widget _input({
     required TextEditingController controller,
     required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
     int maxLines = 1,
-    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
       controller: controller,
-      maxLines: maxLines,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 13),
+      maxLines: maxLines,
+      style: const TextStyle(
+        fontWeight: FontWeight.w700,
+        fontFamily: 'Inter',
+        color: AppColors.deepBlue,
+      ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-        const TextStyle(fontSize: 12, color: Colors.grey),
+        prefixIcon: Icon(icon, color: const Color(0xFF8A96B5), size: 20),
         filled: true,
-        fillColor: const Color(0xFFF5F6FA),
+        fillColor: const Color(0xFFF3F7FF),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade300)),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide.none,
+        ),
         enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade300)),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: Color(0xFFDDE7FA)),
+        ),
         focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _blue1)),
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12, vertical: 10),
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: AppColors.lightBlue, width: 1.4),
+        ),
+      ),
+    );
+  }
+
+  Widget _circleButton(IconData icon, VoidCallback onTap) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, color: AppColors.deepBlue, size: 18),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: Color(0xFF91A0C0),
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 2.2,
+        fontFamily: 'Inter',
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// CONTACT CARD
-// ─────────────────────────────────────────────────────────────
-class _ContactCard extends StatelessWidget {
+class _InfoCard extends StatelessWidget {
   final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-  final VoidCallback onTap;
-  const _ContactCard(
-      {required this.icon,
-        required this.label,
-        required this.value,
-        required this.color,
-        required this.onTap});
+  final String title;
+  final String subtitle;
+
+  const _InfoCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2))
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, color: color, size: 20),
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFDDE7FA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.lightBlue.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 10),
-            Text(label,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, fontSize: 13)),
-            const SizedBox(height: 2),
-            Text(value,
-                style: const TextStyle(
-                    fontSize: 11, color: Colors.grey)),
-          ],
-        ),
+            child: Icon(icon, color: AppColors.deepBlue, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.deepBlue,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'Inter',
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              color: Color(0xFF7A86A5),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+class _FaqItem {
+  final String question;
+  final String answer;
+
+  const _FaqItem(this.question, this.answer);
 }

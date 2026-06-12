@@ -1,20 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../features/auth/data/repositories/auth_repository.dart';
-import '../../../features/settings/presentation/screens/safety_moderation_screen.dart';
-import '../../../features/settings/presentation/screens/support_screen.dart';
 
-/// ─────────────────────────────────────────────────────────────
-/// APP SIDE MENU
-///
-/// In client home screen:
-///   AppSideMenu(userName: _userName, userType: 'client', onLogout: ...)
-///
-/// In coach home screen / coach layout:
-///   AppSideMenu(userName: _userName, userType: 'coach', onLogout: ...)
-/// ─────────────────────────────────────────────────────────────
+import '../../features/auth/data/repositories/auth_repository.dart';
+import '../../features/settings/presentation/screens/safety_moderation_screen.dart';
+import '../../features/settings/presentation/screens/support_screen.dart';
+import '../theme/app_colors.dart';
+
 class AppSideMenu extends StatelessWidget {
   final String userName;
-  final String userType; // 'client' or 'coach'
+  final String userType;
   final VoidCallback onLogout;
 
   const AppSideMenu({
@@ -24,147 +17,182 @@ class AppSideMenu extends StatelessWidget {
     required this.onLogout,
   });
 
-  bool get _isCoach => userType == 'coach';
+  bool get _isCoach => userType.toLowerCase() == 'coach';
   static final AuthRepository _authRepository = AuthRepository();
 
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      child: Column(
-        children: [
-          // ── Header ──
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(
-              20,
-              MediaQuery.of(context).padding.top + 24,
-              20,
-              24,
+      width: MediaQuery.sizeOf(context).width * 0.72,
+      backgroundColor: const Color(0xFFF3F7FF),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(30)),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _Header(userName: userName, role: _isCoach ? 'Coach' : 'Trainee'),
+            const SizedBox(height: 18),
+            _MenuItem(
+              icon: Icons.help_outline_rounded,
+              iconColor: AppColors.deepBlue,
+              iconBackground: const Color(0xFFEAF0FF),
+              title: 'Support',
+              subtitle: _isCoach
+                  ? 'Coach help and account support'
+                  : 'Get help with bookings and app issues',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SupportScreen(userType: userType),
+                  ),
+                );
+              },
             ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1F3A93), Color(0xFF6FD3F5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+            _MenuItem(
+              icon: Icons.warning_amber_rounded,
+              iconColor: const Color(0xFFE89113),
+              iconBackground: const Color(0xFFFFF3DE),
+              title: 'Report',
+              subtitle: _isCoach
+                  ? 'Report a trainee or platform issue'
+                  : 'Report a coach or platform issue',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SafetyModerationScreen(userType: userType),
+                  ),
+                );
+              },
+            ),
+            _MenuItem(
+              icon: Icons.logout_rounded,
+              iconColor: const Color(0xFFFF4D4D),
+              iconBackground: const Color(0xFFFFE8E8),
+              title: 'Logout',
+              subtitle: 'Sign out of your account',
+              titleColor: const Color(0xFFFF3B30),
+              onTap: () async {
+                Navigator.pop(context);
+                await _authRepository.logout();
+                onLogout();
+              },
+            ),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
+              child: Text(
+                'Maranny keeps your sports journey organized, safe, and simple.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.deepBlue.withValues(alpha: 0.45),
+                  fontSize: 11,
+                  height: 1.4,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Inter',
+                ),
               ),
             ),
-            child: Row(
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  final String userName;
+  final String role;
+
+  const _Header({required this.userName, required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = userName.trim().isEmpty ? 'M' : userName.trim()[0];
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF213A96), Color(0xFF5ED1F1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.deepBlue.withValues(alpha: 0.20),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
+            ),
+            child: Center(
+              child: Text(
+                initial.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                Text(
+                  userName.trim().isEmpty ? 'Maranny user' : userName.trim(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'Poppins',
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        userName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // Role badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          _isCoach ? 'Coach' : 'Trainee',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    role,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Inter',
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: 12),
-
-          // ── Support ──
-          _MenuItem(
-            icon: Icons.help_outline,
-            iconColor: const Color(0xFF1F3A93),
-            title: 'Support',
-            subtitle:
-                _isCoach ? 'Coach support centre' : 'Get help with any issues',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  // ✅ passes the correct userType
-                  builder: (_) => SupportScreen(userType: userType),
-                ),
-              );
-            },
-          ),
-
-          // ── Report ──
-          _MenuItem(
-            icon: Icons.warning_amber_outlined,
-            iconColor: Colors.orange,
-            title: 'Report',
-            subtitle:
-                _isCoach
-                    ? 'Report a trainee or issue'
-                    : 'Report a coach or issue',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  // ✅ passes the correct userType
-                  builder: (_) => SafetyModerationScreen(userType: userType),
-                ),
-              );
-            },
-          ),
-
-          // ── Logout ──
-          _MenuItem(
-            icon: Icons.logout,
-            iconColor: Colors.red,
-            title: 'Logout',
-            subtitle: 'Sign out of your account',
-            titleColor: Colors.red,
-            onTap: () async {
-              Navigator.pop(context);
-              await _authRepository.logout();
-              onLogout();
-            },
-          ),
-
-          const Spacer(),
         ],
       ),
     );
@@ -174,6 +202,7 @@ class AppSideMenu extends StatelessWidget {
 class _MenuItem extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
+  final Color iconBackground;
   final String title;
   final String subtitle;
   final Color titleColor;
@@ -182,49 +211,72 @@ class _MenuItem extends StatelessWidget {
   const _MenuItem({
     required this.icon,
     required this.iconColor,
+    required this.iconBackground,
     required this.title,
     required this.subtitle,
-    this.titleColor = Colors.black87,
     required this.onTap,
+    this.titleColor = AppColors.textPrimary,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
-            ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(13),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: titleColor,
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: iconColor, size: 23),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: titleColor,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF7A86A5),
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Color(0xFFB7C2DA),
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
