@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/network/api_config.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/cairo_time.dart';
 import '../../../../core/utils/user_preferences_storage.dart';
 import '../../../bookings/domain/models/booking_session_model.dart';
 import '../../../bookings/domain/models/coach_data_model.dart';
@@ -79,6 +80,7 @@ class _AiRecommendedCoachesScreenState
       final ranked =
           rawCoaches
               .map((coach) => _RecommendedCoach.fromJson(coach, prefs))
+              .where((coach) => coach.isEligible)
               .toList()
             ..sort((a, b) => b.score.compareTo(a.score));
 
@@ -118,10 +120,8 @@ class _AiRecommendedCoachesScreenState
         .where((coach) {
           final matchesSport =
               _selectedSport == 'All' ||
-              coach.sport.toLowerCase() == _selectedSport.toLowerCase() ||
-              coach.sports.any(
-                (sport) => sport.toLowerCase() == _selectedSport.toLowerCase(),
-              );
+              _textMatches(coach.sport, _selectedSport) ||
+              coach.sports.any((sport) => _textMatches(sport, _selectedSport));
 
           if (!matchesSport) return false;
           if (normalizedQuery.isEmpty) return true;
@@ -133,29 +133,6 @@ class _AiRecommendedCoachesScreenState
         .toList(growable: false);
   }
 
-  String get _preferencesSummary {
-    final parts = <String>[];
-    if (_preferences.sports.isNotEmpty) {
-      parts.add(_preferences.sports.take(2).join(', '));
-    }
-    if ((_preferences.area ?? '').trim().isNotEmpty) {
-      parts.add(_preferences.area!.trim());
-    } else if ((_preferences.city ?? '').trim().isNotEmpty) {
-      parts.add(_preferences.city!.trim());
-    }
-    if (_preferences.budgetMax != null) {
-      parts.add('<= ${_preferences.budgetMax!.round()} LE/hr');
-    }
-    if (_preferences.minRating != null) {
-      parts.add('${_preferences.minRating!.toStringAsFixed(1)}+ rating');
-    } else {
-      parts.add('High rating');
-    }
-    return parts.isEmpty
-        ? 'Complete preferences for smarter matches'
-        : parts.join('  |  ');
-  }
-
   void _openCoach(_RecommendedCoach coach) {
     final session = BookingSessionModel(
       id: coach.name.replaceAll(' ', '_'),
@@ -164,7 +141,7 @@ class _AiRecommendedCoachesScreenState
       coachName: coach.name,
       sport: coach.sport,
       location: coach.location,
-      date: DateTime.now(),
+      date: CairoTime.now(),
       isPast: false,
       isReviewed: false,
     );
@@ -245,7 +222,7 @@ class _AiRecommendedCoachesScreenState
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Ranked for your goals, budget, location, and availability.',
+                      'Ranked from your saved preferences and real coach data.',
                       style: TextStyle(
                         color: Color(0xFF6C7897),
                         fontSize: 14,
@@ -266,7 +243,7 @@ class _AiRecommendedCoachesScreenState
                       },
                     ),
                     const SizedBox(height: 14),
-                    _PreferencesCard(summary: _preferencesSummary),
+                    _PreferencesCard(preferences: _preferences),
                     const SizedBox(height: 16),
                     if (_isLoading)
                       const Padding(
@@ -285,7 +262,8 @@ class _AiRecommendedCoachesScreenState
                       _EmptyState(
                         icon: Icons.person_search_rounded,
                         title: 'No matching coaches yet',
-                        message: 'Try another sport or search term.',
+                        message:
+                            'No coach currently matches your saved preferences. Try updating your preferences or another sport.',
                         buttonText: 'Reset',
                         onTap: () {
                           _searchController.clear();
@@ -481,41 +459,123 @@ class _SportsFilter extends StatelessWidget {
 }
 
 class _PreferencesCard extends StatelessWidget {
-  const _PreferencesCard({required this.summary});
+  const _PreferencesCard({required this.preferences});
 
-  final String summary;
+  final UserPreferences preferences;
+
+  List<String> get _items {
+    final items = <String>[];
+    if (preferences.sports.isNotEmpty) {
+      items.add('Sports: ${preferences.sports.join(', ')}');
+    }
+    final area = (preferences.area ?? '').trim();
+    final city = (preferences.city ?? '').trim();
+    if (area.isNotEmpty) {
+      items.add('Area: $area');
+    } else if (city.isNotEmpty) {
+      items.add('City: $city');
+    }
+    if (preferences.budgetMin != null || preferences.budgetMax != null) {
+      final min = preferences.budgetMin?.round();
+      final max = preferences.budgetMax?.round();
+      if (min != null && max != null) {
+        items.add('Budget: $min-$max LE/hr');
+      } else if (max != null) {
+        items.add('Budget: <= $max LE/hr');
+      } else if (min != null) {
+        items.add('Budget: >= $min LE/hr');
+      }
+    }
+    if (preferences.minRating != null) {
+      items.add('Rating: ${preferences.minRating!.toStringAsFixed(1)}+');
+    }
+    final gender = (preferences.coachGender ?? '').trim();
+    if (gender.isNotEmpty &&
+        gender.toLowerCase() != 'no preference' &&
+        gender.toLowerCase() != 'any') {
+      items.add('Gender: $gender');
+    }
+    final ageRange = (preferences.coachAgeRange ?? '').trim();
+    if (ageRange.isNotEmpty &&
+        ageRange.toLowerCase() != 'no preference' &&
+        ageRange.toLowerCase() != 'any') {
+      items.add('Age: $ageRange');
+    }
+    items.add(
+      preferences.certifiedOnly
+          ? 'Certified coaches only'
+          : 'Any verified coach type',
+    );
+    return items;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final items = _items;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFF),
-        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFFFFF), Color(0xFFF5FBFF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFD7E0F2)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.deepBlue.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.auto_awesome_rounded, color: Color(0xFF5BDCF2)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(
+          const Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, color: Color(0xFF5BDCF2)),
+              SizedBox(width: 10),
+              Text(
+                'Your saved preferences',
+                style: TextStyle(
                   color: AppColors.deepBlue,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  height: 1.35,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Inter',
                 ),
-                children: [
-                  const TextSpan(text: 'Your preferences:  '),
-                  TextSpan(
-                    text: summary,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                ],
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: items
+                .map(
+                  (item) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEAF0FB),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: const Color(0xFFD7E0F2)),
+                    ),
+                    child: Text(
+                      item,
+                      style: const TextStyle(
+                        color: AppColors.deepBlue,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                )
+                .toList(growable: false),
           ),
         ],
       ),
@@ -544,7 +604,8 @@ class _RecommendationCardState extends State<_RecommendationCard> {
   @override
   Widget build(BuildContext context) {
     final coach = widget.coach;
-    final isBest = widget.rank == 1;
+    final scoreColor = _scoreColor(coach.score);
+    final isBest = widget.rank == 1 && coach.score >= 85;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -553,7 +614,7 @@ class _RecommendationCardState extends State<_RecommendationCard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isBest ? const Color(0xFF27B15E) : const Color(0xFFD7E0F2),
+          color: isBest ? scoreColor : const Color(0xFFD7E0F2),
           width: isBest ? 1.5 : 1,
         ),
       ),
@@ -663,17 +724,26 @@ class _RecommendationCardState extends State<_RecommendationCard> {
               ),
               const SizedBox(width: 10),
               SizedBox(
-                width: 78,
+                width: 96,
+                height: 42,
                 child: ElevatedButton(
                   onPressed: widget.onBook,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.deepBlue,
                     foregroundColor: Colors.white,
+                    padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text('Book'),
+                  child: const Text(
+                    'Book',
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -809,6 +879,7 @@ class _WhyCoachPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scoreColor = _scoreColor(coach.score);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -846,22 +917,38 @@ class _WhyCoachPanel extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(7),
-                      border: Border.all(color: const Color(0xFF42B875)),
-                    ),
-                    child: Text(
-                      reason.value,
-                      style: const TextStyle(
-                        color: Color(0xFF218B54),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
+                  Flexible(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: reason.matched
+                              ? Colors.white
+                              : const Color(0xFFFFF7E8),
+                          borderRadius: BorderRadius.circular(7),
+                          border: Border.all(
+                            color: reason.matched
+                                ? const Color(0xFF42B875)
+                                : const Color(0xFFE89113),
+                          ),
+                        ),
+                        child: Text(
+                          reason.value,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            color: reason.matched
+                                ? const Color(0xFF218B54)
+                                : const Color(0xFFE89113),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -870,12 +957,36 @@ class _WhyCoachPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            'Recommendation score:  ${coach.score.round()}%',
-            style: const TextStyle(
-              color: Color(0xFF218B54),
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: scoreColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: scoreColor.withValues(alpha: 0.34)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.auto_graph_rounded, color: scoreColor, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Recommendation score',
+                    style: TextStyle(
+                      color: scoreColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${coach.score.round()}%',
+                  style: TextStyle(
+                    color: scoreColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -942,7 +1053,7 @@ class _HowAiWorksSheet extends StatelessWidget {
             icon: Icons.tune_rounded,
             title: 'Reads your preferences',
             subtitle:
-                'Sport, area, budget, available days, time slots, and rating goals.',
+                'Sport, area, budget, coach gender, age range, certification, and rating goals.',
           ),
           const _HowItem(
             icon: Icons.gps_fixed_rounded,
@@ -1167,6 +1278,7 @@ class _RecommendedCoach {
   final List<String> availableDays;
   final String nextFreeText;
   final double score;
+  final bool isEligible;
   final List<_MatchResult> matchChips;
   final List<_Reason> reasons;
 
@@ -1187,6 +1299,7 @@ class _RecommendedCoach {
     required this.availableDays,
     required this.nextFreeText,
     required this.score,
+    required this.isEligible,
     required this.matchChips,
     required this.reasons,
   });
@@ -1220,75 +1333,124 @@ class _RecommendedCoach {
 
     final sportMatch =
         prefs.sports.isEmpty ||
-        prefs.sports.any(
-          (pref) => sports.any(
-            (coachSport) =>
-                coachSport.toLowerCase().trim() == pref.toLowerCase().trim(),
-          ),
-        );
+        prefs.sports.any((pref) {
+          return sports.any((coachSport) => _textMatches(coachSport, pref));
+        });
     final locationMatch = _locationMatches(locations, prefs);
-    final priceMatch =
-        prefs.budgetMax == null ||
-        price == 0 ||
-        price <= prefs.budgetMax!.round();
+    final priceMatch = _budgetMatches(price, prefs);
     final ratingMatch = prefs.minRating == null || rating >= prefs.minRating!;
-    final timeMatch = availableDays.isNotEmpty || _hasUpcomingSlots(coach);
     final genderMatch = _genderMatches(coach, prefs);
+    final ageMatch = _ageMatches(coach, prefs);
+    final certifiedMatch = _certifiedMatches(coach, prefs);
 
-    var score = 40.0;
-    if (sportMatch) score += 18;
-    if (locationMatch) score += 16;
-    if (priceMatch) score += 14;
-    if (ratingMatch) score += 8;
-    if (timeMatch) score += 8;
-    if (genderMatch) score += 6;
-    if (rating >= 4.5) score += 4;
-    score = score.clamp(45, 99);
+    var matchedWeight = 0.0;
+    var totalWeight = 0.0;
+    void addCriterion(bool active, bool matched, double weight) {
+      if (!active) return;
+      totalWeight += weight;
+      if (matched) matchedWeight += weight;
+    }
+
+    addCriterion(prefs.sports.isNotEmpty, sportMatch, 30);
+    addCriterion(_hasLocationPreference(prefs), locationMatch, 20);
+    addCriterion(_hasBudgetPreference(prefs), priceMatch, 20);
+    addCriterion(prefs.minRating != null, ratingMatch, 14);
+    addCriterion(_hasGenderPreference(prefs), genderMatch, 8);
+    addCriterion(_hasAgePreference(prefs), ageMatch, 8);
+    addCriterion(prefs.certifiedOnly, certifiedMatch, 10);
+
+    final qualityScore = rating > 0 ? (rating.clamp(0, 5) / 5) * 10 : 4.0;
+    matchedWeight += qualityScore;
+    totalWeight += 10;
+
+    final score =
+        (totalWeight == 0
+                ? 0.0
+                : ((matchedWeight / totalWeight) * 100).clamp(0, 100))
+            .toDouble();
+
+    final isEligible =
+        (prefs.sports.isEmpty || sportMatch) &&
+        (!_hasBudgetPreference(prefs) || priceMatch) &&
+        (prefs.minRating == null || ratingMatch) &&
+        (!_hasGenderPreference(prefs) || genderMatch) &&
+        (!_hasAgePreference(prefs) || ageMatch) &&
+        (!prefs.certifiedOnly || certifiedMatch) &&
+        (!_hasLocationPreference(prefs) || locationMatch) &&
+        score >= 55;
 
     final matchChips = [
-      _MatchResult('Sport', sportMatch),
-      _MatchResult('Location', locationMatch),
-      _MatchResult('Price', priceMatch),
-      _MatchResult('Time', timeMatch),
+      if (prefs.sports.isNotEmpty) _MatchResult('Sport', sportMatch),
+      if (_hasLocationPreference(prefs))
+        _MatchResult('Location', locationMatch),
+      if (_hasBudgetPreference(prefs)) _MatchResult('Price', priceMatch),
       if (prefs.minRating != null) _MatchResult('Rating', ratingMatch),
-      if ((prefs.coachGender ?? '').trim().isNotEmpty)
-        _MatchResult('Gender', genderMatch),
+      if (_hasGenderPreference(prefs)) _MatchResult('Gender', genderMatch),
+      if (_hasAgePreference(prefs)) _MatchResult('Age', ageMatch),
+      if (prefs.certifiedOnly) _MatchResult('Certified', certifiedMatch),
     ];
 
     final reasons = [
+      if (prefs.sports.isNotEmpty)
+        _Reason(
+          Icons.sports_soccer_rounded,
+          'Sport preference',
+          sportMatch ? '${_matchedSport(sports, prefs)} matched' : 'No match',
+          sportMatch,
+        ),
+      if (_hasLocationPreference(prefs))
+        _Reason(
+          Icons.location_on_outlined,
+          'Location preference',
+          locationMatch ? '$location matched' : 'Outside selected area',
+          locationMatch,
+        ),
+      if (_hasBudgetPreference(prefs))
+        _Reason(
+          Icons.payments_outlined,
+          'Budget preference',
+          priceMatch
+              ? '${price == 0 ? 'Price not set' : '$price LE/hr'} fits'
+              : '$price LE/hr outside budget',
+          priceMatch,
+        ),
+      if (prefs.minRating != null)
+        _Reason(
+          Icons.star_border_rounded,
+          'Rating preference',
+          ratingMatch
+              ? '${rating.toStringAsFixed(1)} meets rating'
+              : '${rating.toStringAsFixed(1)} below target',
+          ratingMatch,
+        ),
+      if (_hasGenderPreference(prefs))
+        _Reason(
+          Icons.person_outline_rounded,
+          'Gender preference',
+          genderMatch ? '${_coachGender(coach)} matched' : 'Different gender',
+          genderMatch,
+        ),
+      if (_hasAgePreference(prefs))
+        _Reason(
+          Icons.cake_outlined,
+          'Age preference',
+          ageMatch ? '${_coachAge(coach) ?? 'Age'} matched' : 'Outside range',
+          ageMatch,
+        ),
+      if (prefs.certifiedOnly)
+        _Reason(
+          Icons.verified_outlined,
+          'Certification preference',
+          certifiedMatch ? 'Certified coach' : 'Not certified',
+          certifiedMatch,
+        ),
       _Reason(
-        Icons.sports_soccer_rounded,
-        'Sport preference',
-        sportMatch ? '$sport matched' : 'Different sport',
-      ),
-      _Reason(
-        Icons.location_on_outlined,
-        'Location preference',
-        locationMatch ? '$location matched' : 'Nearby alternative',
-      ),
-      _Reason(
-        Icons.payments_outlined,
-        'Budget preference',
-        priceMatch
-            ? '${price == 0 ? 'Price' : '$price LE/hr'} fits budget'
-            : '$price LE/hr above preference',
-      ),
-      _Reason(
-        Icons.calendar_month_rounded,
-        'Availability preference',
-        timeMatch
-            ? _nextFreeText(coach).replaceAll('NEXT FREE  -  ', '')
-            : 'Check slots',
-      ),
-      _Reason(
-        Icons.star_border_rounded,
-        'Rating preference',
-        ratingMatch ? '${rating.toStringAsFixed(1)} high rating' : 'New coach',
-      ),
-      const _Reason(
-        Icons.groups_outlined,
-        'Similar users',
-        'Similar users booked this coach',
+        Icons.query_stats_rounded,
+        'Coach quality',
+        rating > 0
+            ? '${rating.toStringAsFixed(1)} rating from real reviews'
+            : 'New coach profile',
+        rating >= 4 || rating == 0,
       ),
     ];
 
@@ -1318,6 +1480,7 @@ class _RecommendedCoach {
       availableDays: availableDays,
       nextFreeText: _nextFreeText(coach),
       score: score,
+      isEligible: isEligible,
       matchChips: matchChips,
       reasons: reasons,
     );
@@ -1335,8 +1498,9 @@ class _Reason {
   final IconData icon;
   final String title;
   final String value;
+  final bool matched;
 
-  const _Reason(this.icon, this.title, this.value);
+  const _Reason(this.icon, this.title, this.value, this.matched);
 }
 
 String _firstText(List<dynamic> values, {String fallback = ''}) {
@@ -1440,26 +1604,131 @@ bool _locationMatches(List<String> locations, UserPreferences prefs) {
   });
 }
 
-bool _hasUpcomingSlots(Map<String, dynamic> coach) {
-  final upcoming = coach['upcomingAvailableDates'];
-  return upcoming is List && upcoming.isNotEmpty;
+bool _hasLocationPreference(UserPreferences prefs) {
+  return (prefs.area ?? '').trim().isNotEmpty ||
+      (prefs.city ?? '').trim().isNotEmpty;
+}
+
+bool _hasBudgetPreference(UserPreferences prefs) {
+  return prefs.budgetMin != null || prefs.budgetMax != null;
+}
+
+bool _budgetMatches(int price, UserPreferences prefs) {
+  if (!_hasBudgetPreference(prefs)) return true;
+  if (price <= 0) return false;
+  final min = prefs.budgetMin;
+  final max = prefs.budgetMax;
+  if (min != null && price < min) return false;
+  if (max != null && price > max) return false;
+  return true;
+}
+
+bool _hasGenderPreference(UserPreferences prefs) {
+  final preferred = (prefs.coachGender ?? '').trim().toLowerCase();
+  return preferred.isNotEmpty &&
+      preferred != 'any' &&
+      preferred != 'no preference' &&
+      preferred != 'all';
 }
 
 bool _genderMatches(Map<String, dynamic> coach, UserPreferences prefs) {
   final preferred = (prefs.coachGender ?? '').trim().toLowerCase();
-  if (preferred.isEmpty ||
-      preferred == 'any' ||
-      preferred == 'no preference' ||
-      preferred == 'all') {
+  if (!_hasGenderPreference(prefs)) {
     return true;
   }
 
-  final gender = _firstText([
+  final gender = _coachGender(coach).toLowerCase();
+  return gender.isNotEmpty && gender == preferred;
+}
+
+String _coachGender(Map<String, dynamic> coach) {
+  final user = coach['user'];
+  return _firstText([
     coach['gender'],
     coach['coachGender'],
-    coach['user'] is Map ? (coach['user'] as Map)['gender'] : null,
+    if (user is Map) user['gender'],
+  ], fallback: 'Not specified');
+}
+
+bool _hasAgePreference(UserPreferences prefs) {
+  final preferred = (prefs.coachAgeRange ?? '').trim().toLowerCase();
+  return preferred.isNotEmpty &&
+      preferred != 'any' &&
+      preferred != 'no preference' &&
+      preferred != 'all';
+}
+
+bool _ageMatches(Map<String, dynamic> coach, UserPreferences prefs) {
+  if (!_hasAgePreference(prefs)) return true;
+  final age = _coachAge(coach);
+  if (age == null) return false;
+  final range = prefs.coachAgeRange!.toLowerCase();
+  final numbers = RegExp(r'\d+')
+      .allMatches(range)
+      .map((match) => int.tryParse(match.group(0) ?? ''))
+      .whereType<int>()
+      .toList(growable: false);
+  if (numbers.length >= 2) {
+    return age >= numbers[0] && age <= numbers[1];
+  }
+  if (numbers.length == 1) {
+    if (range.contains('+')) return age >= numbers[0];
+    return age == numbers[0];
+  }
+  return true;
+}
+
+int? _coachAge(Map<String, dynamic> coach) {
+  final user = coach['user'];
+  final value = _firstPositiveInt([
+    coach['age'],
+    coach['coachAge'],
+    if (user is Map) user['age'],
+  ]);
+  return value > 0 ? value : null;
+}
+
+bool _certifiedMatches(Map<String, dynamic> coach, UserPreferences prefs) {
+  if (!prefs.certifiedOnly) return true;
+  final status = _firstText([
+    coach['verificationStatus'],
+    coach['status'],
   ]).toLowerCase();
-  return gender.isEmpty || gender == preferred;
+  final certificateUrl = _firstText([
+    coach['certificateUrl'],
+    coach['certificateImageUrl'],
+  ]);
+  return coach['isCertified'] == true ||
+      coach['certified'] == true ||
+      certificateUrl.isNotEmpty ||
+      status == 'verified' ||
+      status == 'approved' ||
+      status == 'accepted';
+}
+
+String _matchedSport(List<String> coachSports, UserPreferences prefs) {
+  for (final pref in prefs.sports) {
+    for (final sport in coachSports) {
+      if (_textMatches(sport, pref)) {
+        return sport;
+      }
+    }
+  }
+  return coachSports.isNotEmpty ? coachSports.first : 'Sport';
+}
+
+bool _textMatches(String left, String right) {
+  final a = left.toLowerCase().trim();
+  final b = right.toLowerCase().trim();
+  if (a.isEmpty || b.isEmpty) return false;
+  return a == b || a.contains(b) || b.contains(a);
+}
+
+Color _scoreColor(double score) {
+  if (score >= 85) return const Color(0xFF20A85A);
+  if (score >= 70) return const Color(0xFF2A8CEB);
+  if (score >= 55) return const Color(0xFFE89113);
+  return const Color(0xFFE64B4B);
 }
 
 int _coachId(Map<String, dynamic> coach) {
@@ -1482,15 +1751,34 @@ int _coachReviews(Map<String, dynamic> coach) {
 }
 
 int _coachPrice(Map<String, dynamic> coach) {
+  final direct = _firstPositiveInt([
+    coach['sessionPrice'],
+    coach['pricePerSession'],
+    coach['startingPrice'],
+    coach['hourlyRate'],
+    coach['price'],
+  ]);
+  if (direct > 0) return direct;
+
   final sports = coach['sports'];
-  if (sports is List && sports.isNotEmpty && sports.first is Map) {
-    final value = (sports.first as Map)['pricePerSession'];
-    if (value is num) return value.round();
+  if (sports is List) {
+    for (final sport in sports) {
+      if (sport is Map) {
+        final price = _firstPositiveInt([sport['pricePerSession']]);
+        if (price > 0) return price;
+      }
+    }
   }
-  final value =
-      coach['startingPrice'] ?? coach['price'] ?? coach['pricePerSession'];
-  if (value is num) return value.round();
-  return int.tryParse(value?.toString() ?? '') ?? 0;
+  return 0;
+}
+
+int _firstPositiveInt(List<dynamic> values) {
+  for (final value in values) {
+    if (value is num && value > 0) return value.round();
+    final parsed = num.tryParse(value?.toString() ?? '');
+    if (parsed != null && parsed > 0) return parsed.round();
+  }
+  return 0;
 }
 
 String _coachImage(Map<String, dynamic> coach) {
