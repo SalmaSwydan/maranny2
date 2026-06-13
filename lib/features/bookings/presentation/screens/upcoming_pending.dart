@@ -191,10 +191,10 @@ class _UpcomingScreenState extends State<UpcomingScreen>
     return 'Client';
   }
 
-  String _price(BookingModel booking) {
+  String? _price(BookingModel booking) {
     final price = booking.session.price ?? booking.amount;
     if (price == null || price <= 0) {
-      return 'Price not set';
+      return null;
     }
     if (price == price.roundToDouble()) {
       return '${price.toInt()} LE';
@@ -911,7 +911,7 @@ class _CoachBookingCard extends StatelessWidget {
   final String date;
   final String time;
   final String location;
-  final String price;
+  final String? price;
   final String statusLabel;
   final Color statusColor;
   final Color statusBackground;
@@ -1034,8 +1034,11 @@ class _CoachBookingCard extends StatelessWidget {
             label: location.trim().isEmpty ? 'Location not set' : location,
           ),
           const SizedBox(height: 8),
-          _InfoRow(icon: Icons.payments_outlined, label: price),
-          const SizedBox(height: 14),
+          if (price != null) ...[
+            _InfoRow(icon: Icons.payments_outlined, label: price!),
+            const SizedBox(height: 14),
+          ] else
+            const SizedBox(height: 14),
           if (onAccept != null && onDecline != null)
             Column(
               children: [
