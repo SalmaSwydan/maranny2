@@ -14,10 +14,12 @@ class SportsRepository {
     }
 
     final response = await _dio.get(ApiConfig.sports);
-    final sports = (response.data as List<dynamic>)
-        .map((item) => SportModel.fromJson(item as Map<String, dynamic>))
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    final sports =
+        (response.data as List<dynamic>)
+            .map((item) => SportModel.fromJson(item as Map<String, dynamic>))
+            .where((sport) => SportModel.isVisibleName(sport.name))
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
 
     _cache = sports;
     return sports;

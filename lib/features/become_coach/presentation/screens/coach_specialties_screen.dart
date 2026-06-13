@@ -22,6 +22,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
   late final TextEditingController _bioController;
   late final Future<List<SportModel>> _sportsFuture;
   String? _selectedSpecialty;
+  final Map<String, int> _sportIdsByName = <String, int>{};
 
   @override
   void initState() {
@@ -68,6 +69,7 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
 
     final nextDraft = widget.draft.copyWith(
       selectedSports: [_selectedSpecialty!],
+      selectedSportIds: Map<String, int>.from(_sportIdsByName),
       bio: bio,
     );
 
@@ -200,11 +202,17 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final sports =
-                snapshot.data?.map((sport) => sport.name).toList() ??
-                <String>[];
+            final sports = SportModel.visible(
+              snapshot.data ?? const <SportModel>[],
+            );
+            _sportIdsByName
+              ..clear()
+              ..addEntries(
+                sports.map((sport) => MapEntry(sport.name, sport.id)),
+              );
+            final sportNames = sports.map((sport) => sport.name).toList();
 
-            if (sports.isEmpty) {
+            if (sportNames.isEmpty) {
               return const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
                 child: Text('No sports are available right now.'),
@@ -220,9 +228,9 @@ class _CoachSpecialtiesScreenState extends State<CoachSpecialtiesScreen> {
                 mainAxisSpacing: 12,
                 childAspectRatio: 2.5,
               ),
-              itemCount: sports.length,
+              itemCount: sportNames.length,
               itemBuilder: (context, index) {
-                final sport = sports[index];
+                final sport = sportNames[index];
                 return _buildSportButton(sport, _selectedSpecialty == sport);
               },
             );

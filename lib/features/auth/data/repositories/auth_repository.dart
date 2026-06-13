@@ -213,6 +213,20 @@ class AuthRepository {
   }
 
   ApiError _handleError(DioException e) {
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
+      return ApiError(
+        message:
+            'The server is taking longer than expected to respond. Please wait a moment and try again.',
+      );
+    }
+    if (e.type == DioExceptionType.connectionError) {
+      return ApiError(
+        message:
+            'Could not reach the server. Please check your internet connection and try again.',
+      );
+    }
     if (e.response?.data != null) {
       try {
         return ApiError.fromJson(e.response!.data as Map<String, dynamic>);

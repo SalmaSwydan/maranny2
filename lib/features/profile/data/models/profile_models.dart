@@ -178,7 +178,11 @@ class CoachProfileModel {
               payload['imageUrl'],
         ),
       ),
-      certificateUrl: _asNullableString(payload['certificateUrl']),
+      certificateUrl: ApiConfig.resolveMediaUrl(
+        _asNullableString(
+          payload['certificateUrl'] ?? payload['certificateImageUrl'],
+        ),
+      ),
       verificationStatus: _asString(
         payload['verificationStatus'],
         fallback: 'Pending',
@@ -297,7 +301,11 @@ class CoachSetupProfileModel {
       experienceYears: _asNullableInt(json['experienceYears']),
       gender: _asNullableString(json['gender']),
       age: _asNullableInt(json['age']),
-      certificateUrl: _asNullableString(json['certificateUrl']),
+      certificateUrl: ApiConfig.resolveMediaUrl(
+        _asNullableString(
+          json['certificateUrl'] ?? json['certificateImageUrl'],
+        ),
+      ),
       verificationStatus: _asString(
         json['verificationStatus'],
         fallback: 'Pending',

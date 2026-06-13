@@ -4,6 +4,17 @@ class SportModel {
 
   const SportModel({required this.id, required this.name});
 
+  static const Set<String> hiddenSportNames = {'Yoga'};
+
+  static bool isVisibleName(String sport) =>
+      !hiddenSportNames.contains(sport.trim());
+
+  static List<SportModel> visible(Iterable<SportModel> sports) {
+    return sports
+        .where((sport) => sport.id > 0 && isVisibleName(sport.name))
+        .toList(growable: false);
+  }
+
   factory SportModel.fromJson(Map<String, dynamic> json) {
     return SportModel(
       id: _asInt(json['id'] ?? json['sportID'] ?? json['sportId']),

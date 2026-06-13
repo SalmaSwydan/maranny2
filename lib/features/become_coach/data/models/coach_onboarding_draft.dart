@@ -12,11 +12,13 @@ class CoachOnboardingDraft {
     this.experienceYears = 0,
     this.sessionPrice = 0,
     List<String>? selectedSports,
+    Map<String, int>? selectedSportIds,
     this.bio,
     List<String>? availableDays,
     Map<String, List<String>>? availabilitySlots,
     this.certificateUrl,
   }) : selectedSports = selectedSports ?? <String>[],
+       selectedSportIds = selectedSportIds ?? <String, int>{},
        availableDays = availableDays ?? <String>[],
        availabilitySlots = availabilitySlots ?? <String, List<String>>{};
 
@@ -30,6 +32,7 @@ class CoachOnboardingDraft {
   final int experienceYears;
   final double sessionPrice;
   final List<String> selectedSports;
+  final Map<String, int> selectedSportIds;
   final String? bio;
   final List<String> availableDays;
   final Map<String, List<String>> availabilitySlots;
@@ -55,6 +58,7 @@ class CoachOnboardingDraft {
     int? experienceYears,
     double? sessionPrice,
     List<String>? selectedSports,
+    Map<String, int>? selectedSportIds,
     String? bio,
     List<String>? availableDays,
     Map<String, List<String>>? availabilitySlots,
@@ -71,6 +75,8 @@ class CoachOnboardingDraft {
       experienceYears: experienceYears ?? this.experienceYears,
       sessionPrice: sessionPrice ?? this.sessionPrice,
       selectedSports: selectedSports ?? List<String>.from(this.selectedSports),
+      selectedSportIds:
+          selectedSportIds ?? Map<String, int>.from(this.selectedSportIds),
       bio: bio ?? this.bio,
       availableDays: availableDays ?? List<String>.from(this.availableDays),
       availabilitySlots:
@@ -85,8 +91,16 @@ class CoachOnboardingDraft {
   }
 
   List<String> get unsupportedSports => selectedSports
-      .where((sport) => !supportedSports.containsKey(sport))
+      .where((sport) => !_resolveSportId(sport).isValidSportId)
       .toList(growable: false);
+
+  int? _resolveSportId(String sport) {
+    final id = selectedSportIds[sport];
+    if (id != null && id > 0) {
+      return id;
+    }
+    return supportedSports[sport];
+  }
 
   List<String> get selectedAvailableHours {
     final orderedHours = <String>[];
@@ -130,10 +144,10 @@ class CoachOnboardingDraft {
 
   CompleteCoachOnboardingRequest toRequest() {
     final sports = selectedSports
-        .where(supportedSports.containsKey)
+        .where((sport) => _resolveSportId(sport).isValidSportId)
         .map(
           (sport) => CoachOnboardingSportRequest(
-            sportID: supportedSports[sport]!,
+            sportID: _resolveSportId(sport)!,
             description: bio,
           ),
         )
@@ -165,4 +179,8 @@ class CoachOnboardingDraft {
       certificateUrl: certificateUrl,
     );
   }
+}
+
+extension on int? {
+  bool get isValidSportId => this != null && this! > 0;
 }

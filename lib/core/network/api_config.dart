@@ -5,7 +5,7 @@
 class ApiConfig {
   ApiConfig._();
   // ✅ Dev tunnel URL — works for everyone on any device
-  static const String baseUrl = 'http://maranny.runasp.net/api';
+  static const String baseUrl = 'https://7s1frhl5-7112.uks1.devtunnels.ms/api';
 
   static String get publicBaseUrl => baseUrl.endsWith('/api')
       ? baseUrl.substring(0, baseUrl.length - 4)
@@ -46,6 +46,7 @@ class ApiConfig {
   // ── User endpoints ────────────────────────────────────────
   static const String updateProfile = '/users/profile';
   static const String uploadProfilePic = '/users/profile/image';
+  static const String uploadCoachCertificate = '/users/coach/certificate';
   static const String updatePreferences = '/users/preferences';
   static const String userPreferences = '/users/preferences';
   static const String coachSetup = '/users/coach-setup';

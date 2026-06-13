@@ -63,6 +63,45 @@ class ProfileRepository {
     return '';
   }
 
+  Future<String> uploadCoachCertificate(File imageFile) async {
+    final requestUrl = _buildLogUrl(ApiConfig.uploadCoachCertificate);
+    final formData = FormData.fromMap({
+      'File': await MultipartFile.fromFile(
+        imageFile.path,
+        filename: 'certificate.jpg',
+      ),
+    });
+
+    developer.log(
+      'Upload coach certificate request -> '
+      'url=$requestUrl method=POST contentType=multipart/form-data '
+      'fileFieldNames=${formData.files.map((entry) => entry.key).toList(growable: false)}',
+      name: 'ProfileRepository',
+    );
+
+    final response = await _dio.post(
+      ApiConfig.uploadCoachCertificate,
+      data: formData,
+    );
+
+    developer.log(
+      'Upload coach certificate response -> status=${response.statusCode} body=${jsonEncode(response.data)}',
+      name: 'ProfileRepository',
+    );
+
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      return ApiConfig.resolveMediaUrl(
+        (data['certificateUrl'] ??
+                data['certificateImageUrl'] ??
+                data['imageUrl'] ??
+                data['url'])
+            ?.toString(),
+      );
+    }
+    return '';
+  }
+
   Future<String> updatePreferences(UpdatePreferencesRequest request) async {
     final response = await _dio.put(
       ApiConfig.updatePreferences,

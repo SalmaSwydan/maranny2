@@ -67,22 +67,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       return mappedId;
     }
 
-    switch (category) {
-      case 'Basketball':
-        return 2;
-      case 'Football':
-        return 1;
-      case 'Gym Training':
-        return 5;
-      case 'Padel':
-        return 6;
-      case 'Swimming':
-        return 3;
-      case 'Tennis':
-        return 4;
-      default:
-        return null;
-    }
+    return null;
   }
 
   Future<void> _loadSports() async {
@@ -558,7 +543,6 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     final sport = _coachSport(coach).toLowerCase();
     if (sport.contains('football')) return const Color(0xFF1565C0);
     if (sport.contains('swimming')) return const Color(0xFF6A1B9A);
-    if (sport.contains('yoga')) return const Color(0xFF880E4F);
     if (sport.contains('padel')) return const Color(0xFF1B5E20);
     if (sport.contains('fitness')) return const Color(0xFFE65100);
     return const Color(0xFF1565C0);

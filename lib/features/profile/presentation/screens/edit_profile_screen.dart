@@ -30,6 +30,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   String? _profileImagePath;
   String? _profileImageUrl;
+  String? _certificateImagePath;
+  String? _certificateImageUrl;
   final Set<String> _selectedLocations = <String>{};
 
   bool _isLoading = true;
@@ -54,6 +56,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _profileImageUrl = user.profilePicture;
       try {
         final setup = await _profileRepository.getMyCoachSetup();
+        _certificateImageUrl = setup.certificateUrl;
         final locations = setup.locations.isNotEmpty
             ? setup.locations
             : (setup.city ?? '').split(',');
@@ -103,6 +106,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Future<void> _pickCertificateImage() async {
+    final picker = ImagePicker();
+    final xFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (xFile != null) {
+      setState(() => _certificateImagePath = xFile.path);
+    }
+  }
+
   Future<void> _saveEdit() async {
     if (_isSaving) return;
 
@@ -112,6 +124,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (_profileImagePath != null && _profileImagePath!.isNotEmpty) {
         _profileImageUrl = await _profileRepository.uploadProfilePicture(
           File(_profileImagePath!),
+        );
+      }
+
+      if (_certificateImagePath != null && _certificateImagePath!.isNotEmpty) {
+        _certificateImageUrl = await _profileRepository.uploadCoachCertificate(
+          File(_certificateImagePath!),
         );
       }
 
@@ -204,6 +222,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildProfilePicture(),
+                    const SizedBox(height: 24),
+                    _buildCertificateUploader(),
                     const SizedBox(height: 24),
                     _FormPlate(
                       child: Column(
@@ -353,6 +373,102 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCertificateUploader() {
+    final hasLocalImage =
+        _certificateImagePath != null && _certificateImagePath!.isNotEmpty;
+    final hasRemoteImage =
+        _certificateImageUrl != null &&
+        _certificateImageUrl!.startsWith('http');
+
+    return _FormPlate(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSectionTitle('Coach Certifications'),
+          GestureDetector(
+            onTap: _pickCertificateImage,
+            child: Container(
+              height: 132,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7FAFF),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFD7E0F2)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(17),
+                child: hasLocalImage
+                    ? Image.file(
+                        File(_certificateImagePath!),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      )
+                    : hasRemoteImage
+                    ? Image.network(
+                        _certificateImageUrl!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (_, __, ___) => _certificatePlaceholder(),
+                      )
+                    : _certificatePlaceholder(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 46,
+            child: OutlinedButton.icon(
+              onPressed: _isSaving ? null : _pickCertificateImage,
+              icon: const Icon(Icons.upload_file_rounded, size: 20),
+              label: Text(
+                hasLocalImage || hasRemoteImage
+                    ? 'Change certificate image'
+                    : 'Upload certificate image',
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.deepBlue,
+                side: const BorderSide(color: Color(0xFFD7E0F2)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Inter',
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _certificatePlaceholder() {
+    return Container(
+      color: const Color(0xFFF7FAFF),
+      child: const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.workspace_premium_outlined,
+            color: AppColors.deepBlue,
+            size: 34,
+          ),
+          SizedBox(height: 8),
+          Text(
+            'No certificate uploaded yet',
+            style: TextStyle(
+              color: Color(0xFF6C7897),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Inter',
+            ),
+          ),
+        ],
       ),
     );
   }

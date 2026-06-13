@@ -43,6 +43,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
   String ageLabel = 'Not added yet';
   String availabilityLabel = 'Not added yet';
   String certificationLabel = 'No certifications yet';
+  String? certificateUrl;
   String totalReviewsValue = '0';
   String totalClientsValue = '0';
   String totalSessionsValue = '0';
@@ -130,8 +131,11 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
       final availabilityText = availabilityDays.isEmpty
           ? 'Not added yet'
           : availabilityDays.join(', ');
-      final certificationText =
+      final resolvedCertificateUrl =
           (coachSetup.certificateUrl?.trim().isNotEmpty ?? false)
+          ? coachSetup.certificateUrl!.trim()
+          : (coachProfile.certificateUrl?.trim() ?? '');
+      final certificationText = resolvedCertificateUrl.isNotEmpty
           ? 'Certificate uploaded'
           : 'No certifications yet';
       final bookingStats = _buildBookingStats(coachBookings);
@@ -180,6 +184,9 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             : 'Not added yet';
         availabilityLabel = availabilityText;
         certificationLabel = certificationText;
+        certificateUrl = resolvedCertificateUrl.isNotEmpty
+            ? resolvedCertificateUrl
+            : null;
         totalReviewsValue = totalReviews.toString();
         totalClientsValue = bookingStats.totalClients.toString();
         totalSessionsValue = bookingStats.totalSessions.toString();
@@ -353,7 +360,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
               ),
             const SizedBox(height: 24),
             _buildSectionTitle('Coach Certifications'),
-            _simpleInfoCard(certificationLabel),
+            _buildCertificateCard(),
             const SizedBox(height: 24),
           ],
         ),
@@ -868,13 +875,93 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
     );
   }
 
-  Widget _simpleInfoCard(String text) {
+  Widget _buildCertificateCard() {
+    final url = certificateUrl?.trim() ?? '';
+    if (url.isEmpty) {
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.symmetric(horizontal: 18),
+        padding: const EdgeInsets.all(16),
+        decoration: _cardDecoration(),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF0FB),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.workspace_premium_outlined,
+                color: Color(0xFF8A96B3),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: _emptyText(certificationLabel)),
+          ],
+        ),
+      );
+    }
+
     return Container(
-      width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 18),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: _cardDecoration(),
-      child: _emptyText(text),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.network(
+              url,
+              width: 72,
+              height: 72,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 72,
+                height: 72,
+                color: const Color(0xFFEAF0FB),
+                child: const Icon(
+                  Icons.image_not_supported_outlined,
+                  color: Color(0xFF8A96B3),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Certificate uploaded',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.deepBlue,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  'Visible on your coach profile',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6C7897),
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.verified_rounded,
+            color: AppColors.primaryBlue,
+            size: 24,
+          ),
+        ],
+      ),
     );
   }
 

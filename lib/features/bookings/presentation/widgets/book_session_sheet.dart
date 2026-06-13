@@ -279,14 +279,8 @@ class _BookSessionSheetState extends State<BookSessionSheet> {
   }
 
   int? _sportIdFromText(String sport) {
-    final s = sport.toLowerCase();
-    if (s.contains('football')) return 1;
-    if (s.contains('yoga')) return 2;
-    if (s.contains('swimming')) return 3;
-    if (s.contains('fitness')) return 4;
-    if (s.contains('tennis')) return 5;
-    if (s.contains('basketball')) return 6;
-    if (s.contains('horse')) return 7;
+    // Do not guess SportID from display text. Production sport IDs come from
+    // the API and may differ between databases.
     return null;
   }
 

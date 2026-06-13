@@ -16,21 +16,24 @@ class ApiClient {
     final dio = Dio(
       BaseOptions(
         baseUrl: ApiConfig.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 90),
+        receiveTimeout: const Duration(seconds: 180),
+        sendTimeout: const Duration(seconds: 90),
         headers: {
           'Content-Type': 'application/json',
-          'Accept':        'application/json',
+          'Accept': 'application/json',
         },
       ),
     );
 
     dio.interceptors.add(AuthInterceptor(dio));
-    dio.interceptors.add(LogInterceptor(
-      requestBody:  true,
-      responseBody: true,
-      logPrint: (log) => print('[API] $log'),
-    ));
+    dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        logPrint: (log) => print('[API] $log'),
+      ),
+    );
 
     return dio;
   }
