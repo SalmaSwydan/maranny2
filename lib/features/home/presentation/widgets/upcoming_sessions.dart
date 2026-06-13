@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../bookings/data/models/bookings_models.dart';
 import '../../../bookings/data/repositories/bookings_repository.dart';
-import '../../../bookings/domain/models/booking_session_model.dart';
-import '../../../bookings/domain/models/coach_data_model.dart';
-import '../../../bookings/presentation/screens/coach_details_screen.dart';
+import '../../../bookings/presentation/screens/session_info_screen.dart';
 
 class UpcomingSessionsSection extends StatefulWidget {
   final VoidCallback? onViewMore;
@@ -62,45 +60,9 @@ class _UpcomingSessionsSectionState extends State<UpcomingSessionsSection> {
 
     if (!mounted) return;
 
-    final session = BookingSessionModel(
-      id: bookingDetails.bookingID.toString(),
-      coachUserId: bookingDetails.coach.userID ?? bookingDetails.coach.coachID,
-      sportId: bookingDetails.session.sportID,
-      coachName: bookingDetails.coach.name,
-      sport: bookingDetails.session.sportName,
-      location: bookingDetails.session.location,
-      date:
-          bookingDetails.scheduledDateTime ??
-          DateTime.tryParse(bookingDetails.session.sessionDate) ??
-          DateTime.now(),
-      isPast: false,
-    );
-
-    final coachData = CoachData(
-      name: bookingDetails.coach.name,
-      sport: bookingDetails.session.sportName,
-      sportId: bookingDetails.session.sportID,
-      location: bookingDetails.session.location,
-      locations: [bookingDetails.session.location],
-      image: '',
-      rating: bookingDetails.coach.avgRating,
-      reviewCount: 0,
-      price: 0,
-      bio: '',
-      totalStudents: 0,
-      totalSessions: 0,
-      hoursTaught: 0,
-      achievements: const [],
-      reviews: const [],
-    );
-
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => CoachDetailsScreen(
-          session: session,
-          image: '',
-          coachData: coachData,
-        ),
+        builder: (_) => SessionInfoScreen(booking: bookingDetails),
       ),
     );
 
