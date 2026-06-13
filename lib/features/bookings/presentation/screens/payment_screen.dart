@@ -249,153 +249,158 @@ class _PaymentScreenState extends State<PaymentScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFDDE5F4)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Booking Summary',
-                    style: TextStyle(
-                      color: Color(0xFF101B3F),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFDDE5F4)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(22),
-                        child: widget.coachImage.isNotEmpty
-                            ? _isNetworkImage
-                                  ? Image.network(
-                                      widget.coachImage,
-                                      width: 44,
-                                      height: 44,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _avatarCircle(),
-                                    )
-                                  : Image.asset(
-                                      widget.coachImage,
-                                      width: 44,
-                                      height: 44,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _avatarCircle(),
-                                    )
-                            : _avatarCircle(),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.coachName,
-                              style: const TextStyle(
-                                color: Color(0xFF101B3F),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 15,
-                              ),
-                            ),
-                            Text(
-                              widget.coachSport,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const Divider(),
-                  const SizedBox(height: 10),
-                  _summaryRow('Date & Time', '${widget.day}, ${widget.time}'),
-                  const SizedBox(height: 8),
-                  _summaryRow('Place', _selectedLocation),
-                  const SizedBox(height: 8),
-                  _summaryRow('Session Price', '${widget.coachPrice} LE'),
-                  const SizedBox(height: 8),
-                  _summaryRow(
-                    'Total Amount',
-                    '${widget.coachPrice} LE',
-                    valueColor: Colors.blue,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Payment Method',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ),
-            const SizedBox(height: 10),
-            _paymentOption(
-              _payOnArrivalMethod,
-              'Pay on Arrival',
-              Icons.store_outlined,
-            ),
-            const SizedBox(height: 20),
-            const _BookingPolicyNotice(),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isBooking ? null : _confirmBooking,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF304FFE),
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 7,
-                  shadowColor: const Color(0xFF304FFE).withValues(alpha: 0.32),
+                  ],
                 ),
-                child: _isBooking
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        'Confirm Booking',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Booking Summary',
+                      style: TextStyle(
+                        color: Color(0xFF101B3F),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: widget.coachImage.isNotEmpty
+                              ? _isNetworkImage
+                                    ? Image.network(
+                                        widget.coachImage,
+                                        width: 44,
+                                        height: 44,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            _avatarCircle(),
+                                      )
+                                    : Image.asset(
+                                        widget.coachImage,
+                                        width: 44,
+                                        height: 44,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            _avatarCircle(),
+                                      )
+                              : _avatarCircle(),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.coachName,
+                                style: const TextStyle(
+                                  color: Color(0xFF101B3F),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              Text(
+                                widget.coachSport,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    const Divider(),
+                    const SizedBox(height: 10),
+                    _summaryRow('Date & Time', '${widget.day}, ${widget.time}'),
+                    const SizedBox(height: 8),
+                    _summaryRow('Place', _selectedLocation),
+                    const SizedBox(height: 8),
+                    _summaryRow('Session Price', '${widget.coachPrice} LE'),
+                    const SizedBox(height: 8),
+                    _summaryRow(
+                      'Total Amount',
+                      '${widget.coachPrice} LE',
+                      valueColor: Colors.blue,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Payment Method',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _paymentOption(
+                _payOnArrivalMethod,
+                'Pay on Arrival',
+                Icons.store_outlined,
+              ),
+              const SizedBox(height: 20),
+              const _BookingPolicyNotice(),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isBooking ? null : _confirmBooking,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF304FFE),
+                    disabledBackgroundColor: Colors.grey.shade300,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 7,
+                    shadowColor: const Color(
+                      0xFF304FFE,
+                    ).withValues(alpha: 0.32),
+                  ),
+                  child: _isBooking
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Confirm Booking',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
