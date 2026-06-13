@@ -58,6 +58,7 @@ class AuthRepository {
           await _savePreferencesToServer(migratedPreferences);
         }
         await _hydratePreferencesFromServer();
+        await _hydrateClientProfileFromServer();
       }
       return loginResponse;
     } on DioException catch (e) {
@@ -142,6 +143,20 @@ class AuthRepository {
       }
     } catch (_) {
       // Login should continue even if preferences cannot be refreshed.
+    }
+  }
+
+  Future<void> _hydrateClientProfileFromServer() async {
+    try {
+      final currentUser = await getCurrentUser();
+      await ClientProfileStorage.save(
+        phone: currentUser.phoneNumber,
+        location: currentUser.city ?? currentUser.street,
+        bio: currentUser.bio,
+        imageUrl: currentUser.profilePicture,
+      );
+    } catch (_) {
+      // Login should continue even if optional profile cache hydration fails.
     }
   }
 
