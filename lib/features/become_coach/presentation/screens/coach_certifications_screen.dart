@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:awesome_dialog/awesome_dialog.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/models/auth_models.dart';
@@ -141,14 +141,14 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
   bool _isSubmitting = false;
 
   Future<void> _handleChooseFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['pdf'],
-      allowMultiple: false,
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
     );
 
-    final path = result?.files.single.path;
-    if (path == null) return;
+    final path = image?.path;
+    if (path == null || path.trim().isEmpty) return;
 
     setState(() {
       _selectedFiles = [File(path)];
@@ -371,7 +371,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -397,13 +397,24 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CustomPaint(
-                      size: const Size(100, 100),
-                      painter: UploadIconPainter(),
-                    ),
+                    if (_selectedFiles.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.file(
+                          _selectedFiles.first,
+                          width: 150,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else
+                      CustomPaint(
+                        size: const Size(100, 100),
+                        painter: UploadIconPainter(),
+                      ),
                     const SizedBox(height: 40),
                     const Text(
-                      'Upload certifications',
+                      'Upload certificate image',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 20,
@@ -413,7 +424,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'PDF Files up to 10MB',
+                      'Choose a clear photo of your certificate',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 15,
@@ -449,7 +460,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
           child: const Text(
-            'Choose File',
+            'Choose Image',
             style: TextStyle(
               fontFamily: 'Inter',
               fontSize: 16,
@@ -503,7 +514,7 @@ class _CoachCertificationsScreenState extends State<CoachCertificationsScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

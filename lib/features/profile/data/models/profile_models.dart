@@ -178,7 +178,7 @@ class CoachProfileModel {
               payload['imageUrl'],
         ),
       ),
-      certificateUrl: ApiConfig.resolveMediaUrl(
+      certificateUrl: _resolveCertificateImagePath(
         _asNullableString(
           payload['certificateUrl'] ?? payload['certificateImageUrl'],
         ),
@@ -301,7 +301,7 @@ class CoachSetupProfileModel {
       experienceYears: _asNullableInt(json['experienceYears']),
       gender: _asNullableString(json['gender']),
       age: _asNullableInt(json['age']),
-      certificateUrl: ApiConfig.resolveMediaUrl(
+      certificateUrl: _resolveCertificateImagePath(
         _asNullableString(
           json['certificateUrl'] ?? json['certificateImageUrl'],
         ),
@@ -455,6 +455,18 @@ String? _firstNonEmptyString(List<String?> values) {
     }
   }
   return null;
+}
+
+String _resolveCertificateImagePath(String? rawPath) {
+  final value = rawPath?.trim() ?? '';
+  if (value.isEmpty) return '';
+  if (value.startsWith('/data/') ||
+      value.startsWith('/storage/') ||
+      value.startsWith('/sdcard/') ||
+      RegExp(r'^[A-Za-z]:[\\/]').hasMatch(value)) {
+    return value;
+  }
+  return ApiConfig.resolveMediaUrl(value);
 }
 
 double? _firstNonNullDouble(List<double?> values) {

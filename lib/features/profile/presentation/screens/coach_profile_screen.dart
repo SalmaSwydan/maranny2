@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
@@ -912,21 +913,7 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Image.network(
-              url,
-              width: 72,
-              height: 72,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: 72,
-                height: 72,
-                color: const Color(0xFFEAF0FB),
-                child: const Icon(
-                  Icons.image_not_supported_outlined,
-                  color: Color(0xFF8A96B3),
-                ),
-              ),
-            ),
+            child: _certificateImage(url),
           ),
           const SizedBox(width: 14),
           const Expanded(
@@ -961,6 +948,52 @@ class _CoachProfileScreenState extends State<CoachProfileScreen> {
             size: 24,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _certificateImage(String url) {
+    final isRemote =
+        url.startsWith('http://') ||
+        url.startsWith('https://') ||
+        url.startsWith('file:');
+    final isLocalPath =
+        url.startsWith('/data/') ||
+        url.startsWith('/storage/') ||
+        url.startsWith('/sdcard/') ||
+        RegExp(r'^[A-Za-z]:[\\/]').hasMatch(url);
+
+    if (isLocalPath) {
+      return Image.file(
+        File(url),
+        width: 72,
+        height: 72,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _certificateImageFallback(),
+      );
+    }
+
+    if (isRemote) {
+      return Image.network(
+        url,
+        width: 72,
+        height: 72,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _certificateImageFallback(),
+      );
+    }
+
+    return _certificateImageFallback();
+  }
+
+  Widget _certificateImageFallback() {
+    return Container(
+      width: 72,
+      height: 72,
+      color: const Color(0xFFEAF0FB),
+      child: const Icon(
+        Icons.image_not_supported_outlined,
+        color: Color(0xFF8A96B3),
       ),
     );
   }
