@@ -3,8 +3,6 @@ import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
 import '../../../../core/utils/cairo_time.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../messages/data/models/messages_models.dart';
-import '../../../messages/data/repositories/messages_repository.dart';
 import '../../../messages/presentation/screens/CoachChatScreen.dart';
 import '../../data/models/bookings_models.dart';
 import '../../data/repositories/bookings_repository.dart';
@@ -23,7 +21,6 @@ class UpcomingScreen extends StatefulWidget {
 class _UpcomingScreenState extends State<UpcomingScreen>
     with SingleTickerProviderStateMixin {
   final BookingsRepository _repo = BookingsRepository();
-  final MessagesRepository _messagesRepository = MessagesRepository();
 
   late TabController _tabController;
 
@@ -276,31 +273,9 @@ class _UpcomingScreenState extends State<UpcomingScreen>
     );
   }
 
-  Future<void> _sendConfirmationMessage(BookingModel booking) async {
-    final clientUserId = await _resolveClientUserId(booking);
-    if (clientUserId == null) return;
-
-    try {
-      await _messagesRepository.sendMessage(
-        SendMessageRequest(
-          receiverId: clientUserId,
-          content: _confirmationMessage(booking),
-        ),
-      );
-    } catch (error, stackTrace) {
-      developer.log(
-        'Could not send automatic confirmation message',
-        name: 'UpcomingScreen',
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
-  }
-
   Future<void> _approveBooking(BookingModel booking) async {
     try {
       await _repo.approveBooking(booking.bookingID);
-      await _sendConfirmationMessage(booking);
       BookingsRefreshNotifier.notifyUpdated();
       await _loadBookings();
 

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/network/api_config.dart';
+import '../../../../core/network/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../messages/presentation/screens/chat_screen.dart';
 import '../../data/repositories/marketplace_repository.dart';
@@ -31,12 +32,20 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   late MarketplaceProduct _product;
   bool _isLoading = true;
   bool _isDeleting = false;
+  int? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     _product = widget.product;
+    _loadCurrentUserId();
     _loadDetails();
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    final rawUserId = await TokenStorage.getUserId();
+    if (!mounted) return;
+    setState(() => _currentUserId = int.tryParse(rawUserId ?? ''));
   }
 
   Future<void> _loadDetails() async {
@@ -155,6 +164,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     final hasCallablePhone =
         product.showPhoneNumber &&
         _extractCallablePhone(product.whatsapp).isNotEmpty;
+    final canDeleteProduct =
+        product.sellerUserId != null &&
+        _currentUserId != null &&
+        product.sellerUserId == _currentUserId;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F7FF),
@@ -195,7 +208,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${displayCategory.toUpperCase()}  •  ${displayCondition.toUpperCase()}',
+                                '${displayCategory.toUpperCase()}  â€¢  ${displayCondition.toUpperCase()}',
                                 style: const TextStyle(
                                   color: Color(0xFF9AA7C5),
                                   fontSize: 10,
@@ -275,11 +288,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  _DeleteButton(
-                                    isDeleting: _isDeleting,
-                                    onPressed: _deleteProduct,
-                                  ),
+                                  if (canDeleteProduct) ...[
+                                    const SizedBox(width: 12),
+                                    _DeleteButton(
+                                      isDeleting: _isDeleting,
+                                      onPressed: _deleteProduct,
+                                    ),
+                                  ],
                                 ],
                               ),
                               if (!hasCallablePhone) ...[

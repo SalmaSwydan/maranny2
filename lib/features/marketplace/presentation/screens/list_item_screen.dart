@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/network/token_storage.dart';
 import '../../../../core/utils/egypt_locations.dart';
 import '../../../../core/utils/profile_validators.dart';
 import '../../data/models/marketplace_models.dart';
@@ -26,7 +27,6 @@ class _ListItemScreenState extends State<ListItemScreen> {
   final _titleController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _sellerNameController = TextEditingController();
   final _sellerPhoneController = TextEditingController();
   final _sellerLocationController = TextEditingController();
 
@@ -45,7 +45,6 @@ class _ListItemScreenState extends State<ListItemScreen> {
     _titleController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
-    _sellerNameController.dispose();
     _sellerPhoneController.dispose();
     _sellerLocationController.dispose();
     super.dispose();
@@ -67,7 +66,8 @@ class _ListItemScreenState extends State<ListItemScreen> {
     final title = _titleController.text.trim();
     final priceText = _priceController.text.trim();
     final description = _descriptionController.text.trim();
-    final sellerName = _sellerNameController.text.trim();
+    final sellerName =
+        (await TokenStorage.getDisplayName())?.trim() ?? 'Seller';
     final sellerPhone = _sellerPhoneController.text.trim();
     final sellerLocation = _sellerLocationController.text.trim();
 
@@ -86,10 +86,6 @@ class _ListItemScreenState extends State<ListItemScreen> {
     }
     if (description.length < 10) {
       _showMessage('Please write a more detailed description');
-      return;
-    }
-    if (sellerName.isEmpty) {
-      _showMessage('Please enter the seller or store name');
       return;
     }
     if (sellerPhone.isEmpty) {
@@ -533,11 +529,6 @@ class _ListItemScreenState extends State<ListItemScreen> {
           const SizedBox(height: 20),
           _buildSectionPill('Seller / contact info'),
           const SizedBox(height: 14),
-          _buildTextField(
-            controller: _sellerNameController,
-            hint: 'Store or seller name',
-          ),
-          const SizedBox(height: 12),
           _buildTextField(
             controller: _sellerPhoneController,
             hint: 'Phone number (e.g. +20 100 123 4567)',

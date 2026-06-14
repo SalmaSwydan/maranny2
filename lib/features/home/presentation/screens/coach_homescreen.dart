@@ -11,6 +11,7 @@ import '../../../bookings/data/models/reviews_payments_models.dart';
 import '../../../bookings/data/repositories/bookings_repository.dart';
 import '../../../bookings/data/repositories/reviews_payments_repository.dart';
 import '../../../bookings/presentation/screens/upcoming_pending.dart';
+import '../../../bookings/presentation/screens/session_info_screen.dart';
 import '../../../bookings/presentation/utils/bookings_refresh_notifier.dart';
 import '../../../profile/data/repositories/profile_repository.dart';
 import '../../../reviews/presentation/screens/all_reviews_screen.dart';
@@ -363,6 +364,12 @@ class _CoachHomeScreenState extends State<CoachHomeScreen> {
                             ? 'Location TBD'
                             : booking.session.location,
                         status: _scheduleStatus(booking),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SessionInfoScreen(booking: booking),
+                          ),
+                        ),
                       ),
                     ),
               _SectionTitleWithViewAll(
@@ -535,7 +542,7 @@ class _SectionTitleWithViewAll extends StatelessWidget {
           GestureDetector(
             onTap: onViewAll,
             child: Text(
-              'View All →',
+              'View All ->',
               style: TextStyle(
                 color: AppColors.primaryBlue,
                 fontWeight: FontWeight.w700,
