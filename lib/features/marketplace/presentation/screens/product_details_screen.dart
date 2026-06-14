@@ -249,6 +249,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               const SizedBox(height: 16),
                               _SellerCard(
                                 sellerName: product.sellerName,
+                                canMessage: !canDeleteProduct,
                                 onMessage: () => _openSellerChat(product),
                               ),
                               const SizedBox(height: 24),
@@ -456,9 +457,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
 class _SellerCard extends StatelessWidget {
   final String sellerName;
+  final bool canMessage;
   final VoidCallback onMessage;
 
-  const _SellerCard({required this.sellerName, required this.onMessage});
+  const _SellerCard({
+    required this.sellerName,
+    required this.canMessage,
+    required this.onMessage,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -512,21 +518,25 @@ class _SellerCard extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(
-            onPressed: onMessage,
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFFE8EEF9),
-              foregroundColor: const Color(0xFF4E5D7E),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(999),
+          if (canMessage)
+            TextButton(
+              onPressed: onMessage,
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xFFE8EEF9),
+                foregroundColor: const Color(0xFF4E5D7E),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              child: const Text(
+                'Message',
+                style: TextStyle(fontWeight: FontWeight.w900),
               ),
             ),
-            child: const Text(
-              'Message',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-          ),
         ],
       ),
     );
