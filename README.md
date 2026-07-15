@@ -1,16 +1,39 @@
-# maranny_two
+# MARANNY – Graduation Project
 
-A new Flutter project.
+A cross-platform mobile application developed using **Flutter** as a graduation project, integrated with an **ASP.NET Web API** backend to provide a complete and scalable solution.
 
-## Getting Started
+## 📱 Features
 
-This project is a starting point for a Flutter application.
+- User Authentication
+- Responsive UI
+- RESTful API Integration
+- Provider State Management
+- Profile Management
+- Real-time Data Handling
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠 Tech Stack
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Flutter
+- Dart
+- Provider
+- ASP.NET Web API
+- SQL Server
+- Swagger
+- Git & GitHub
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 👩‍💻 My Role
+
+- Led the Flutter development team.
+- Developed responsive mobile user interfaces.
+- Integrated RESTful APIs with the ASP.NET backend.
+- Managed application state using Provider.
+- Participated in debugging, testing, and performance optimization.
+
+## 🚀 Getting Started
+
+```bash
+flutter pub get
+flutter run
+```
+## 👥 Team Project
+This application was developed as a graduation project in collaboration with a development team, where I was responsible for leading the Flutter development and implementing the mobile application.
